@@ -84,11 +84,14 @@ export default function Index() {
                     Começar agora <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
-                <Link to="#features">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
-                    Como funciona
-                  </Button>
-                </Link>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                  onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  Como funciona
+                </Button>
               </div>
             </motion.div>
 
