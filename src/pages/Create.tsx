@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles, Copy, Printer, Edit, Save, MessageSquare, Star, BookOpen, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles, Copy, Printer, Edit, Save, MessageSquare, Star, BookOpen, Loader2, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,7 +84,46 @@ export default function Create() {
   const [resolutionOpen, setResolutionOpen] = useState(false);
   const [resolutionText, setResolutionText] = useState("");
   const [resolutionLoading, setResolutionLoading] = useState(false);
+  const [pastedImages, setPastedImages] = useState<{ file: File; preview: string }[]>([]);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
+
+  const handleImageFiles = useCallback((files: FileList | File[]) => {
+    const validTypes = ["image/png", "image/jpeg", "image/gif"];
+    const newImages: { file: File; preview: string }[] = [];
+    Array.from(files).forEach((f) => {
+      if (validTypes.includes(f.type) && pastedImages.length + newImages.length < 5) {
+        newImages.push({ file: f, preview: URL.createObjectURL(f) });
+      }
+    });
+    if (newImages.length > 0) {
+      setPastedImages((prev) => [...prev, ...newImages]);
+      toast.success(`${newImages.length} imagem(ns) adicionada(s)`);
+    }
+  }, [pastedImages.length]);
+
+  const handleTextareaPaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const imageFiles: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        const f = items[i].getAsFile();
+        if (f) imageFiles.push(f);
+      }
+    }
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      handleImageFiles(imageFiles);
+    }
+  }, [handleImageFiles]);
+
+  const removeImage = (index: number) => {
+    setPastedImages((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -216,7 +255,7 @@ export default function Create() {
 
   const canAdvance = () => {
     if (step === 0) return context.type && context.subject && context.grade && context.topic;
-    if (step === 2 && mode === "adapt") return (originalText.length > 0 || file) && textConfirmed;
+    if (step === 2 && mode === "adapt") return (originalText.length > 0 || file || pastedImages.length > 0) && textConfirmed;
     return true;
   };
 
@@ -574,8 +613,27 @@ export default function Create() {
                   {mode === "adapt" && (
                     <div className="space-y-4 pt-2">
                       <div className="space-y-2">
-                        <Label>Cole o texto da atividade</Label>
-                        <Textarea value={originalText} onChange={(e) => setOriginalText(e.target.value)} placeholder="Cole aqui o texto completo da atividade..." rows={6} />
+                        <Label>Cole o texto da atividade (pode colar imagens também)</Label>
+                        <Textarea value={originalText} onChange={(e) => setOriginalText(e.target.value)} onPaste={handleTextareaPaste} placeholder="Cole aqui o texto completo da atividade ou cole/anexe imagens (PNG, JPEG, GIF)..." rows={6} />
+                        <div className="flex items-center gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => imageInputRef.current?.click()}>
+                            <ImagePlus className="w-4 h-4 mr-1" /> Adicionar imagem
+                          </Button>
+                          <span className="text-xs text-muted-foreground">PNG, JPEG ou GIF (máx. 5)</span>
+                          <input ref={imageInputRef} type="file" accept="image/png,image/jpeg,image/gif" multiple className="hidden" onChange={(e) => { if (e.target.files) handleImageFiles(e.target.files); e.target.value = ""; }} />
+                        </div>
+                        {pastedImages.length > 0 && (
+                          <div className="flex flex-wrap gap-3 mt-2">
+                            {pastedImages.map((img, i) => (
+                              <div key={i} className="relative group">
+                                <img src={img.preview} alt={`Imagem ${i + 1}`} className="w-24 h-24 object-cover rounded-lg border border-border" />
+                                <button type="button" onClick={() => removeImage(i)} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="text-center text-xs text-muted-foreground">ou</div>
                       <div>
