@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, Clock, Copy, Trash2, FileText } from "lucide-react";
+import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -152,6 +152,49 @@ export default function MyAdaptations() {
                 <div className="whitespace-pre-wrap text-sm leading-relaxed p-4">{viewItem.justification || "—"}</div>
               </TabsContent>
             </Tabs>
+          )}
+          {viewItem && (
+            <div className="flex flex-wrap gap-2 pt-4 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const text = [
+                    `Atividade: ${viewItem.adapted_text || ""}`,
+                    `\nOrientações: ${viewItem.teacher_guidance || ""}`,
+                    `\nJustificativa: ${viewItem.justification || ""}`,
+                  ].join("\n");
+                  navigator.clipboard.writeText(text);
+                  toast.success("Conteúdo copiado!");
+                }}
+              >
+                <Copy className="w-4 h-4 mr-1" /> Copiar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const w = window.open("", "_blank");
+                  if (w) {
+                    w.document.write(`<html><head><title>${viewItem.topic}</title><style>body{font-family:sans-serif;padding:2rem;line-height:1.6}h1{font-size:1.2rem}h2{font-size:1rem;margin-top:1.5rem}pre{white-space:pre-wrap}</style></head><body><h1>${viewItem.topic} — ${viewItem.grade}</h1><p>${viewItem.subject} · ${viewItem.type}</p><h2>Atividade</h2><pre>${viewItem.adapted_text || "—"}</pre><h2>Orientações</h2><pre>${viewItem.teacher_guidance || "—"}</pre><h2>Justificativa</h2><pre>${viewItem.justification || "—"}</pre></body></html>`);
+                    w.document.close();
+                    w.print();
+                  }
+                }}
+              >
+                <Printer className="w-4 h-4 mr-1" /> Imprimir
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setViewItem(null);
+                  window.location.href = `/create?edit=${viewItem.id}`;
+                }}
+              >
+                <Pencil className="w-4 h-4 mr-1" /> Editar (nova versão)
+              </Button>
+            </div>
           )}
         </DialogContent>
       </Dialog>
