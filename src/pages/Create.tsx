@@ -215,7 +215,7 @@ export default function Create() {
   };
 
   const canAdvance = () => {
-    if (step === 0) return context.type && context.subject && context.grade && context.topic && context.objective;
+    if (step === 0) return context.type && context.subject && context.grade && context.topic;
     if (step === 2 && mode === "adapt") return (originalText.length > 0 || file) && textConfirmed;
     return true;
   };
@@ -515,7 +515,7 @@ export default function Create() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Objetivo pedagógico *</Label>
+                    <Label>Objetivo pedagógico (opcional)</Label>
                     <Textarea value={context.objective} onChange={(e) => setContext({ ...context, objective: e.target.value })} placeholder="Ex: Que o aluno demonstre compreensão de frações equivalentes" rows={2} />
                   </div>
                   <div className="space-y-2">
