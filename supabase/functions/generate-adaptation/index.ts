@@ -43,6 +43,28 @@ ESCOPO EM PROVAS E AVALIAÇÕES:
   • NÃO alterar objetivo avaliativo;
   • NÃO simplificar fórmulas, conceitos ou nível.
 
+ESCOPO PARA RESUMO:
+- Se o tipo de atividade for RESUMO e o modo for "Adaptar atividade existente":
+  • Gerar um RESUMO PEDAGÓGICO do texto fornecido.
+  • Manter todos os conceitos-chave, definições e informações essenciais.
+  • Adaptar a linguagem conforme as barreiras pedagógicas selecionadas.
+  • Organizar o resumo com tópicos, subtítulos e destaques visuais.
+  • NÃO gerar exercícios ou questões — apenas o resumo do conteúdo.
+  • O formato de saída deve ser:
+    ## RESUMO ADAPTADO
+    (resumo aqui)
+    ## ORIENTAÇÕES AO PROFISSIONAL
+    (orientações aqui)
+    ## JUSTIFICATIVA PEDAGÓGICA
+    (justificativa aqui)
+    ---
+    *A decisão final é sempre do profissional.*
+
+- Se o tipo de atividade for RESUMO e o modo for "Criar atividade do zero":
+  • Criar uma ATIVIDADE DE RESUMO onde o aluno deve resumir um texto ou conteúdo.
+  • Incluir orientações adaptadas ao perfil do aluno sobre como fazer o resumo.
+  • Seguir o formato padrão de ATIVIDADE ADAPTADA.
+
 Ao gerar uma adaptação, SEMPRE responda no formato:
 
 ## ATIVIDADE ADAPTADA
