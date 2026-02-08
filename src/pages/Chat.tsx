@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Layout from "@/components/Layout";
+import { streamAI } from "@/lib/streamAI";
+import { toast } from "sonner";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -31,24 +33,41 @@ export default function Chat() {
   }, [messages]);
 
   const send = (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || loading) return;
     const userMsg: Message = { role: "user", content: text.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+    const allMessages = [...messages, userMsg];
+    setMessages(allMessages);
     setInput("");
     setLoading(true);
 
-    // Placeholder response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Obrigado pela pergunta! Para fornecer respostas reais com IA, é necessário ativar o backend Cloud. Por enquanto, esta é uma demonstração da interface.\n\n*A decisão final é sempre do profissional.*",
-        },
-      ]);
-      setLoading(false);
-    }, 1500);
+    let assistantSoFar = "";
+
+    const upsertAssistant = (chunk: string) => {
+      assistantSoFar += chunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && prev.length > allMessages.length) {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev.slice(0, allMessages.length), { role: "assistant", content: assistantSoFar }];
+      });
+    };
+
+    streamAI({
+      endpoint: "chat",
+      body: {
+        messages: allMessages
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .slice(-20) // Keep last 20 messages for context
+          .map((m) => ({ role: m.role, content: m.content })),
+      },
+      onDelta: (chunk) => upsertAssistant(chunk),
+      onDone: () => setLoading(false),
+      onError: (err) => {
+        setLoading(false);
+        toast.error(err);
+      },
+    });
   };
 
   return (
@@ -56,12 +75,9 @@ export default function Chat() {
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-5rem)]">
         <div className="mb-4">
           <h1 className="text-xl font-bold text-foreground">Chat com IA</h1>
-          <p className="text-xs text-muted-foreground">
-            Ferramenta pedagógica. Não diagnostica. Você decide.
-          </p>
+          <p className="text-xs text-muted-foreground">Ferramenta pedagógica. Não diagnostica. Você decide.</p>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 pb-4">
           {messages.map((msg, i) => (
             <motion.div
@@ -70,27 +86,17 @@ export default function Chat() {
               animate={{ opacity: 1, y: 0 }}
               className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
             >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                  msg.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                }`}
-              >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.role === "assistant" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                 {msg.role === "assistant" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
               </div>
-              <div
-                className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === "assistant"
-                    ? "bg-card border border-border text-foreground"
-                    : "bg-primary text-primary-foreground"
-                }`}
-              >
+              <div className={`max-w-[75%] rounded-xl px-4 py-3 text-sm leading-relaxed ${msg.role === "assistant" ? "bg-card border border-border text-foreground" : "bg-primary text-primary-foreground"}`}>
                 {msg.content.split("\n").map((line, j) => (
                   <p key={j} className={j > 0 ? "mt-2" : ""}>{line}</p>
                 ))}
               </div>
             </motion.div>
           ))}
-          {loading && (
+          {loading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                 <Bot className="w-4 h-4" />
@@ -107,7 +113,6 @@ export default function Chat() {
           <div ref={endRef} />
         </div>
 
-        {/* Quick Chips */}
         {messages.length <= 1 && (
           <div className="flex flex-wrap gap-2 mb-3">
             {quickChips.map((chip) => (
@@ -122,7 +127,6 @@ export default function Chat() {
           </div>
         )}
 
-        {/* Input */}
         <div className="flex gap-2">
           <Input
             value={input}
