@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,35 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { streamAI } from "@/lib/streamAI";
 
-const STEPS = [
-  "Contexto",
-  "Questionário",
-  "Modo",
-  "Configurações",
-  "Gerar",
-];
+const STEPS = ["Contexto", "Questionário", "Modo", "Configurações", "Gerar"];
 
-const activityTypes = [
-  "Prova/Avaliação",
-  "Exercício em sala",
-  "Lista de exercícios",
-  "Atividade de treino",
-];
-
-const subjects = [
-  "Matemática", "Português", "Ciências", "História", "Geografia",
-  "Física", "Química", "Biologia", "Inglês", "Artes", "Ed. Física", "Outra",
-];
-
-const grades = [
-  "1º ano", "2º ano", "3º ano", "4º ano", "5º ano",
-  "6º ano", "7º ano", "8º ano", "9º ano",
-  "1ª série EM", "2ª série EM", "3ª série EM",
-];
-
+const activityTypes = ["Prova/Avaliação", "Exercício em sala", "Lista de exercícios", "Atividade de treino"];
+const subjects = ["Matemática", "Português", "Ciências", "História", "Geografia", "Física", "Química", "Biologia", "Inglês", "Artes", "Ed. Física", "Outra"];
+const grades = ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano", "1ª série EM", "2ª série EM", "3ª série EM"];
 const neurodivergences = ["TEA", "TDAH", "Dislexia", "Discalculia", "Outro"];
 
 const questionnaireQuestions = [
@@ -62,16 +45,23 @@ const adaptationSettings = [
   { id: "guided_calc", label: "Cálculo guiado" },
 ];
 
+const settingsLabels: Record<string, string> = {
+  fragment: "Fragmentar em blocos",
+  language: "Ajustar linguagem",
+  reduce_items: "Reduzir itens por página",
+  step_by_step: "Passo a passo explícito",
+  visual: "Apoio visual",
+  checkpoints: "Checkpoints",
+  guided_calc: "Cálculo guiado",
+};
+
 export default function Create() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [context, setContext] = useState({
-    type: "",
-    subject: "",
-    grade: "",
-    topic: "",
-    objective: "",
-    neurodivergence: [] as string[],
+    type: "", subject: "", grade: "", topic: "", objective: "", neurodivergence: [] as string[],
   });
   const [questionnaire, setQuestionnaire] = useState<Record<string, string>>({});
   const [mode, setMode] = useState<"adapt" | "create">(
@@ -81,44 +71,137 @@ export default function Create() {
   const [file, setFile] = useState<File | null>(null);
   const [textConfirmed, setTextConfirmed] = useState(false);
   const [createParams, setCreateParams] = useState({
-    difficulty: "Médio",
-    questionCount: "5",
-    includeExample: false,
-    includeAnswer: false,
-    notes: "",
+    difficulty: "Médio", questionCount: "5", includeExample: false, includeAnswer: false, notes: "",
   });
   const [settings, setSettings] = useState<string[]>(["fragment", "language"]);
   const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<{ adapted: string; guidance: string; justification: string } | null>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
-    if (f) {
-      setFile(f);
-      // Simple text extraction placeholder
+    if (!f) return;
+    setFile(f);
+
+    if (f.type.includes("text") || f.name.endsWith(".txt")) {
       const reader = new FileReader();
       reader.onload = () => {
-        if (typeof reader.result === "string") {
-          setOriginalText(reader.result);
-        } else {
-          toast.info("Arquivo carregado. A extração de texto será processada pelo backend.");
-          setOriginalText(`[Arquivo: ${f.name}]`);
-        }
+        if (typeof reader.result === "string") setOriginalText(reader.result);
       };
-      if (f.type.includes("text")) {
-        reader.readAsText(f);
-      } else {
-        setOriginalText(`[Arquivo: ${f.name} — extração requer backend]`);
+      reader.readAsText(f);
+    } else {
+      // For PDF/Word, upload to storage and set a placeholder
+      if (user) {
+        const path = `${user.id}/${Date.now()}-${f.name}`;
+        const { error } = await supabase.storage.from("activity-files").upload(path, f);
+        if (error) {
+          toast.error("Erro ao enviar arquivo: " + error.message);
+        } else {
+          toast.success("Arquivo enviado! Cole o texto extraído abaixo ou digite manualmente.");
+          setOriginalText(`[Arquivo enviado: ${f.name}. Por favor, cole o texto da atividade manualmente para melhor resultado.]`);
+        }
       }
     }
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!user) return;
     setGenerating(true);
-    // Placeholder for AI generation
-    setTimeout(() => {
-      setGenerating(false);
-      toast.success("Adaptação gerada! (Backend necessário para IA real)");
-    }, 2500);
+    setResult(null);
+
+    let fullText = "";
+    const userPrompt = mode === "adapt"
+      ? `Adapte a seguinte atividade:\n\n${originalText}`
+      : `Crie uma atividade do zero sobre "${context.topic}" para ${context.grade}, disciplina ${context.subject}. Nível: ${createParams.difficulty}. Quantidade de questões: ${createParams.questionCount}.${createParams.notes ? ` Observações: ${createParams.notes}` : ""}`;
+
+    await streamAI({
+      endpoint: "generate-adaptation",
+      body: {
+        action: "generate",
+        messages: [{ role: "user", content: userPrompt }],
+        context: {
+          mode: mode === "adapt" ? "adaptar" : "criar_do_zero",
+          type: context.type,
+          subject: context.subject,
+          grade: context.grade,
+          topic: context.topic,
+          objective: context.objective,
+          neurodivergence: context.neurodivergence,
+          questionnaireAnswers: questionnaire,
+          strategySettings: settings.map(s => settingsLabels[s] || s),
+          originalText: mode === "adapt" ? originalText : undefined,
+          difficulty: createParams.difficulty,
+          questionCount: createParams.questionCount,
+          includeExample: createParams.includeExample,
+          includeAnswer: createParams.includeAnswer,
+          notes: createParams.notes,
+        },
+      },
+      onDelta: (chunk) => {
+        fullText += chunk;
+        // Parse sections as they come in
+        const sections = parseResult(fullText);
+        setResult(sections);
+      },
+      onDone: async () => {
+        setGenerating(false);
+        const sections = parseResult(fullText);
+        setResult(sections);
+
+        // Save to database
+        const { error } = await supabase.from("adaptations").insert({
+          user_id: user.id,
+          mode: mode === "adapt" ? "adaptar" : "criar_do_zero",
+          type: context.type,
+          subject: context.subject,
+          grade: context.grade,
+          topic: context.topic,
+          objective: context.objective,
+          neurodivergence: context.neurodivergence.length > 0 ? context.neurodivergence : null,
+          questionnaire_answers: questionnaire,
+          strategy_settings: settings,
+          original_text: mode === "adapt" ? originalText : null,
+          adapted_text: sections.adapted,
+          teacher_guidance: sections.guidance,
+          justification: sections.justification,
+          difficulty: createParams.difficulty,
+          question_count: parseInt(createParams.questionCount) || null,
+          include_example: createParams.includeExample,
+          include_answer: createParams.includeAnswer,
+          notes: createParams.notes || null,
+        });
+
+        if (error) {
+          console.error("Save error:", error);
+          toast.error("Erro ao salvar adaptação.");
+        } else {
+          toast.success("Adaptação gerada e salva!");
+        }
+      },
+      onError: (err) => {
+        setGenerating(false);
+        toast.error(err);
+      },
+    });
+  };
+
+  const parseResult = (text: string) => {
+    const adapted = extractSection(text, "ATIVIDADE ADAPTADA", "ORIENTAÇÕES AO PROFISSIONAL") || text;
+    const guidance = extractSection(text, "ORIENTAÇÕES AO PROFISSIONAL", "JUSTIFICATIVA PEDAGÓGICA") || "";
+    const justification = extractSection(text, "JUSTIFICATIVA PEDAGÓGICA", null) || "";
+    return { adapted, guidance, justification };
+  };
+
+  const extractSection = (text: string, start: string, end: string | null) => {
+    const startIdx = text.indexOf(start);
+    if (startIdx === -1) return "";
+    const contentStart = text.indexOf("\n", startIdx);
+    if (contentStart === -1) return "";
+    if (end) {
+      const endIdx = text.indexOf(end, contentStart);
+      if (endIdx === -1) return text.slice(contentStart).trim();
+      return text.slice(contentStart, endIdx).trim();
+    }
+    return text.slice(contentStart).trim();
   };
 
   const canAdvance = () => {
@@ -127,10 +210,68 @@ export default function Create() {
     return true;
   };
 
+  // Show result view
+  if (result && !generating) {
+    return (
+      <Layout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-foreground">Resultado da Adaptação</h1>
+            <Button variant="outline" onClick={() => { setResult(null); setStep(0); }}>
+              Nova adaptação
+            </Button>
+          </div>
+
+          <Tabs defaultValue="adapted" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="adapted">Atividade</TabsTrigger>
+              <TabsTrigger value="guidance">Orientações</TabsTrigger>
+              <TabsTrigger value="justification">Justificativa</TabsTrigger>
+              {mode === "adapt" && <TabsTrigger value="original">Original</TabsTrigger>}
+            </TabsList>
+            <TabsContent value="adapted">
+              <Card>
+                <CardContent className="p-6 prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">{result.adapted}</div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="guidance">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">{result.guidance}</div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="justification">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">{result.justification}</div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            {mode === "adapt" && (
+              <TabsContent value="original">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">{originalText}</div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+          </Tabs>
+
+          <p className="text-xs text-muted-foreground text-center italic">
+            "A decisão final é sempre do profissional. Você pode ajustar ou ignorar qualquer sugestão."
+          </p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-foreground mb-1">Criar Adaptação</h1>
           <p className="text-sm text-muted-foreground">Siga as etapas para gerar sua adaptação personalizada.</p>
@@ -140,35 +281,20 @@ export default function Create() {
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
-                  i < step
-                    ? "bg-primary text-primary-foreground"
-                    : i === step
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
+                i < step ? "bg-primary text-primary-foreground" : i === step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              }`}>
                 {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
               </div>
-              <span className={`text-xs whitespace-nowrap ${i === step ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                {s}
-              </span>
+              <span className={`text-xs whitespace-nowrap ${i === step ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{s}</span>
               {i < STEPS.length - 1 && <div className="w-6 h-px bg-border shrink-0" />}
             </div>
           ))}
         </div>
 
-        {/* Step Content */}
         <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* STEP 0: Context */}
+          <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+
             {step === 0 && (
               <Card>
                 <CardContent className="p-6 space-y-4">
@@ -178,63 +304,40 @@ export default function Create() {
                       <Label>Tipo de atividade *</Label>
                       <Select value={context.type} onValueChange={(v) => setContext({ ...context, type: v })}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {activityTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{activityTypes.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Disciplina *</Label>
                       <Select value={context.subject} onValueChange={(v) => setContext({ ...context, subject: v })}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Série/Ano *</Label>
                       <Select value={context.grade} onValueChange={(v) => setContext({ ...context, grade: v })}>
                         <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                        <SelectContent>
-                          {grades.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                        </SelectContent>
+                        <SelectContent>{grades.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Assunto/Conteúdo *</Label>
-                      <Input
-                        value={context.topic}
-                        onChange={(e) => setContext({ ...context, topic: e.target.value })}
-                        placeholder="Ex: Frações, Verbos irregulares..."
-                      />
+                      <Input value={context.topic} onChange={(e) => setContext({ ...context, topic: e.target.value })} placeholder="Ex: Frações, Verbos irregulares..." />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>Objetivo pedagógico *</Label>
-                    <Textarea
-                      value={context.objective}
-                      onChange={(e) => setContext({ ...context, objective: e.target.value })}
-                      placeholder="Ex: Que o aluno demonstre compreensão de frações equivalentes"
-                      rows={2}
-                    />
+                    <Textarea value={context.objective} onChange={(e) => setContext({ ...context, objective: e.target.value })} placeholder="Ex: Que o aluno demonstre compreensão de frações equivalentes" rows={2} />
                   </div>
                   <div className="space-y-2">
                     <Label>Neurodivergência (opcional — contexto secundário)</Label>
                     <div className="flex flex-wrap gap-3">
                       {neurodivergences.map((n) => (
                         <label key={n} className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={context.neurodivergence.includes(n)}
-                            onCheckedChange={(checked) => {
-                              setContext({
-                                ...context,
-                                neurodivergence: checked
-                                  ? [...context.neurodivergence, n]
-                                  : context.neurodivergence.filter((x) => x !== n),
-                              });
-                            }}
-                          />
+                          <Checkbox checked={context.neurodivergence.includes(n)} onCheckedChange={(checked) => {
+                            setContext({ ...context, neurodivergence: checked ? [...context.neurodivergence, n] : context.neurodivergence.filter((x) => x !== n) });
+                          }} />
                           {n}
                         </label>
                       ))}
@@ -244,26 +347,16 @@ export default function Create() {
               </Card>
             )}
 
-            {/* STEP 1: Questionnaire */}
             {step === 1 && (
               <Card>
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-semibold text-foreground">Questionário Pedagógico</h2>
-                  </div>
-                  <div className="bg-secondary/50 rounded-lg p-3 text-xs text-secondary-foreground">
-                    ⚠️ Questionário pedagógico. Não realiza diagnóstico.
-                  </div>
+                  <h2 className="font-semibold text-foreground">Questionário Pedagógico</h2>
+                  <div className="bg-secondary/50 rounded-lg p-3 text-xs text-secondary-foreground">⚠️ Questionário pedagógico. Não realiza diagnóstico.</div>
                   <div className="space-y-4">
                     {questionnaireQuestions.map((q) => (
                       <div key={q.id} className="space-y-1.5">
                         <Label className="text-sm">{q.label}</Label>
-                        <Textarea
-                          value={questionnaire[q.id] || ""}
-                          onChange={(e) => setQuestionnaire({ ...questionnaire, [q.id]: e.target.value })}
-                          placeholder={q.placeholder}
-                          rows={2}
-                        />
+                        <Textarea value={questionnaire[q.id] || ""} onChange={(e) => setQuestionnaire({ ...questionnaire, [q.id]: e.target.value })} placeholder={q.placeholder} rows={2} />
                       </div>
                     ))}
                   </div>
@@ -271,7 +364,6 @@ export default function Create() {
               </Card>
             )}
 
-            {/* STEP 2: Mode */}
             {step === 2 && (
               <Card>
                 <CardContent className="p-6 space-y-5">
@@ -295,30 +387,17 @@ export default function Create() {
                     <div className="space-y-4 pt-2">
                       <div className="space-y-2">
                         <Label>Cole o texto da atividade</Label>
-                        <Textarea
-                          value={originalText}
-                          onChange={(e) => setOriginalText(e.target.value)}
-                          placeholder="Cole aqui o texto completo da atividade..."
-                          rows={6}
-                        />
+                        <Textarea value={originalText} onChange={(e) => setOriginalText(e.target.value)} placeholder="Cole aqui o texto completo da atividade..." rows={6} />
                       </div>
                       <div className="text-center text-xs text-muted-foreground">ou</div>
                       <div>
                         <Label htmlFor="file-upload" className="cursor-pointer">
                           <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary transition-colors">
                             <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">
-                              {file ? file.name : "Clique para enviar PDF ou Word"}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{file ? file.name : "Clique para enviar PDF ou Word"}</p>
                           </div>
                         </Label>
-                        <input
-                          id="file-upload"
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
+                        <input id="file-upload" type="file" accept=".pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileUpload} />
                       </div>
                       {(originalText || file) && (
                         <label className="flex items-center gap-2 text-sm">
@@ -345,39 +424,22 @@ export default function Create() {
                         </div>
                         <div className="space-y-2">
                           <Label>Quantidade de questões</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={20}
-                            value={createParams.questionCount}
-                            onChange={(e) => setCreateParams({ ...createParams, questionCount: e.target.value })}
-                          />
+                          <Input type="number" min={1} max={20} value={createParams.questionCount} onChange={(e) => setCreateParams({ ...createParams, questionCount: e.target.value })} />
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-4">
                         <label className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={createParams.includeExample}
-                            onCheckedChange={(c) => setCreateParams({ ...createParams, includeExample: !!c })}
-                          />
+                          <Checkbox checked={createParams.includeExample} onCheckedChange={(c) => setCreateParams({ ...createParams, includeExample: !!c })} />
                           Incluir exemplo resolvido
                         </label>
                         <label className="flex items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={createParams.includeAnswer}
-                            onCheckedChange={(c) => setCreateParams({ ...createParams, includeAnswer: !!c })}
-                          />
+                          <Checkbox checked={createParams.includeAnswer} onCheckedChange={(c) => setCreateParams({ ...createParams, includeAnswer: !!c })} />
                           Incluir gabarito
                         </label>
                       </div>
                       <div className="space-y-2">
                         <Label>Observações (opcional)</Label>
-                        <Textarea
-                          value={createParams.notes}
-                          onChange={(e) => setCreateParams({ ...createParams, notes: e.target.value })}
-                          placeholder="Ex: Usar contextos do cotidiano..."
-                          rows={2}
-                        />
+                        <Textarea value={createParams.notes} onChange={(e) => setCreateParams({ ...createParams, notes: e.target.value })} placeholder="Ex: Usar contextos do cotidiano..." rows={2} />
                       </div>
                     </div>
                   )}
@@ -385,7 +447,6 @@ export default function Create() {
               </Card>
             )}
 
-            {/* STEP 3: Settings */}
             {step === 3 && (
               <Card>
                 <CardContent className="p-6 space-y-4">
@@ -393,20 +454,10 @@ export default function Create() {
                   <p className="text-sm text-muted-foreground">Selecione as estratégias que deseja aplicar.</p>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {adaptationSettings.map((s) => (
-                      <label
-                        key={s.id}
-                        className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${
-                          settings.includes(s.id) ? "border-primary bg-secondary/30" : "border-border"
-                        }`}
-                      >
-                        <Checkbox
-                          checked={settings.includes(s.id)}
-                          onCheckedChange={(checked) => {
-                            setSettings(
-                              checked ? [...settings, s.id] : settings.filter((x) => x !== s.id)
-                            );
-                          }}
-                        />
+                      <label key={s.id} className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${settings.includes(s.id) ? "border-primary bg-secondary/30" : "border-border"}`}>
+                        <Checkbox checked={settings.includes(s.id)} onCheckedChange={(checked) => {
+                          setSettings(checked ? [...settings, s.id] : settings.filter((x) => x !== s.id));
+                        }} />
                         <span className="text-sm font-medium text-foreground">{s.label}</span>
                       </label>
                     ))}
@@ -415,7 +466,6 @@ export default function Create() {
               </Card>
             )}
 
-            {/* STEP 4: Generate */}
             {step === 4 && (
               <Card>
                 <CardContent className="p-6 space-y-6 text-center">
@@ -424,25 +474,31 @@ export default function Create() {
                       <Sparkles className="w-12 h-12 text-accent mx-auto" />
                       <h2 className="text-xl font-bold text-foreground">Tudo pronto!</h2>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                        Vamos gerar sua adaptação com base nas informações fornecidas. A IA irá criar uma versão
-                        {mode === "adapt" ? " adaptada da sua atividade" : " original já adaptada"}.
+                        Vamos gerar sua adaptação com base nas informações fornecidas.
                       </p>
                       <Button size="lg" onClick={handleGenerate} className="gap-2">
                         <Sparkles className="w-4 h-4" /> Gerar Adaptação
                       </Button>
-                      <p className="text-xs text-muted-foreground">
-                        "Você pode ajustar ou ignorar qualquer sugestão."
-                      </p>
+                      <p className="text-xs text-muted-foreground">"Você pode ajustar ou ignorar qualquer sugestão."</p>
                     </>
                   ) : (
-                    <div className="py-8 space-y-4">
+                    <div className="py-4 space-y-4">
                       <div className="w-16 h-16 mx-auto rounded-full gradient-hero flex items-center justify-center animate-pulse">
                         <Sparkles className="w-8 h-8 text-primary-foreground" />
                       </div>
                       <h2 className="text-lg font-semibold text-foreground">Gerando adaptação...</h2>
-                      <p className="text-sm text-muted-foreground">
-                        Analisando barreiras pedagógicas e aplicando estratégias
-                      </p>
+                      <p className="text-sm text-muted-foreground">Analisando barreiras pedagógicas e aplicando estratégias</p>
+                      {result && (
+                        <div className="text-left mt-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed max-h-60 overflow-y-auto">
+                                {result.adapted}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -451,22 +507,12 @@ export default function Create() {
           </motion.div>
         </AnimatePresence>
 
-        {/* Navigation */}
         <div className="flex justify-between pt-2">
-          <Button
-            variant="outline"
-            onClick={() => setStep(Math.max(0, step - 1))}
-            disabled={step === 0}
-            className="gap-1"
-          >
+          <Button variant="outline" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="gap-1">
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
           {step < 4 && (
-            <Button
-              onClick={() => setStep(step + 1)}
-              disabled={!canAdvance()}
-              className="gap-1"
-            >
+            <Button onClick={() => setStep(step + 1)} disabled={!canAdvance()} className="gap-1">
               Próximo <ArrowRight className="w-4 h-4" />
             </Button>
           )}

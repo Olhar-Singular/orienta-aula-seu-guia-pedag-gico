@@ -4,6 +4,9 @@ import { PenTool, Sparkles, Upload, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import Layout from "@/components/Layout";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 const actionCards = [
   {
@@ -24,33 +27,52 @@ const actionCards = [
     icon: Upload,
     title: "Enviar arquivo",
     description: "Envie um PDF ou Word para adaptação automática.",
-    link: "/create?mode=upload",
+    link: "/create?mode=adapt",
     color: "bg-muted text-muted-foreground",
   },
 ];
 
-const recentItems = [
-  { title: "Prova de Matemática — 7º ano", date: "Há 2 horas", type: "Prova/Avaliação" },
-  { title: "Exercício de Português — 5º ano", date: "Ontem", type: "Exercício em sala" },
-  { title: "Lista de Ciências — 9º ano", date: "3 dias atrás", type: "Lista de exercícios" },
-];
-
 export default function Dashboard() {
+  const { user } = useAuth();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: recentAdaptations } = useQuery({
+    queryKey: ["recent-adaptations", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("adaptations")
+        .select("*")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const displayName = profile?.name || user?.user_metadata?.name || "Professor(a)";
+
   return (
     <Layout>
       <div className="space-y-8">
-        {/* Welcome */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-2xl font-bold text-foreground mb-1">Olá! 👋</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-1">Olá, {displayName}! 👋</h1>
           <p className="text-muted-foreground">O que deseja fazer hoje?</p>
         </motion.div>
 
-        {/* Main CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Link to="/create">
             <div className="gradient-hero rounded-xl p-6 text-primary-foreground flex items-center justify-between hover:opacity-95 transition-opacity cursor-pointer">
               <div>
@@ -62,15 +84,9 @@ export default function Dashboard() {
           </Link>
         </motion.div>
 
-        {/* Action Cards */}
         <div className="grid sm:grid-cols-3 gap-4">
           {actionCards.map((card, i) => (
-            <motion.div
-              key={card.title}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + i * 0.05 }}
-            >
+            <motion.div key={card.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.05 }}>
               <Link to={card.link}>
                 <Card className="h-full hover:shadow-card-hover transition-shadow cursor-pointer border-border">
                   <CardContent className="p-5">
@@ -86,34 +102,33 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Recent */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-foreground">Recentes</h2>
-            <Link to="/my-adaptations" className="text-sm text-primary hover:underline">
-              Ver todas
-            </Link>
+            <Link to="/my-adaptations" className="text-sm text-primary hover:underline">Ver todas</Link>
           </div>
-          <div className="space-y-2">
-            {recentItems.map((item) => (
-              <Card key={item.title} className="hover:shadow-card transition-shadow cursor-pointer border-border">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground">{item.type}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3.5 h-3.5" />
-                    {item.date}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {recentAdaptations && recentAdaptations.length > 0 ? (
+            <div className="space-y-2">
+              {recentAdaptations.map((item) => (
+                <Card key={item.id} className="hover:shadow-card transition-shadow border-border">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.topic} — {item.grade}</p>
+                      <p className="text-xs text-muted-foreground">{item.subject} · {item.type}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Clock className="w-3.5 h-3.5" />
+                      {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhuma adaptação ainda. Crie sua primeira!
+            </p>
+          )}
         </motion.div>
 
         <p className="text-xs text-muted-foreground text-center">

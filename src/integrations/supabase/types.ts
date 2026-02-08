@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      adaptations: {
+        Row: {
+          adapted_text: string | null
+          created_at: string
+          difficulty: string | null
+          grade: string
+          id: string
+          include_answer: boolean | null
+          include_example: boolean | null
+          justification: string | null
+          mode: string
+          neurodivergence: string[] | null
+          notes: string | null
+          objective: string
+          original_file_url: string | null
+          original_text: string | null
+          question_count: number | null
+          questionnaire_answers: Json | null
+          strategy_settings: Json | null
+          subject: string
+          teacher_guidance: string | null
+          topic: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          adapted_text?: string | null
+          created_at?: string
+          difficulty?: string | null
+          grade: string
+          id?: string
+          include_answer?: boolean | null
+          include_example?: boolean | null
+          justification?: string | null
+          mode?: string
+          neurodivergence?: string[] | null
+          notes?: string | null
+          objective: string
+          original_file_url?: string | null
+          original_text?: string | null
+          question_count?: number | null
+          questionnaire_answers?: Json | null
+          strategy_settings?: Json | null
+          subject: string
+          teacher_guidance?: string | null
+          topic: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          adapted_text?: string | null
+          created_at?: string
+          difficulty?: string | null
+          grade?: string
+          id?: string
+          include_answer?: boolean | null
+          include_example?: boolean | null
+          justification?: string | null
+          mode?: string
+          neurodivergence?: string[] | null
+          notes?: string | null
+          objective?: string
+          original_file_url?: string | null
+          original_text?: string | null
+          question_count?: number | null
+          questionnaire_answers?: Json | null
+          strategy_settings?: Json | null
+          subject?: string
+          teacher_guidance?: string | null
+          topic?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          education_level: string | null
+          id: string
+          main_goal: string | null
+          main_subject: string | null
+          name: string | null
+          onboarding_completed: boolean | null
+          output_preference: string | null
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          education_level?: string | null
+          id?: string
+          main_goal?: string | null
+          main_subject?: string | null
+          name?: string | null
+          onboarding_completed?: boolean | null
+          output_preference?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          education_level?: string | null
+          id?: string
+          main_goal?: string | null
+          main_subject?: string | null
+          name?: string | null
+          onboarding_completed?: boolean | null
+          output_preference?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
