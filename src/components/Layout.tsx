@@ -3,6 +3,7 @@ import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import logoImg from "@/assets/logo-orienta-aula.png";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -29,10 +30,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:flex flex-col w-64 gradient-hero text-primary-foreground shrink-0">
         <div className="p-6">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center font-bold text-lg">
-              OA
-            </div>
-            <span className="font-bold text-lg">Orienta Aula</span>
+            <img src={logoImg} alt="Orienta Aula" className="h-9 w-auto" />
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1">
@@ -70,10 +68,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-hero text-primary-foreground px-4 py-3 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center font-bold text-sm">
-            OA
-          </div>
-          <span className="font-bold">Orienta Aula</span>
+          <img src={logoImg} alt="Orienta Aula" className="h-8 w-auto" />
         </Link>
         <button onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

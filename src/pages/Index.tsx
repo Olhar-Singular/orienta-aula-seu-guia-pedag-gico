@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, PenTool, Shield, Sparkles, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-illustration.jpg";
+import logoImg from "@/assets/logo-orienta-aula.png";
 
 const features = [
   {
@@ -41,10 +42,7 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg gradient-hero flex items-center justify-center font-bold text-primary-foreground text-sm">
-              OA
-            </div>
-            <span className="font-bold text-lg text-foreground">Orienta Aula</span>
+            <img src={logoImg} alt="Orienta Aula" className="h-9 w-auto" />
           </div>
           <div className="flex items-center gap-3">
             <Link to="/auth">

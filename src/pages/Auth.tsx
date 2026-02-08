@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import logoImg from "@/assets/logo-orienta-aula.png";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -61,10 +62,7 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center gap-2 justify-center mb-8">
-          <div className="w-10 h-10 rounded-lg gradient-hero flex items-center justify-center font-bold text-primary-foreground">
-            OA
-          </div>
-          <span className="font-bold text-xl text-foreground">Orienta Aula</span>
+          <img src={logoImg} alt="Orienta Aula" className="h-10 w-auto" />
         </Link>
 
         <Card className="shadow-card-hover">
