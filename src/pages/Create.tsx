@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles, Copy, Printer, Edit, Save, MessageSquare, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -76,7 +77,11 @@ export default function Create() {
   const [settings, setSettings] = useState<string[]>(["fragment", "language"]);
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{ adapted: string; guidance: string; justification: string } | null>(null);
-
+  const [saved, setSaved] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const printRef = useRef<HTMLDivElement>(null);
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -107,6 +112,7 @@ export default function Create() {
     if (!user) return;
     setGenerating(true);
     setResult(null);
+    setSaved(false);
 
     let fullText = "";
     const userPrompt = mode === "adapt"
@@ -174,6 +180,7 @@ export default function Create() {
           console.error("Save error:", error);
           toast.error("Erro ao salvar adaptação.");
         } else {
+          setSaved(true);
           toast.success("Adaptação gerada e salva!");
         }
       },
@@ -264,7 +271,113 @@ export default function Create() {
           <p className="text-xs text-muted-foreground text-center italic">
             "A decisão final é sempre do profissional. Você pode ajustar ou ignorar qualquer sugestão."
           </p>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-3 justify-center pt-2 pb-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const text = `ATIVIDADE:\n${result.adapted}\n\nORIENTAÇÕES:\n${result.guidance}\n\nJUSTIFICATIVA:\n${result.justification}`;
+                navigator.clipboard.writeText(text);
+                toast.success("Copiado para a área de transferência!");
+              }}
+            >
+              <Copy className="w-4 h-4 mr-2" /> Copiar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const printWindow = window.open("", "_blank");
+                if (printWindow) {
+                  printWindow.document.write(`
+                    <html><head><title>Adaptação</title>
+                    <style>body{font-family:sans-serif;padding:2rem;line-height:1.6}h2{margin-top:1.5rem;color:#333}pre{white-space:pre-wrap;font-family:inherit}</style>
+                    </head><body>
+                    <h1>${context.topic} — ${context.grade}</h1>
+                    <p><strong>${context.subject} · ${context.type}</strong></p>
+                    <h2>Atividade Adaptada</h2><pre>${result.adapted}</pre>
+                    <h2>Orientações ao Profissional</h2><pre>${result.guidance}</pre>
+                    <h2>Justificativa Pedagógica</h2><pre>${result.justification}</pre>
+                    </body></html>
+                  `);
+                  printWindow.document.close();
+                  printWindow.print();
+                }
+              }}
+            >
+              <Printer className="w-4 h-4 mr-2" /> Imprimir
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResult(null);
+                setSaved(false);
+                setStep(4);
+                toast.info("Ajuste os parâmetros e gere uma nova versão.");
+              }}
+            >
+              <Edit className="w-4 h-4 mr-2" /> Editar (nova versão)
+            </Button>
+            <Button
+              variant={saved ? "secondary" : "default"}
+              onClick={() => {
+                if (saved) {
+                  navigate("/my-adaptations");
+                } else {
+                  toast.info("A adaptação já foi salva automaticamente!");
+                  navigate("/my-adaptations");
+                }
+              }}
+            >
+              <Save className="w-4 h-4 mr-2" /> {saved ? "Ver em Minhas Adaptações" : "Salvar em Minhas Adaptações"}
+            </Button>
+            <Button variant="outline" onClick={() => setFeedbackOpen(true)}>
+              <MessageSquare className="w-4 h-4 mr-2" /> Feedback rápido
+            </Button>
+          </div>
         </div>
+
+        {/* Feedback Dialog */}
+        <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Feedback rápido</DialogTitle>
+              <DialogDescription>Nos ajude a melhorar! Como foi a qualidade dessa adaptação?</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setFeedbackRating(star)}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`w-8 h-8 ${star <= feedbackRating ? "fill-primary text-primary" : "text-muted-foreground"}`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <Textarea
+                placeholder="Comentário opcional..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFeedbackOpen(false)}>Cancelar</Button>
+              <Button onClick={() => {
+                toast.success("Obrigado pelo feedback!");
+                setFeedbackOpen(false);
+                setFeedbackRating(0);
+                setFeedbackText("");
+              }}>
+                Enviar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Layout>
     );
   }
