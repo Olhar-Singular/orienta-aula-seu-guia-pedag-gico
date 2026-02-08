@@ -19,7 +19,7 @@ import { streamAI } from "@/lib/streamAI";
 
 const STEPS = ["Contexto", "Questionário", "Modo", "Configurações", "Gerar"];
 
-const activityTypes = ["Prova/Avaliação", "Exercício em sala", "Lista de exercícios", "Atividade de treino"];
+const activityTypes = ["Prova/Avaliação", "Exercício em sala", "Lista de exercícios", "Atividade de treino", "Trabalho em grupo", "Atividade interdisciplinar", "Projeto", "Lição de casa"];
 const subjects = ["Matemática", "Português", "Ciências", "História", "Geografia", "Física", "Química", "Biologia", "Inglês", "Artes", "Ed. Física", "Outra"];
 const grades = ["1º ano", "2º ano", "3º ano", "4º ano", "5º ano", "6º ano", "7º ano", "8º ano", "9º ano", "1ª série EM", "2ª série EM", "3ª série EM"];
 const neurodivergences = ["TEA", "TDAH", "Dislexia", "Discalculia", "Outro"];
