@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles, Copy, Printer, Edit, Save, MessageSquare, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Upload, FileText, Sparkles, Copy, Printer, Edit, Save, MessageSquare, Star, BookOpen, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,6 +81,9 @@ export default function Create() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState("");
+  const [resolutionOpen, setResolutionOpen] = useState(false);
+  const [resolutionText, setResolutionText] = useState("");
+  const [resolutionLoading, setResolutionLoading] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -331,11 +334,83 @@ export default function Create() {
             >
               <Save className="w-4 h-4 mr-2" /> {saved ? "Ver em Minhas Adaptações" : "Salvar em Minhas Adaptações"}
             </Button>
+            <Button
+              variant="outline"
+              disabled={resolutionLoading}
+              onClick={async () => {
+                setResolutionOpen(true);
+                setResolutionText("");
+                setResolutionLoading(true);
+                let full = "";
+                await streamAI({
+                  endpoint: "generate-adaptation",
+                  body: {
+                    action: "resolution",
+                    messages: [{ role: "user", content: `Gere a resolução passo a passo, detalhada e didática, de TODA a atividade a seguir. Resolva cada questão individualmente, mostrando cada etapa do raciocínio.\n\nATIVIDADE:\n${result.adapted}` }],
+                    context: {
+                      mode: "resolucao",
+                      type: context.type,
+                      subject: context.subject,
+                      grade: context.grade,
+                      topic: context.topic,
+                      objective: context.objective,
+                    },
+                  },
+                  onDelta: (chunk) => {
+                    full += chunk;
+                    setResolutionText(full);
+                  },
+                  onDone: () => setResolutionLoading(false),
+                  onError: (err) => {
+                    setResolutionLoading(false);
+                    toast.error(err);
+                  },
+                });
+              }}
+            >
+              <BookOpen className="w-4 h-4 mr-2" /> Gerar Resolução
+            </Button>
             <Button variant="outline" onClick={() => setFeedbackOpen(true)}>
               <MessageSquare className="w-4 h-4 mr-2" /> Feedback rápido
             </Button>
           </div>
         </div>
+
+        {/* Resolution Dialog */}
+        <Dialog open={resolutionOpen} onOpenChange={setResolutionOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5" /> Resolução Passo a Passo
+              </DialogTitle>
+              <DialogDescription>Resolução detalhada de cada questão da atividade.</DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto">
+              {resolutionText ? (
+                <div className="whitespace-pre-wrap text-foreground text-sm leading-relaxed">{resolutionText}</div>
+              ) : (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              {resolutionText && !resolutionLoading && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(resolutionText);
+                    toast.success("Resolução copiada!");
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-1" /> Copiar
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setResolutionOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Feedback Dialog */}
         <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
