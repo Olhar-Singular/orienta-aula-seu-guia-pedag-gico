@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { streamAI } from "@/lib/streamAI";
+import { useSubscription } from "@/hooks/useSubscription";
+import CreditGuard from "@/components/CreditGuard";
 
 const STEPS = ["Contexto", "Questionário", "Modo", "Configurações", "Gerar"];
 
@@ -60,6 +62,7 @@ export default function Create() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { hasCredits, creditsRemaining } = useSubscription();
   const [step, setStep] = useState(0);
   const [context, setContext] = useState({
     type: "", subject: "", grade: "", topic: "", objective: "", neurodivergence: [] as string[],
@@ -152,6 +155,10 @@ export default function Create() {
 
   const handleGenerate = async () => {
     if (!user) return;
+    if (!hasCredits) {
+      toast.error("Seus créditos acabaram. Faça upgrade para continuar.");
+      return;
+    }
     setGenerating(true);
     setResult(null);
     setSaved(false);
@@ -222,6 +229,12 @@ export default function Create() {
           console.error("Save error:", error);
           toast.error("Erro ao salvar adaptação.");
         } else {
+          // Consume 1 credit
+          await supabase.from("credit_usage").insert({
+            user_id: user.id,
+            action: "adaptation",
+            credits_used: 1,
+          });
           setSaved(true);
           toast.success("Adaptação gerada e salva!");
         }
