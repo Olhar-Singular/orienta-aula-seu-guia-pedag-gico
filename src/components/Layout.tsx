@@ -1,15 +1,17 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo-orienta-aula.png";
+import CreditsBadge from "@/components/CreditsBadge";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/create", label: "Criar Adaptação", icon: PenTool },
   { path: "/my-adaptations", label: "Minhas Adaptações", icon: FolderOpen },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
+  { path: "/pricing", label: "Planos", icon: CreditCard },
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
@@ -59,6 +61,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           >
             <LogOut className="w-5 h-5" /> Sair
           </button>
+        </div>
+        <div className="px-5 mb-3">
+          <CreditsBadge showProgress />
         </div>
         <div className="p-4 mx-3 mb-4 rounded-lg bg-sidebar-accent/30 text-xs text-primary-foreground/60 leading-relaxed">
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
