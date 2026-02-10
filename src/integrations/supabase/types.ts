@@ -89,6 +89,66 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_usage: {
+        Row: {
+          action: string
+          created_at: string
+          credits_used: number
+          id: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          credits_used?: number
+          id?: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          credits_used?: number
+          id?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plans: {
+        Row: {
+          created_at: string
+          display_name: string
+          features: Json
+          id: string
+          is_active: boolean
+          monthly_credits: number
+          name: string
+          price_cents: number
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_credits?: number
+          name: string
+          price_cents?: number
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          monthly_credits?: number
+          name?: string
+          price_cents?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -131,12 +191,56 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          kiwify_subscription_id: string | null
+          plan_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          kiwify_subscription_id?: string | null
+          plan_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          kiwify_subscription_id?: string | null
+          plan_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_credits_used: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
