@@ -61,7 +61,7 @@ export function useSubscription() {
 
   const plan = subscription?.plans || null;
   const planName = plan?.name || "free";
-  const monthlyCredits = plan?.monthly_credits || 5;
+  const monthlyCredits = plan?.monthly_credits || 3;
   const creditsRemaining = Math.max(0, monthlyCredits - creditsUsed);
   const features = (plan?.features || ["adaptar_atividade", "criar_atividade"]) as PlanFeature[];
 
