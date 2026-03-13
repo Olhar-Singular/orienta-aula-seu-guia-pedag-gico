@@ -152,7 +152,10 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          display_name: string | null
           education_level: string | null
+          email: string | null
+          full_name: string | null
           id: string
           main_goal: string | null
           main_subject: string | null
@@ -160,12 +163,16 @@ export type Database = {
           onboarding_completed: boolean | null
           output_preference: string | null
           role: string | null
+          school_name: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           education_level?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           main_goal?: string | null
           main_subject?: string | null
@@ -173,12 +180,16 @@ export type Database = {
           onboarding_completed?: boolean | null
           output_preference?: string | null
           role?: string | null
+          school_name?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           education_level?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
           main_goal?: string | null
           main_subject?: string | null
@@ -186,8 +197,27 @@ export type Database = {
           onboarding_completed?: boolean | null
           output_preference?: string | null
           role?: string | null
+          school_name?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          request_count: number | null
+          user_id: string
+          window_start: string | null
+        }
+        Insert: {
+          request_count?: number | null
+          user_id: string
+          window_start?: string | null
+        }
+        Update: {
+          request_count?: number | null
+          user_id?: string
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -241,6 +271,10 @@ export type Database = {
     }
     Functions: {
       get_credits_used: { Args: { p_user_id: string }; Returns: number }
+      sanitize_input: {
+        Args: { input: string; max_length?: number }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
