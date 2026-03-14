@@ -510,7 +510,7 @@ export default function Create() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl font-bold text-foreground mb-1">Criar Adaptação</h1>
