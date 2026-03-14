@@ -19,11 +19,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
-import { Type, Database, FileUp, Crop, Search, Check, Loader2 } from "lucide-react";
+import { Type, Database, FileUp, Crop, Search, Check, Loader2, X, Image as ImageIcon } from "lucide-react";
+import type { SelectedQuestion } from "./AdaptationWizard";
 
 type Props = {
   value: string;
   onChange: (text: string) => void;
+  selectedQuestions: SelectedQuestion[];
+  onSelectedQuestionsChange: (questions: SelectedQuestion[]) => void;
   onNext: () => void;
   onPrev: () => void;
 };
