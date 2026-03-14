@@ -25,6 +25,7 @@ import AdaptationHistory from "./pages/AdaptationHistory";
 import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
 import Settings from "./pages/Settings";
+import BarrierSimulator from "./pages/BarrierSimulator";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/dashboard/historico" element={<ProtectedRoute><AdaptationHistory /></ProtectedRoute>} />
             <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/dashboard/simulador" element={<ProtectedRoute><BarrierSimulator /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
