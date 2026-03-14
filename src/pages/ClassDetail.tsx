@@ -136,11 +136,11 @@ export default function ClassDetail() {
                   <div className="space-y-4">
                     <div>
                       <Label>Nome *</Label>
-                      <Input value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Nome do aluno" />
+                      <Input value={studentName} onChange={(e) => setStudentName(e.target.value.slice(0, 100))} placeholder="Nome do aluno" maxLength={100} />
                     </div>
                     <div>
                       <Label>Matrícula</Label>
-                      <Input value={studentCode} onChange={(e) => setStudentCode(e.target.value)} placeholder="Código de matrícula" />
+                      <Input value={studentCode} onChange={(e) => setStudentCode(e.target.value.slice(0, 30))} placeholder="Código de matrícula" maxLength={30} />
                     </div>
                     <Button onClick={() => addStudent.mutate()} disabled={!studentName.trim() || addStudent.isPending} className="w-full">
                       {addStudent.isPending ? "Adicionando..." : "Adicionar"}
