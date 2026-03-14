@@ -19,17 +19,12 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Upload, Loader2 } from "lucide-react";
+import { dataUrlToBlob } from "@/lib/extraction-utils";
 
 const subjects = [
-  "Matemática",
-  "Português",
-  "Ciências",
-  "História",
-  "Geografia",
-  "Inglês",
-  "Arte",
-  "Ed. Física",
+  "Física", "Matemática", "Química", "Biologia", "Português",
+  "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
 ];
 
 type QuestionFormProps = {
@@ -50,9 +45,12 @@ export default function QuestionForm({
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("medio");
+  const [questionType, setQuestionType] = useState<"objetiva" | "dissertativa">("dissertativa");
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState<number | null>(null);
   const [resolution, setResolution] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -61,58 +59,105 @@ export default function QuestionForm({
       setSubject(question.subject || "");
       setTopic(question.topic || "");
       setDifficulty(question.difficulty || "medio");
-      setOptions(Array.isArray(question.options) ? question.options : []);
-      setCorrectAnswer(question.correct_answer ?? null);
       setResolution(question.resolution || "");
+      setImageUrl(question.image_url || null);
+      setImagePreview(question.image_url || null);
+
+      const hasOptions = Array.isArray(question.options) && question.options.length > 0;
+      setOptions(hasOptions ? question.options : []);
+      setCorrectAnswer(question.correct_answer ?? null);
+      setQuestionType(hasOptions ? "objetiva" : "dissertativa");
     } else {
       setText("");
       setSubject("");
       setTopic("");
       setDifficulty("medio");
+      setQuestionType("dissertativa");
       setOptions([]);
       setCorrectAnswer(null);
       setResolution("");
+      setImageUrl(null);
+      setImagePreview(null);
     }
   }, [question, open]);
 
+  const handleImageUpload = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/webp,image/gif";
+    input.onchange = (ev) => {
+      const file = (ev.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Imagem muito grande", description: "Máximo 5 MB.", variant: "destructive" });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setImagePreview(dataUrl);
+        setImageUrl(dataUrl); // will be uploaded on save
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
   const handleSave = async () => {
     if (!text.trim() || !subject) {
-      toast({
-        title: "Preencha o enunciado e a matéria.",
-        variant: "destructive",
-      });
+      toast({ title: "Preencha o enunciado e a matéria.", variant: "destructive" });
       return;
     }
     setSaving(true);
-    const payload: any = {
-      text: text.trim(),
-      subject,
-      topic: topic || null,
-      difficulty,
-      options: options.length > 0 ? options : null,
-      correct_answer: correctAnswer,
-      resolution: resolution || null,
-      source: "manual",
-    };
 
-    let error;
-    if (question?.id) {
-      ({ error } = await (supabase.from as any)("question_bank")
-        .update(payload)
-        .eq("id", question.id));
-    } else {
-      payload.created_by = user!.id;
-      ({ error } = await (supabase.from as any)("question_bank").insert(payload));
-    }
+    try {
+      // Upload new image if it's a data URL
+      let finalImageUrl = imageUrl;
+      if (finalImageUrl && finalImageUrl.startsWith("data:")) {
+        const blob = dataUrlToBlob(finalImageUrl);
+        const fileName = `${user!.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
+        const { error: upErr } = await supabase.storage
+          .from("question-images")
+          .upload(fileName, blob, { contentType: "image/png" });
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
+          finalImageUrl = publicUrl;
+        } else {
+          finalImageUrl = null;
+        }
+      }
 
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-      return;
+      const payload: any = {
+        text: text.trim(),
+        subject,
+        topic: topic || null,
+        difficulty,
+        options: questionType === "objetiva" && options.length > 0 ? options : null,
+        correct_answer: questionType === "objetiva" ? correctAnswer : null,
+        resolution: resolution || null,
+        image_url: finalImageUrl,
+        source: "manual",
+      };
+
+      let error;
+      if (question?.id) {
+        ({ error } = await (supabase.from as any)("question_bank")
+          .update(payload)
+          .eq("id", question.id));
+      } else {
+        payload.created_by = user!.id;
+        ({ error } = await (supabase.from as any)("question_bank").insert(payload));
+      }
+
+      if (error) throw error;
+      toast({ title: question ? "Questão atualizada!" : "Questão adicionada!" });
+      onOpenChange(false);
+      onSaved();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    toast({ title: question ? "Questão atualizada!" : "Questão adicionada!" });
-    onOpenChange(false);
-    onSaved();
   };
 
   return (
@@ -124,6 +169,7 @@ export default function QuestionForm({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Enunciado */}
           <div>
             <Label>Enunciado *</Label>
             <Textarea
@@ -133,92 +179,122 @@ export default function QuestionForm({
               placeholder="Digite o enunciado da questão..."
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          {/* Image */}
+          <div>
+            <Label>Imagem (opcional)</Label>
+            {imagePreview ? (
+              <div className="mt-1">
+                <img src={imagePreview} alt="Imagem da questão" className="max-h-48 rounded border" />
+                <div className="flex gap-1 mt-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => { setImageUrl(null); setImagePreview(null); }}>
+                    <X className="w-3 h-3 mr-1" /> Remover
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={handleImageUpload}>
+                    <Upload className="w-3 h-3 mr-1" /> Trocar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button type="button" size="sm" variant="outline" className="mt-1" onClick={handleImageUpload}>
+                <Upload className="w-3 h-3 mr-1" /> Upload Imagem
+              </Button>
+            )}
+          </div>
+
+          {/* Subject / Topic / Difficulty */}
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label>Matéria *</Label>
               <Select value={subject} onValueChange={setSubject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {subjects.map((s) => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Tópico</Label>
-              <Input
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Ex: Frações"
-              />
+              <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ex: Frações" />
+            </div>
+            <div>
+              <Label>Dificuldade</Label>
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="facil">Fácil</SelectItem>
+                  <SelectItem value="medio">Médio</SelectItem>
+                  <SelectItem value="dificil">Difícil</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
+
+          {/* Question type toggle */}
           <div>
-            <Label>Dificuldade</Label>
-            <Select value={difficulty} onValueChange={setDifficulty}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Label>Tipo de Questão</Label>
+            <Select value={questionType} onValueChange={(v) => setQuestionType(v as "objetiva" | "dissertativa")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="facil">Fácil</SelectItem>
-                <SelectItem value="medio">Médio</SelectItem>
-                <SelectItem value="dificil">Difícil</SelectItem>
+                <SelectItem value="dissertativa">Dissertativa</SelectItem>
+                <SelectItem value="objetiva">Objetiva (múltipla escolha)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <Label>Alternativas (opcional)</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setOptions([...options, ""])}
-              >
-                <Plus className="w-3 h-3 mr-1" /> Adicionar
-              </Button>
-            </div>
-            {options.map((opt, i) => (
-              <div key={i} className="flex gap-2 mb-2">
-                <Input
-                  value={opt}
-                  onChange={(e) => {
-                    const n = [...options];
-                    n[i] = e.target.value;
-                    setOptions(n);
-                  }}
-                  placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={correctAnswer === i ? "default" : "outline"}
-                  onClick={() => setCorrectAnswer(correctAnswer === i ? null : i)}
-                  className="shrink-0"
-                >
-                  {correctAnswer === i ? "✓" : String.fromCharCode(65 + i)}
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setOptions(options.filter((_, j) => j !== i));
-                    if (correctAnswer === i) setCorrectAnswer(null);
-                    else if (correctAnswer !== null && correctAnswer > i)
-                      setCorrectAnswer(correctAnswer - 1);
-                  }}
-                >
-                  <X className="w-3 h-3" />
+
+          {/* Options (only for objetiva) */}
+          {questionType === "objetiva" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Alternativas</Label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setOptions([...options, ""])}>
+                  <Plus className="w-3 h-3 mr-1" /> Adicionar
                 </Button>
               </div>
-            ))}
-          </div>
+              {options.length === 0 && (
+                <p className="text-xs text-muted-foreground">Clique em "Adicionar" para criar alternativas.</p>
+              )}
+              {options.map((opt, i) => (
+                <div key={i} className="flex gap-2 mb-2">
+                  <Input
+                    value={opt}
+                    onChange={(e) => {
+                      const n = [...options];
+                      n[i] = e.target.value;
+                      setOptions(n);
+                    }}
+                    placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={correctAnswer === i ? "default" : "outline"}
+                    onClick={() => setCorrectAnswer(correctAnswer === i ? null : i)}
+                    className="shrink-0"
+                  >
+                    {correctAnswer === i ? "✓" : String.fromCharCode(65 + i)}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setOptions(options.filter((_, j) => j !== i));
+                      if (correctAnswer === i) setCorrectAnswer(null);
+                      else if (correctAnswer !== null && correctAnswer > i)
+                        setCorrectAnswer(correctAnswer - 1);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Resolution */}
           <div>
             <Label>Resolução (opcional)</Label>
             <Textarea
@@ -228,8 +304,9 @@ export default function QuestionForm({
               placeholder="Explicação da resposta..."
             />
           </div>
+
           <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving ? "Salvando..." : question ? "Atualizar" : "Adicionar"}
+            {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Salvando...</> : question ? "Atualizar" : "Adicionar"}
           </Button>
         </div>
       </DialogContent>
