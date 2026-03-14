@@ -31,6 +31,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const imgWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !file) return;
