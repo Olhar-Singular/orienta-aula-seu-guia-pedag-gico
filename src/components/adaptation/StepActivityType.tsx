@@ -20,7 +20,7 @@ export default function StepActivityType({ value, onChange, onNext }: Props) {
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">Qual tipo de atividade você quer adaptar?</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-1">
         {TYPES.map((t) => {
           const selected = value === t.value;
           return (
