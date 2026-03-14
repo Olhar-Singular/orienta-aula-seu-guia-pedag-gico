@@ -784,6 +784,14 @@ export default function QuestionBank() {
                             </p>
                           </div>
                         </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
+                            <FileUp className="w-4 h-4 mr-1" /> Extrair
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} aria-label="Excluir prova">
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
