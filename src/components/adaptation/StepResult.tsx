@@ -196,8 +196,9 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <AdaptedContentRenderer content={content} />
           {images.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 pt-2">
               {images.map((url, i) => (
                 <img
                   key={i}
@@ -208,7 +209,6 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
               ))}
             </div>
           )}
-          <AdaptedContentRenderer content={content} />
         </CardContent>
       </Card>
     );
