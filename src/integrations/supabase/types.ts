@@ -294,6 +294,30 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_activities: {
+        Row: {
+          activity_id: string
+          activity_type: string
+          hidden_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          activity_type: string
+          hidden_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          activity_type?: string
+          hidden_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pdf_uploads: {
         Row: {
           description: string | null
