@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import Layout from "@/components/Layout";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -89,7 +89,7 @@ export default function BarrierSimulator() {
     : {};
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6 max-w-4xl">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -249,6 +249,6 @@ export default function BarrierSimulator() {
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

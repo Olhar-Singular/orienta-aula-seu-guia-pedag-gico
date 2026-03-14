@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Layout from "@/components/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -490,7 +490,7 @@ export default function QuestionBank() {
   // ─── REVIEW MODE ───
   if (showReview) {
     return (
-      <Layout>
+      <>
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
@@ -739,13 +739,13 @@ export default function QuestionBank() {
             }
           }}
         />
-      </Layout>
+      </>
     );
   }
 
   // ─── MAIN VIEW ───
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Banco de Questões</h1>
 
@@ -996,6 +996,6 @@ export default function QuestionBank() {
         imageUrl={previewImageUrl}
         title="Prévia da imagem da questão"
       />
-    </Layout>
+    </>
   );
 }

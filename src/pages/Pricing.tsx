@@ -4,7 +4,7 @@ import { Check, Zap, Crown, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Layout from "@/components/Layout";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 
@@ -58,7 +58,7 @@ export default function Pricing() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-8 max-w-4xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Escolha seu plano</h1>
@@ -147,6 +147,6 @@ export default function Pricing() {
           Pagamento seguro via Kiwify. Cancele quando quiser.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

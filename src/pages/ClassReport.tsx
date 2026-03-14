@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Layout from "@/components/Layout";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,7 +122,7 @@ export default function ClassReport() {
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Link to={`/dashboard/turmas/${classId}`}>
@@ -267,6 +267,6 @@ export default function ClassReport() {
           </Card>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

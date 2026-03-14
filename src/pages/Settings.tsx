@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import Layout from "@/components/Layout";
+
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -380,7 +380,7 @@ function SecurityTab() {
 /* ───────── Settings Page ───────── */
 export default function Settings() {
   return (
-    <Layout>
+    <>
       <div className="space-y-6 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
@@ -403,6 +403,6 @@ export default function Settings() {
           </Tabs>
         </motion.div>
       </div>
-    </Layout>
+    </>
   );
 }

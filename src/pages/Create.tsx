@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import Layout from "@/components/Layout";
+
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -275,7 +275,7 @@ export default function Create() {
   // Show result view
   if (result && !generating) {
     return (
-      <Layout>
+      <>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-foreground">Resultado da Adaptação</h1>
@@ -505,12 +505,12 @@ export default function Create() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </Layout>
+      </>
     );
   }
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl font-bold text-foreground mb-1">Criar Adaptação</h1>
@@ -777,6 +777,6 @@ export default function Create() {
           )}
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

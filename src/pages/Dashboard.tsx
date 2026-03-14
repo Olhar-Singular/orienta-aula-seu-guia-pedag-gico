@@ -5,7 +5,7 @@ import {
   UserCheck, BarChart3, Lightbulb, TrendingUp, Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Layout from "@/components/Layout";
+
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -126,7 +126,7 @@ export default function Dashboard() {
   const stats = adaptationsData ?? { total: 0, week: 0, month: 0 };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-8">
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -252,6 +252,6 @@ export default function Dashboard() {
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

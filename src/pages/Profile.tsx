@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LogOut } from "lucide-react";
-import Layout from "@/components/Layout";
+
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -72,7 +72,7 @@ export default function Profile() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6 max-w-2xl">
         <h1 className="text-xl font-bold text-foreground">Meu Perfil</h1>
 
@@ -163,6 +163,6 @@ export default function Profile() {
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

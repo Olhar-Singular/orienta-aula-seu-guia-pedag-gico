@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import Layout from "@/components/Layout";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -95,7 +95,7 @@ export default function AdaptationHistory() {
   const barriers = (selected?.barriers_used as any[]) || [];
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl font-bold text-foreground">Histórico de Adaptações</h1>
@@ -285,6 +285,6 @@ export default function AdaptationHistory() {
           )}
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   );
 }

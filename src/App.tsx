@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
@@ -48,22 +49,27 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               {/* Legacy route redirect */}
               <Route path="/auth" element={<Navigate to="/login" replace />} />
-              <Route path="/dashboard" element={<ProtectedRoute><ErrorBoundary><Dashboard /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/create" element={<ProtectedRoute><ErrorBoundary><Create /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/adaptar" element={<ProtectedRoute><ErrorBoundary><AdaptWizard /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/my-adaptations" element={<ProtectedRoute><ErrorBoundary><MyAdaptations /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/turmas" element={<ProtectedRoute><ErrorBoundary><Classes /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/turmas/:id" element={<ProtectedRoute><ErrorBoundary><ClassDetail /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/turmas/:id/aluno/:alunoId" element={<ProtectedRoute><ErrorBoundary><StudentProfile /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/turmas/:id/aluno/:alunoId/relatorio" element={<ProtectedRoute><ErrorBoundary><StudentReport /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/turmas/:id/relatorio" element={<ProtectedRoute><ErrorBoundary><ClassReport /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/historico" element={<ProtectedRoute><ErrorBoundary><AdaptationHistory /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><ErrorBoundary><QuestionBank /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/configuracoes" element={<ProtectedRoute><ErrorBoundary><Settings /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/dashboard/simulador" element={<ProtectedRoute><ErrorBoundary><BarrierSimulator /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><ErrorBoundary><Profile /></ErrorBoundary></ProtectedRoute>} />
-              <Route path="/pricing" element={<ProtectedRoute><ErrorBoundary><Pricing /></ErrorBoundary></ProtectedRoute>} />
+              
+              {/* Protected routes with shared Layout */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                <Route path="/create" element={<ErrorBoundary><Create /></ErrorBoundary>} />
+                <Route path="/dashboard/adaptar" element={<ErrorBoundary><AdaptWizard /></ErrorBoundary>} />
+                <Route path="/my-adaptations" element={<ErrorBoundary><MyAdaptations /></ErrorBoundary>} />
+                <Route path="/dashboard/turmas" element={<ErrorBoundary><Classes /></ErrorBoundary>} />
+                <Route path="/dashboard/turmas/:id" element={<ErrorBoundary><ClassDetail /></ErrorBoundary>} />
+                <Route path="/dashboard/turmas/:id/aluno/:alunoId" element={<ErrorBoundary><StudentProfile /></ErrorBoundary>} />
+                <Route path="/dashboard/turmas/:id/aluno/:alunoId/relatorio" element={<ErrorBoundary><StudentReport /></ErrorBoundary>} />
+                <Route path="/dashboard/turmas/:id/relatorio" element={<ErrorBoundary><ClassReport /></ErrorBoundary>} />
+                <Route path="/dashboard/historico" element={<ErrorBoundary><AdaptationHistory /></ErrorBoundary>} />
+                <Route path="/dashboard/banco-questoes" element={<ErrorBoundary><QuestionBank /></ErrorBoundary>} />
+                <Route path="/dashboard/configuracoes" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
+                <Route path="/dashboard/simulador" element={<ErrorBoundary><BarrierSimulator /></ErrorBoundary>} />
+                <Route path="/chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
+                <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
+                <Route path="/pricing" element={<ErrorBoundary><Pricing /></ErrorBoundary>} />
+              </Route>
+
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

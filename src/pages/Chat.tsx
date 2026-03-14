@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Layout from "@/components/Layout";
+
 import { streamAI } from "@/lib/streamAI";
 import { toast } from "sonner";
 
@@ -71,7 +71,7 @@ export default function Chat() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-5rem)]">
         <div className="mb-4">
           <h1 className="text-xl font-bold text-foreground">Chat com IA</h1>
@@ -140,6 +140,6 @@ export default function Chat() {
           </Button>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }
