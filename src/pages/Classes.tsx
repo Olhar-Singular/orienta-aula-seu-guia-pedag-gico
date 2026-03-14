@@ -39,9 +39,9 @@ export default function Classes() {
     mutationFn: async () => {
       const { error } = await supabase.from("classes").insert({
         teacher_id: user!.id,
-        name,
-        description: description || null,
-        school_year: schoolYear || null,
+        name: name.trim().slice(0, 100),
+        description: description.trim().slice(0, 200) || null,
+        school_year: schoolYear.trim().slice(0, 10) || null,
       });
       if (error) throw error;
     },
