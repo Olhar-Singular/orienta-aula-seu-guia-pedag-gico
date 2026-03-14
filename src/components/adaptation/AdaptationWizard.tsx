@@ -25,9 +25,20 @@ export type AdaptationResult = {
   implementation_tips: string[];
 };
 
+export type SelectedQuestion = {
+  id: string;
+  text: string;
+  image_url: string | null;
+  options: string[] | null;
+  subject: string;
+  topic: string | null;
+  difficulty: string | null;
+};
+
 export type WizardData = {
   activityType: ActivityType | null;
   activityText: string;
+  selectedQuestions: SelectedQuestion[];
   classId: string | null;
   studentId: string | null;
   studentName: string | null;
