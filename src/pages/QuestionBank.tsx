@@ -589,12 +589,12 @@ export default function QuestionBank() {
                       {q.imageUrl ? (
                         <div className="space-y-1">
                           <div
-                            className="relative inline-block cursor-zoom-in"
+                            className="relative inline-block cursor-zoom-in group"
                             onClick={() => setPreviewImageUrl(q.imageUrl || null)}
                           >
                             <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors rounded">
-                              <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow pointer-events-none" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors rounded">
+                              <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
                             </div>
                           </div>
                           <div className="flex gap-1 flex-wrap">
