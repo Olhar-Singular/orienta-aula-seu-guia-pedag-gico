@@ -169,49 +169,50 @@ export default function Chat() {
       {/* Sidebar */}
       <AnimatePresence initial={false}>
         {sidebarOpen && (
-          <motion.aside
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 220, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: 220 }}
+            exit={{ width: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-r border-border bg-muted/30 flex flex-col shrink-0 min-w-0"
-            style={{ overflow: "hidden", maxWidth: 220 }}
+            className="shrink-0 overflow-hidden"
           >
-            <div className="p-3 border-b border-border flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-foreground truncate">Conversas</h2>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={startNewConversation}>
-                <Plus className="w-4 h-4" />
-              </Button>
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-2 space-y-1">
-                {conversations.length === 0 && (
-                  <p className="text-xs text-muted-foreground text-center py-8">Nenhuma conversa ainda</p>
-                )}
-                {conversations.map((conv) => (
-                  <button
-                    key={conv.id}
-                    onClick={() => selectConversation(conv)}
-                    className={cn(
-                      "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-colors group",
-                      activeConvId === conv.id
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <MessageCircle className="w-4 h-4 shrink-0" />
-                    <span className="truncate flex-1">{conv.title}</span>
-                    <button
-                      onClick={(e) => deleteConversation(conv.id, e)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive shrink-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </button>
-                ))}
+            <div className="w-[220px] h-full border-r border-border bg-muted/30 flex flex-col">
+              <div className="p-3 border-b border-border flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-foreground truncate">Conversas</h2>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={startNewConversation}>
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
-            </ScrollArea>
-          </motion.aside>
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-2 space-y-1">
+                  {conversations.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-8">Nenhuma conversa ainda</p>
+                  )}
+                  {conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => selectConversation(conv)}
+                      className={cn(
+                        "w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-colors group overflow-hidden",
+                        activeConvId === conv.id
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )}
+                    >
+                      <MessageCircle className="w-4 h-4 shrink-0" />
+                      <span className="truncate flex-1 min-w-0">{conv.title}</span>
+                      <button
+                        onClick={(e) => deleteConversation(conv.id, e)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
