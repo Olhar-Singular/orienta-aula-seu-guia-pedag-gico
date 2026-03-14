@@ -60,7 +60,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [bankSearch, setBankSearch] = useState("");
   const [bankLoading, setBankLoading] = useState(false);
-  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
