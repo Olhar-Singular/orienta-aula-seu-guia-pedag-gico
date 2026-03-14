@@ -1,4 +1,10 @@
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Pencil } from "lucide-react";
+import {
+  parseAdaptedQuestions,
+  type ParsedAdaptedQuestion,
+} from "@/lib/adaptedQuestions";
 
 /**
  * Parses AI-generated adapted content and renders it with rich formatting.
@@ -8,13 +14,13 @@ import { cn } from "@/lib/utils";
 type Props = {
   content: string;
   className?: string;
+  questionImages?: Record<string, string[]>;
+  onEditQuestion?: (question: ParsedAdaptedQuestion) => void;
 };
 
 // Detect formula-like patterns: variables, equals signs, operators, units
 const FORMULA_REGEX =
   /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|K)\b))/g;
-
-const BOLD_REGEX = /\*\*(.+?)\*\*/g;
 
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
@@ -158,8 +164,15 @@ function parseBlocks(content: string): Block[] {
   return blocks;
 }
 
-export default function AdaptedContentRenderer({ content, className }: Props) {
+export default function AdaptedContentRenderer({
+  content,
+  className,
+  questionImages,
+  onEditQuestion,
+}: Props) {
   const blocks = parseBlocks(content);
+  const parsedQuestions = parseAdaptedQuestions(content);
+  const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -175,20 +188,49 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
               </h4>
             );
 
-          case "question":
+          case "question": {
+            const question = questionByNumber.get(block.number);
+            const images = questionImages?.[block.number] || [];
+
             return (
-              <div
-                key={i}
-                className="flex gap-2.5 items-start bg-muted/40 rounded-lg p-3 border-l-[3px] border-primary/50"
-              >
-                <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
-                  {block.number}
-                </span>
-                <p className="text-[13px] text-foreground leading-relaxed flex-1 pt-0.5">
-                  {parseInlineFormatting(block.text)}
-                </p>
+              <div key={i} className="space-y-2">
+                <div className="flex gap-2.5 items-start bg-muted/40 rounded-lg p-3 border-l-[3px] border-primary/50">
+                  <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
+                    {block.number}
+                  </span>
+                  <p className="text-[13px] text-foreground leading-relaxed flex-1 pt-0.5">
+                    {parseInlineFormatting(block.text)}
+                  </p>
+                  {onEditQuestion && question && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() => onEditQuestion(question)}
+                      aria-label={`Editar questão ${block.number}`}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+
+                {images.length > 0 && (
+                  <div className="pl-8 flex flex-wrap gap-2">
+                    {images.map((imageUrl, imageIndex) => (
+                      <img
+                        key={`${block.number}-${imageIndex}`}
+                        src={imageUrl}
+                        alt={`Imagem da questão ${block.number}`}
+                        className="max-h-40 rounded-lg border border-border/50 object-contain"
+                        loading="lazy"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             );
+          }
 
           case "alternatives":
             return (
