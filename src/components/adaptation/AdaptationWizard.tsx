@@ -227,6 +227,7 @@ export default function AdaptationWizard() {
                 setData({
                   activityType: null,
                   activityText: "",
+                  selectedQuestions: [],
                   classId: null,
                   studentId: null,
                   studentName: null,
