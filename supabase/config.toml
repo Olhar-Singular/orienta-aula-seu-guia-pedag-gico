@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.analyze-barriers]
 verify_jwt = false
+
+[functions.generate-question-image]
+verify_jwt = false
