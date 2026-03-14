@@ -176,14 +176,14 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
   const blocks = parseBlocks(content);
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-3", className)}>
       {blocks.map((block, i) => {
         switch (block.type) {
           case "header":
             return (
               <h4
                 key={i}
-                className="text-sm font-bold uppercase tracking-wider text-primary border-b border-primary/20 pb-1.5 mt-2"
+                className="text-xs font-bold uppercase tracking-wider text-primary border-b border-primary/20 pb-1 mt-1.5"
               >
                 {block.text}
               </h4>
@@ -193,12 +193,12 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
             return (
               <div
                 key={i}
-                className="flex gap-3 items-start bg-muted/40 rounded-xl p-4 border-l-4 border-primary/50 shadow-sm"
+                className="flex gap-2.5 items-start bg-muted/40 rounded-lg p-3 border-l-[3px] border-primary/50"
               >
-                <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
+                <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                   {block.number}
                 </span>
-                <p className="text-sm text-foreground leading-relaxed flex-1 pt-1">
+                <p className="text-[13px] text-foreground leading-relaxed flex-1 pt-0.5">
                   {parseInlineFormatting(block.text)}
                 </p>
               </div>
@@ -206,16 +206,16 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
 
           case "alternatives":
             return (
-              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pl-6">
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-5">
                 {block.items.map((alt, j) => (
                   <div
                     key={j}
-                    className="flex items-start gap-2.5 rounded-lg border border-border/50 bg-card px-3.5 py-2.5 transition-colors hover:bg-accent/30"
+                    className="flex items-center gap-2 rounded-md border border-border/40 bg-card px-2.5 py-1.5"
                   >
-                    <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-xs font-bold uppercase">
+                    <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-secondary text-secondary-foreground text-[10px] font-bold uppercase">
                       {alt.letter}
                     </span>
-                    <span className="text-sm text-foreground leading-relaxed">
+                    <span className="text-[13px] text-foreground leading-snug">
                       {parseInlineFormatting(alt.text)}
                     </span>
                   </div>
@@ -225,7 +225,7 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
 
           case "paragraph":
             return (
-              <p key={i} className="text-sm text-foreground/90 leading-relaxed">
+              <p key={i} className="text-[13px] text-foreground/90 leading-relaxed">
                 {parseInlineFormatting(block.lines.join(" "))}
               </p>
             );
