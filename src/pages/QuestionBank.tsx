@@ -425,9 +425,11 @@ export default function QuestionBank() {
   };
 
   const handleDelete = async (id: string) => {
+    setDeletingId(id);
     const { error } = await (supabase.from as any)("question_bank").delete().eq("id", id);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else { toast({ title: "Questão removida" }); fetchQuestions(); }
+    setDeletingId(null);
   };
 
   // ─── Delete exam upload ───
