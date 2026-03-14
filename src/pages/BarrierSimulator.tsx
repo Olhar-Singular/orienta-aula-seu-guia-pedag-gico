@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import Layout from "@/components/Layout";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 

@@ -5,7 +5,7 @@ import {
   UserCheck, BarChart3, Lightbulb, TrendingUp, Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Layout from "@/components/Layout";
+
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";

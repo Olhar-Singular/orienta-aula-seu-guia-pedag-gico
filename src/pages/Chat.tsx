@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Send, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Layout from "@/components/Layout";
+
 import { streamAI } from "@/lib/streamAI";
 import { toast } from "sonner";
 
