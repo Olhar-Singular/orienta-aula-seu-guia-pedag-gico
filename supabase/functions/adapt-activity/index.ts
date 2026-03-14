@@ -238,6 +238,7 @@ serve(async (req) => {
       student_id,
       class_id,
       question_images,
+      observation_notes,
     } = body;
 
     if (!original_activity || typeof original_activity !== "string" || !original_activity.trim()) {
