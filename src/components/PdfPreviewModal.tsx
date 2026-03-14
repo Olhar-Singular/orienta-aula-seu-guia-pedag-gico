@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Loader2 } from "lucide-react";
 import { renderPdfPage, getPdfPageCount } from "@/lib/pdf-utils";
 
 type Props = {
@@ -20,9 +20,33 @@ export default function PdfPreviewModal({ open, onOpenChange, file }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageImage, setPageImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const loadedRef = useRef(false);
 
-  const loadPage = useCallback(async (page: number) => {
+  useEffect(() => {
+    if (!open || !file) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const count = await getPdfPageCount(file);
+        if (cancelled) return;
+        setPageCount(count);
+        const img = await renderPdfPage(file, 1, 1.5);
+        if (cancelled) return;
+        setPageImage(img);
+        setCurrentPage(1);
+      } catch (e) {
+        console.error("Error loading PDF:", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [open, file]);
+
+  const loadPage = async (page: number) => {
     if (!file) return;
     setLoading(true);
     try {
@@ -34,28 +58,10 @@ export default function PdfPreviewModal({ open, onOpenChange, file }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [file]);
-
-  const handleOpen = useCallback(async () => {
-    if (!file || loadedRef.current) return;
-    loadedRef.current = true;
-    try {
-      const count = await getPdfPageCount(file);
-      setPageCount(count);
-      await loadPage(1);
-    } catch (e) {
-      console.error("Error loading PDF:", e);
-    }
-  }, [file, loadPage]);
-
-  // Load on open
-  if (open && file && !loadedRef.current) {
-    handleOpen();
-  }
+  };
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
-      loadedRef.current = false;
       setPageImage(null);
       setCurrentPage(1);
       setPageCount(0);
@@ -77,15 +83,13 @@ export default function PdfPreviewModal({ open, onOpenChange, file }: Props) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[95vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span className="truncate">{file?.name || "Preview PDF"}</span>
-          </DialogTitle>
+          <DialogTitle className="truncate">{file?.name || "Preview PDF"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
           {loading ? (
             <div className="flex items-center justify-center h-[60vh]">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : pageImage ? (
             <div className="overflow-auto max-h-[65vh] w-full flex justify-center">
