@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import type { WizardData, AdaptationResult } from "./AdaptationWizard";
+import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap } from "./AdaptationWizard";
 import {
   Loader2,
   RefreshCw,
@@ -31,8 +31,6 @@ type Props = {
 };
 
 type EditableField = "version_universal" | "version_directed";
-type QuestionImageMap = Record<string, string[]>;
-type SectionQuestionImages = Record<EditableField, QuestionImageMap>;
 
 const VISUAL_CUE_REGEX =
   /\b(figura|imagem|gráfico|grafico|diagrama|esquema|mapa|ilustração|ilustracao|tabela)\b/i;
@@ -53,10 +51,14 @@ const getDefaultQuestionImageMap = (
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
   const [loading, setLoading] = useState(!data.result);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [questionImages, setQuestionImages] = useState<SectionQuestionImages>({
-    version_universal: {},
-    version_directed: {},
-  });
+  const questionImages = data.questionImages;
+  const setQuestionImages = (updater: SectionQuestionImages | ((prev: SectionQuestionImages) => SectionQuestionImages)) => {
+    if (typeof updater === "function") {
+      updateData({ questionImages: updater(data.questionImages) });
+    } else {
+      updateData({ questionImages: updater });
+    }
+  };
   const [editingQuestion, setEditingQuestion] = useState<{
     field: EditableField;
     title: string;

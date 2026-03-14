@@ -35,6 +35,9 @@ export type SelectedQuestion = {
   difficulty: string | null;
 };
 
+export type QuestionImageMap = Record<string, string[]>;
+export type SectionQuestionImages = Record<"version_universal" | "version_directed", QuestionImageMap>;
+
 export type WizardData = {
   activityType: ActivityType | null;
   activityText: string;
@@ -46,6 +49,7 @@ export type WizardData = {
   adaptForWholeClass: boolean;
   observationNotes: string;
   result: AdaptationResult | null;
+  questionImages: SectionQuestionImages;
 };
 
 const STEPS = [
@@ -87,6 +91,7 @@ export default function AdaptationWizard() {
     adaptForWholeClass: false,
     observationNotes: "",
     result: null,
+    questionImages: { version_universal: {}, version_directed: {} },
   });
 
   const updateData = (partial: Partial<WizardData>) =>
@@ -239,6 +244,7 @@ export default function AdaptationWizard() {
                   adaptForWholeClass: false,
                   observationNotes: "",
                   result: null,
+                  questionImages: { version_universal: {}, version_directed: {} },
                 });
               }} />
             )}
