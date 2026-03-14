@@ -13,6 +13,7 @@ import {
 import { createSupabaseMock, mockAuthHook, mockSubscriptionHook, createTestWrapper, mockFetch } from "./helpers";
 import { validateExtractedQuestions } from "@/lib/questionParser";
 import { validatePdfMagicBytes, validateDocxMagicBytes, validateImageMagicBytes, detectFileType } from "@/lib/fileValidation";
+import { normalizeTextForDedup, findDuplicates, dataUrlToBlob } from "@/lib/extraction-utils";
 
 // ─── Mocks ───
 const supabaseMock = createSupabaseMock({
@@ -87,9 +88,9 @@ describe("PDF extraction pipeline", () => {
   it("filters out invalid questions from AI response", () => {
     const mixed = [
       { text: "Valid question?", subject: "Math" },
-      { text: "", subject: "Science" }, // empty text
-      { text: "Another valid", subject: "" }, // empty subject
-      null, // null item
+      { text: "", subject: "Science" },
+      { text: "Another valid", subject: "" },
+      null,
     ];
     const validated = validateExtractedQuestions(mixed);
     expect(validated).toHaveLength(1);
@@ -101,6 +102,29 @@ describe("PDF extraction pipeline", () => {
     expect(validateExtractedQuestions("not json")).toEqual([]);
     expect(validateExtractedQuestions(42)).toEqual([]);
     expect(validateExtractedQuestions([])).toEqual([]);
+  });
+});
+
+describe("Deduplication utilities", () => {
+  it("normalizes text for dedup (NFKC + lowercase + collapse whitespace)", () => {
+    expect(normalizeTextForDedup("  Hello   World  ")).toBe("hello world");
+    expect(normalizeTextForDedup("UPPER CASE")).toBe("upper case");
+  });
+
+  it("finds duplicate questions correctly", () => {
+    const existing = [{ text: "What is 2+2?" }, { text: "Solve: x=3" }];
+    const newQs = [{ text: "what is 2+2?" }, { text: "New question" }];
+    const dupes = findDuplicates(newQs, existing);
+    expect(dupes.has(0)).toBe(true);
+    expect(dupes.has(1)).toBe(false);
+  });
+
+  it("converts dataUrl to blob", () => {
+    // Create a tiny 1x1 PNG data URL
+    const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const blob = dataUrlToBlob(dataUrl);
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.type).toBe("image/png");
   });
 });
 
@@ -120,9 +144,7 @@ describe("Image OCR pipeline", () => {
   });
 
   it("validates extracted OCR text is preserved", () => {
-    const ocrQuestions = [
-      { text: "Resolva: 2 + 2 = ?", subject: "Matemática" },
-    ];
+    const ocrQuestions = [{ text: "Resolva: 2 + 2 = ?", subject: "Matemática" }];
     const validated = validateExtractedQuestions(ocrQuestions);
     expect(validated).toHaveLength(1);
     expect(validated[0].text).toBe("Resolva: 2 + 2 = ?");
