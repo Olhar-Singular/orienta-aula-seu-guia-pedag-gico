@@ -200,6 +200,8 @@ export default function AdaptationWizard() {
               <StepActivityInput
                 value={data.activityText}
                 onChange={(t) => updateData({ activityText: t })}
+                selectedQuestions={data.selectedQuestions}
+                onSelectedQuestionsChange={(q) => updateData({ selectedQuestions: q })}
                 onNext={next}
                 onPrev={prev}
               />
