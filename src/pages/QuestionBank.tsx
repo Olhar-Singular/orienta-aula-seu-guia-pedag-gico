@@ -412,6 +412,35 @@ export default function QuestionBank() {
     else { toast({ title: "Questão removida" }); fetchQuestions(); }
   };
 
+  // ─── Delete exam upload ───
+  const handleDeleteUpload = async (upload: PdfUpload) => {
+    try {
+      // Delete file from storage
+      await supabase.storage.from("question-pdfs").remove([upload.file_path]);
+      // Delete record
+      const { error } = await (supabase.from as any)("pdf_uploads").delete().eq("id", upload.id);
+      if (error) throw error;
+      toast({ title: "Prova excluída" });
+      fetchUploads();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // ─── Re-extract from existing upload ───
+  const handleReExtract = async (upload: PdfUpload) => {
+    try {
+      const { data: fileData, error } = await supabase.storage.from("question-pdfs").download(upload.file_path);
+      if (error || !fileData) throw new Error("Não foi possível baixar o arquivo");
+      const file = new File([fileData], upload.file_name, { type: "application/pdf" });
+      setUploadFile(file);
+      // Auto-trigger extraction
+      toast({ title: "Arquivo carregado", description: "Clique em 'Extrair com IA' para reextrair as questões." });
+    } catch (e: any) {
+      toast({ title: "Erro ao carregar arquivo", description: e.message, variant: "destructive" });
+    }
+  };
+
   const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
     setExtractedQuestions((prev) => prev.map((q, idx) => idx === i ? { ...q, [field]: value } : q));
   };
@@ -754,6 +783,14 @@ export default function QuestionBank() {
                               )}
                             </p>
                           </div>
+                        </div>
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
+                            <FileUp className="w-4 h-4 mr-1" /> Extrair
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} aria-label="Excluir prova">
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
