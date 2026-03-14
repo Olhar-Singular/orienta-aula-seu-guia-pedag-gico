@@ -18,12 +18,14 @@ REGRAS:
 - Reforce a autonomia do profissional.
 - Use notação escolar simples (Unicode) para matemática: v₀, v², m/s², Δv.
 - NUNCA use LaTeX.
+- Quando o usuário enviar uma imagem, analise-a no contexto pedagógico: pode ser uma atividade, prova, caderno de aluno, gráfico, etc. Descreva o que vê e ofereça sugestões de adaptação quando relevante.
 
 Você pode:
 - Sugerir estratégias de adaptação
 - Ajudar a pensar em atividades
 - Esclarecer dúvidas sobre o uso do Orienta Aula
 - Dar exemplos práticos de adaptação
+- Analisar imagens de atividades, provas, cadernos e materiais didáticos
 
 Sempre finalize com: "A decisão final é sempre do profissional."`;
 
@@ -39,6 +41,8 @@ serve(async (req) => {
 
     console.log("Chat request:", { messageCount: messages?.length });
 
+    // Messages may contain multimodal content (text + image_url)
+    // Forward them as-is to the vision-capable model
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -46,7 +50,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...(messages || []),
