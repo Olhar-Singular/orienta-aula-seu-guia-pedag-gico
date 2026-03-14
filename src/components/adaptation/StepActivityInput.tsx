@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Type, Database, FileUp, Crop, Search, Check } from "lucide-react";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import { Type, Database, FileUp, Crop, Search, Check, Eye, Loader2 } from "lucide-react";
 
 type Props = {
   value: string;
