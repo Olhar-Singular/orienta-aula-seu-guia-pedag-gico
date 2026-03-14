@@ -460,16 +460,6 @@ export default function QuestionBank() {
                         </div>
                         {!q.saved && (
                           <div className="flex gap-1">
-                            {/* View PDF + Crop button (combined) */}
-                            {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setCropperForQuestion(i)}
-                              >
-                                <Eye className="w-3 h-3 mr-1" /> Visualizar Prova
-                              </Button>
-                            )}
                             {/* Save individual */}
                             <Button
                               size="sm"
