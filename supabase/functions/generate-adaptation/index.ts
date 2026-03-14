@@ -105,6 +105,21 @@ serve(async (req) => {
       });
     }
 
+    // Rate limiting — max 20 requests per hour
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: rl } = await admin.from("rate_limits").select("*").eq("user_id", authData.user.id).single();
+    const now = new Date();
+    const hourAgo = new Date(now.getTime() - 3_600_000);
+    const windowStart = rl?.window_start ? new Date(rl.window_start) : null;
+    if (windowStart && windowStart > hourAgo && (rl?.request_count ?? 0) >= 20) {
+      return new Response(JSON.stringify({ error: "Limite de 20 adaptações por hora atingido. Tente novamente mais tarde." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const newCount = !windowStart || windowStart <= hourAgo ? 1 : (rl?.request_count ?? 0) + 1;
+    const newWindow = !windowStart || windowStart <= hourAgo ? now.toISOString() : rl!.window_start;
+    await admin.from("rate_limits").upsert({ user_id: authData.user.id, request_count: newCount, window_start: newWindow });
+
     const { messages, context, action } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
