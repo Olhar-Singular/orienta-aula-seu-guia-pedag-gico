@@ -24,9 +24,19 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   const [loading, setLoading] = useState(false);
 
   // Crop state
+  type CropPoint = { x: number; y: number };
+  type CropRect = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    displayWidth: number;
+    displayHeight: number;
+  };
+
   const [cropping, setCropping] = useState(false);
-  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
-  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
+  const [cropStart, setCropStart] = useState<CropPoint | null>(null);
+  const [cropEnd, setCropEnd] = useState<CropPoint | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const imgWrapperRef = useRef<HTMLDivElement>(null);
@@ -81,6 +91,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
       setCropping(false);
       setCropStart(null);
       setCropEnd(null);
+      setIsDragging(false);
     }
     onOpenChange(isOpen);
   };
@@ -96,20 +107,22 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   };
 
   // ── Crop helpers ──
-  const getRelativeCoords = useCallback((e: React.MouseEvent) => {
+  const getRelativeCoords = useCallback((e: React.MouseEvent): CropPoint | null => {
     const img = imgRef.current;
-    if (!img) return { x: 0, y: 0 };
+    if (!img) return null;
+
     const rect = img.getBoundingClientRect();
-    return {
-      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
-    };
+    const x = Math.max(0, Math.min(img.clientWidth, e.clientX - rect.left));
+    const y = Math.max(0, Math.min(img.clientHeight, e.clientY - rect.top));
+
+    return { x, y };
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!cropping) return;
     e.preventDefault();
     const coords = getRelativeCoords(e);
+    if (!coords) return;
     setCropStart(coords);
     setCropEnd(coords);
     setIsDragging(true);
@@ -118,19 +131,32 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !cropping) return;
     e.preventDefault();
-    setCropEnd(getRelativeCoords(e));
+    const coords = getRelativeCoords(e);
+    if (!coords) return;
+    setCropEnd(coords);
   };
 
   const handleMouseUp = () => setIsDragging(false);
 
-  const getCropRect = () => {
-    if (!cropStart || !cropEnd) return null;
+  const getCropRect = (): CropRect | null => {
+    const img = imgRef.current;
+    if (!img || !cropStart || !cropEnd) return null;
+
     const x = Math.min(cropStart.x, cropEnd.x);
     const y = Math.min(cropStart.y, cropEnd.y);
-    const w = Math.abs(cropEnd.x - cropStart.x);
-    const h = Math.abs(cropEnd.y - cropStart.y);
-    if (w < 0.01 || h < 0.01) return null;
-    return { x, y, width: w, height: h };
+    const width = Math.abs(cropEnd.x - cropStart.x);
+    const height = Math.abs(cropEnd.y - cropStart.y);
+
+    if (width < 5 || height < 5) return null;
+
+    return {
+      x,
+      y,
+      width,
+      height,
+      displayWidth: img.clientWidth,
+      displayHeight: img.clientHeight,
+    };
   };
 
   const handleConfirmCrop = () => {
@@ -138,20 +164,24 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
     const rect = getCropRect();
     if (!img || !rect || !onCrop) return;
 
-    const canvas = document.createElement("canvas");
-    const px = rect.x * img.naturalWidth;
-    const py = rect.y * img.naturalHeight;
-    const pw = rect.width * img.naturalWidth;
-    const ph = rect.height * img.naturalHeight;
+    const scaleX = img.naturalWidth / rect.displayWidth;
+    const scaleY = img.naturalHeight / rect.displayHeight;
 
-    canvas.width = pw;
-    canvas.height = ph;
+    const sx = Math.max(0, Math.floor(rect.x * scaleX));
+    const sy = Math.max(0, Math.floor(rect.y * scaleY));
+    const sw = Math.max(1, Math.min(img.naturalWidth - sx, Math.ceil(rect.width * scaleX)));
+    const sh = Math.max(1, Math.min(img.naturalHeight - sy, Math.ceil(rect.height * scaleY)));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = sw;
+    canvas.height = sh;
+
     const ctx = canvas.getContext("2d")!;
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, pw, ph);
-    ctx.drawImage(img, px, py, pw, ph, 0, 0, pw, ph);
+    ctx.fillRect(0, 0, sw, sh);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
 
-    const dataUrl = canvas.toDataURL("image/png", 0.92);
+    const dataUrl = canvas.toDataURL("image/png");
     onCrop(dataUrl);
     setCropping(false);
     setCropStart(null);
@@ -183,7 +213,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
             <div className="overflow-auto max-h-[60vh] w-full flex justify-center">
               <div
                 ref={imgWrapperRef}
-                className={`relative inline-block ${cropping ? "cursor-crosshair select-none" : ""}`}
+                className={`relative inline-block align-top ${cropping ? "cursor-crosshair select-none" : ""}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -193,17 +223,17 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
                   ref={imgRef}
                   src={pageImage}
                   alt={`Página ${currentPage}`}
-                  className="max-w-full border rounded shadow-sm"
+                  className="block max-w-full rounded shadow-sm"
                   draggable={false}
                 />
                 {/* Crop overlays */}
                 {cropping && cropRect && (
                   <>
-                    <div className="absolute left-0 right-0 top-0 bg-black/50 pointer-events-none" style={{ height: `${cropRect.y * 100}%` }} />
-                    <div className="absolute left-0 right-0 bottom-0 bg-black/50 pointer-events-none" style={{ height: `${(1 - cropRect.y - cropRect.height) * 100}%` }} />
-                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${cropRect.x * 100}%`, height: `${cropRect.height * 100}%` }} />
-                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${(1 - cropRect.x - cropRect.width) * 100}%`, height: `${cropRect.height * 100}%` }} />
-                    <div className="absolute border-2 border-primary pointer-events-none" style={{ left: `${cropRect.x * 100}%`, top: `${cropRect.y * 100}%`, width: `${cropRect.width * 100}%`, height: `${cropRect.height * 100}%` }}>
+                    <div className="absolute left-0 top-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${Math.max(0, cropRect.y)}px` }} />
+                    <div className="absolute left-0 bottom-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${Math.max(0, cropRect.displayHeight - cropRect.y - cropRect.height)}px` }} />
+                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${Math.max(0, cropRect.x)}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${Math.max(0, cropRect.displayWidth - cropRect.x - cropRect.width)}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute border-2 border-primary pointer-events-none" style={{ left: `${cropRect.x}px`, top: `${cropRect.y}px`, width: `${cropRect.width}px`, height: `${cropRect.height}px` }}>
                       {[{ top: -4, left: -4 }, { top: -4, right: -4 }, { bottom: -4, left: -4 }, { bottom: -4, right: -4 }].map((pos, i) => (
                         <div key={i} className="absolute w-2 h-2 bg-primary rounded-full" style={pos as any} />
                       ))}
