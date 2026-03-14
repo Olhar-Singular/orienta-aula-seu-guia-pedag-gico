@@ -268,6 +268,71 @@ export type Database = {
         }
         Relationships: []
       }
+      question_bank: {
+        Row: {
+          correct_answer: number | null
+          created_at: string | null
+          created_by: string
+          difficulty: string | null
+          id: string
+          image_url: string | null
+          is_public: boolean | null
+          options: Json | null
+          resolution: string | null
+          school_id: string | null
+          source: string | null
+          source_file_name: string | null
+          subject: string
+          text: string
+          topic: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          correct_answer?: number | null
+          created_at?: string | null
+          created_by: string
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean | null
+          options?: Json | null
+          resolution?: string | null
+          school_id?: string | null
+          source?: string | null
+          source_file_name?: string | null
+          subject: string
+          text: string
+          topic?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          correct_answer?: number | null
+          created_at?: string | null
+          created_by?: string
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean | null
+          options?: Json | null
+          resolution?: string | null
+          school_id?: string | null
+          source?: string | null
+          source_file_name?: string | null
+          subject?: string
+          text?: string
+          topic?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_limits: {
         Row: {
           request_count: number | null
@@ -283,6 +348,59 @@ export type Database = {
           request_count?: number | null
           user_id?: string
           window_start?: string | null
+        }
+        Relationships: []
+      }
+      school_members: {
+        Row: {
+          id: string
+          joined_at: string | null
+          role: string | null
+          school_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          school_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string | null
+          role?: string | null
+          school_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_members_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
@@ -376,6 +494,14 @@ export type Database = {
       get_credits_used: { Args: { p_user_id: string }; Returns: number }
       is_class_owner: {
         Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_school_admin: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_school_member: {
+        Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
       sanitize_input: {
