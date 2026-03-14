@@ -31,6 +31,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
+  const imgWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open || !file) return;
@@ -97,8 +98,10 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   };
 
   // ── Crop helpers ──
-  const getRelativeCoords = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const getRelativeCoords = (e: React.MouseEvent) => {
+    const wrapper = imgWrapperRef.current;
+    if (!wrapper) return { x: 0, y: 0 };
+    const rect = wrapper.getBoundingClientRect();
     return {
       x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
       y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
@@ -183,7 +186,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              <div className="relative inline-block">
+              <div ref={imgWrapperRef} className="relative inline-block">
                 <img
                   ref={imgRef}
                   src={pageImage}
