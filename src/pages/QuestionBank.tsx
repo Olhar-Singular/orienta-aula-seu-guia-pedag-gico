@@ -43,6 +43,7 @@ import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText } from "@/lib/docx-utils";
