@@ -12,3 +12,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard/
+Disallow: /profile
+Disallow: /chat
+Disallow: /create
+Disallow: /my-adaptations
+Disallow: /pricing
+
+Sitemap: https://orientaaula.com.br/sitemap.xml
