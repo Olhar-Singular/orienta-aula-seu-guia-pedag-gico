@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
