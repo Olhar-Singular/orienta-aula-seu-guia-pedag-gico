@@ -345,6 +345,15 @@ export default function QuestionBank() {
     const q = extractedQuestions[index];
     if (!q || !q.text.trim()) return;
 
+    // Check for duplicate text in DB
+    const normText = normalizeTextForDedup(q.text);
+    const isDup = questions.some((existing) => normalizeTextForDedup(existing.text) === normText);
+    if (isDup) {
+      toast({ title: "Questão duplicada", description: "Já existe uma questão com o mesmo enunciado no banco.", variant: "destructive" });
+      updateExtracted(index, "isDuplicate", true);
+      return;
+    }
+
     updateExtracted(index, "saving", true);
     try {
       let imageUrl = q.imageUrl || null;
