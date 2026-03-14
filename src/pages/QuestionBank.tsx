@@ -739,7 +739,7 @@ export default function QuestionBank() {
             }
           }}
         />
-      </Layout>
+      </>
     );
   }
 
