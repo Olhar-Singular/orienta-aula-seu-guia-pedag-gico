@@ -356,7 +356,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
             ) : bankQuestions.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma questão encontrada.</p>
             ) : (
-              <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1">
                 {bankQuestions.map((q) => {
                   const isSelected = selectedQuestions.has(q.id);
                   return (
@@ -364,7 +364,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       key={q.id}
                       onClick={() => toggleQuestion(q.id)}
                       className={`border rounded-lg p-3 cursor-pointer transition-all flex items-start gap-3 ${
-                        isSelected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"
+                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-accent/50"
                       }`}
                     >
                       <div
@@ -374,8 +374,30 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       >
                         {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 space-y-2">
                         <p className="text-sm line-clamp-2">{q.text}</p>
+
+                        {q.image_url && (
+                          <div className="space-y-1">
+                            <img
+                              src={q.image_url}
+                              alt="Imagem da questão"
+                              className="max-h-24 rounded border"
+                              loading="lazy"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImageUrl(q.image_url);
+                              }}
+                            >
+                              <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
+                            </Button>
+                          </div>
+                        )}
+
                         <div className="flex gap-2 mt-1.5">
                           <Badge variant="secondary" className="text-xs">{q.subject}</Badge>
                           {q.topic && <Badge variant="outline" className="text-xs">{q.topic}</Badge>}
