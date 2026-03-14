@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import logoImg from "@/assets/logo-orienta-aula.png";
+import logoImg from "@/assets/logo-orienta-aula-eye.png";
 
 export default function Cadastro() {
   const navigate = useNavigate();
