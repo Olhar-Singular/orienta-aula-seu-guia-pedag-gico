@@ -834,6 +834,8 @@ export default function AdaptationEditModal({
                     />
                   </>
                 )}
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Não foi possível carregar a imagem.</p>
