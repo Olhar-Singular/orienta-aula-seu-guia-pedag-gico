@@ -597,16 +597,15 @@ export default function QuestionBank() {
         </div>
 
         {/* Per-question PDF Preview */}
-        <PdfPreviewModal open={pdfPreviewForQuestion} onOpenChange={setPdfPreviewForQuestion} file={uploadFile} />
-
-        {/* Per-question Image Cropper */}
-        <ImageCropperModal
+        {/* Per-question PDF Preview with Crop */}
+        <PdfPreviewModal
           open={cropperForQuestion !== null}
           onOpenChange={(open) => { if (!open) setCropperForQuestion(null); }}
-          onSaved={() => {}}
-          onImageCropped={(imageUrl) => {
+          file={uploadFile}
+          initialPage={cropperForQuestion !== null ? extractedQuestions[cropperForQuestion]?.image_page : undefined}
+          onCrop={(dataUrl) => {
             if (cropperForQuestion !== null) {
-              updateExtracted(cropperForQuestion, "imageUrl", imageUrl);
+              updateExtracted(cropperForQuestion, "imageUrl", dataUrl);
               setCropperForQuestion(null);
             }
           }}
