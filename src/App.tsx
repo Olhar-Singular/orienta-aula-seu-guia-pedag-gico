@@ -24,6 +24,7 @@ import AdaptWizard from "./pages/AdaptWizard";
 import AdaptationHistory from "./pages/AdaptationHistory";
 import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
