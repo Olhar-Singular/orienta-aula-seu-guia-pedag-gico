@@ -275,7 +275,7 @@ export default function Create() {
   // Show result view
   if (result && !generating) {
     return (
-      <Layout>
+      <>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-bold text-foreground">Resultado da Adaptação</h1>
