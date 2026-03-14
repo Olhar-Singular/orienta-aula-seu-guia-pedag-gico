@@ -96,7 +96,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   }, [showBankModal, fetchBankQuestions]);
 
   const toggleQuestion = (id: string) => {
-    setSelectedQuestions((prev) => {
+    setCheckedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -105,8 +105,22 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   };
 
   const confirmBankSelection = () => {
-    const selected = bankQuestions.filter((q) => selectedQuestions.has(q.id));
-    const text = selected
+    const selected = bankQuestions.filter((q) => checkedIds.has(q.id));
+    const newQuestions: SelectedQuestion[] = selected.map((q) => ({
+      id: q.id,
+      text: q.text,
+      image_url: q.image_url,
+      options: Array.isArray(q.options) ? q.options : null,
+      subject: q.subject,
+      topic: q.topic,
+      difficulty: q.difficulty,
+    }));
+    // Merge with existing, avoiding duplicates
+    const existingIds = new Set(selectedQuestions.map((q) => q.id));
+    const merged = [...selectedQuestions, ...newQuestions.filter((q) => !existingIds.has(q.id))];
+    onSelectedQuestionsChange(merged);
+    // Also update text
+    const text = merged
       .map((q, i) => {
         let questionText = `${i + 1}) ${q.text}`;
         if (q.options && Array.isArray(q.options)) {
@@ -115,10 +129,25 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
         return questionText;
       })
       .join("\n\n");
-    onChange(value ? value + "\n\n" + text : text);
+    onChange(text);
     setShowBankModal(false);
-    setSelectedQuestions(new Set());
+    setCheckedIds(new Set());
     toast({ title: `${selected.length} questão(ões) adicionada(s)` });
+  };
+
+  const removeQuestion = (id: string) => {
+    const updated = selectedQuestions.filter((q) => q.id !== id);
+    onSelectedQuestionsChange(updated);
+    const text = updated
+      .map((q, i) => {
+        let questionText = `${i + 1}) ${q.text}`;
+        if (q.options && Array.isArray(q.options)) {
+          questionText += "\n" + q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}) ${o}`).join("\n");
+        }
+        return questionText;
+      })
+      .join("\n\n");
+    onChange(text);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
