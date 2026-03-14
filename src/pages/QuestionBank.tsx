@@ -75,6 +75,8 @@ type ExtractedQuestion = {
   imageUrl?: string; // auto-cropped or manual image
   selected: boolean;
   isDuplicate?: boolean;
+  saved?: boolean; // already saved to DB
+  saving?: boolean; // currently saving
 };
 
 const subjects = [
@@ -120,6 +122,8 @@ export default function QuestionBank() {
   const [pageImages, setPageImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
+  const [pdfPreviewForQuestion, setPdfPreviewForQuestion] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -310,74 +314,72 @@ export default function QuestionBank() {
     }
   };
 
-  // ─── Save extracted questions ───
-  const handleSaveExtracted = async () => {
+  // ─── Save individual question ───
+  const handleSaveOne = async (index: number) => {
     if (!user) return;
-    const toSave = extractedQuestions.filter((q) => q.selected && q.text.trim());
-    if (toSave.length === 0) {
-      toast({ title: "Nenhuma questão selecionada", variant: "destructive" });
-      return;
-    }
+    const q = extractedQuestions[index];
+    if (!q || !q.text.trim()) return;
 
-    setSaving(true);
+    updateExtracted(index, "saving", true);
     try {
-      // Upload images first
-      const rows = [];
-      for (const q of toSave) {
-        let imageUrl = q.imageUrl || null;
+      let imageUrl = q.imageUrl || null;
 
-        // Upload auto-cropped image to storage
-        if (imageUrl && imageUrl.startsWith("data:")) {
-          const blob = dataUrlToBlob(imageUrl);
-          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
-          const { error: upErr } = await supabase.storage
-            .from("question-images")
-            .upload(fileName, blob, { contentType: "image/png" });
-          if (!upErr) {
-            const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
-            imageUrl = publicUrl;
-          } else {
-            imageUrl = null;
-          }
+      // Upload image to storage if it's a data URL
+      if (imageUrl && imageUrl.startsWith("data:")) {
+        const blob = dataUrlToBlob(imageUrl);
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
+        const { error: upErr } = await supabase.storage
+          .from("question-images")
+          .upload(fileName, blob, { contentType: "image/png" });
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        } else {
+          imageUrl = null;
         }
-
-        rows.push({
-          text: q.text,
-          subject: q.subject,
-          topic: q.topic || null,
-          options: q.options || null,
-          correct_answer: q.correct_answer ?? null,
-          resolution: q.resolution || null,
-          difficulty: "medio",
-          source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
-          source_file_name: uploadFile?.name || null,
-          image_url: imageUrl,
-          created_by: user.id,
-        });
       }
 
-      const { error } = await (supabase.from as any)("question_bank").insert(rows);
+      const row = {
+        text: q.text,
+        subject: q.subject,
+        topic: q.topic || null,
+        options: q.options || null,
+        correct_answer: q.correct_answer ?? null,
+        resolution: q.resolution || null,
+        difficulty: "medio",
+        source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
+        source_file_name: uploadFile?.name || null,
+        image_url: imageUrl,
+        created_by: user.id,
+      };
+
+      const { error } = await (supabase.from as any)("question_bank").insert([row]);
       if (error) throw error;
 
-      // Update pdf_uploads count
-      if (uploadFile) {
-        await (supabase.from as any)("pdf_uploads")
-          .update({ questions_extracted: rows.length })
-          .eq("file_name", uploadFile.name)
-          .eq("user_id", user.id);
-      }
-
-      toast({ title: `${rows.length} questão(ões) salva(s) com sucesso!` });
-      setShowReview(false);
-      setExtractedQuestions([]);
-      setUploadFile(null);
-      setPageImages([]);
+      updateExtracted(index, "saved", true);
+      updateExtracted(index, "saving", false);
+      toast({ title: `Questão ${index + 1} salva com sucesso!` });
       fetchQuestions();
     } catch (e: any) {
+      updateExtracted(index, "saving", false);
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
+  };
+
+  // ─── Save all selected (batch) ───
+  const handleSaveExtracted = async () => {
+    const unsaved = extractedQuestions
+      .map((q, i) => ({ q, i }))
+      .filter(({ q }) => q.selected && !q.saved && q.text.trim());
+    if (unsaved.length === 0) {
+      toast({ title: "Nenhuma questão para salvar", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    for (const { i } of unsaved) {
+      await handleSaveOne(i);
+    }
+    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -398,22 +400,23 @@ export default function QuestionBank() {
     return true;
   });
 
-  const selectedCount = extractedQuestions.filter((q) => q.selected).length;
+  const selectedCount = extractedQuestions.filter((q) => q.selected && !q.saved).length;
+  const savedCount = extractedQuestions.filter((q) => q.saved).length;
 
   // ─── REVIEW MODE ───
   if (showReview) {
     return (
       <Layout>
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => { setShowReview(false); setExtractedQuestions([]); }}>
-                Cancelar
+                {savedCount > 0 ? "Concluir" : "Cancelar"}
               </Button>
               <Button onClick={handleSaveExtracted} disabled={saving || selectedCount === 0}>
                 {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                Salvar {selectedCount} questão(ões)
+                Salvar todas ({selectedCount})
               </Button>
             </div>
           </div>
@@ -422,13 +425,14 @@ export default function QuestionBank() {
             <AlertTriangle className="w-4 h-4" />
             <AlertDescription>
               A IA pode errar na classificação, gabarito ou resolução. <strong>Revise cada questão antes de salvar.</strong>
+              Use os botões <strong>"Visualizar Prova"</strong> e <strong>"Recortar Imagem"</strong> para adicionar figuras.
             </AlertDescription>
           </Alert>
 
           <p className="text-sm text-muted-foreground">
-            {extractedQuestions.length} extraída(s) • {selectedCount} selecionada(s)
+            {extractedQuestions.length} extraída(s) • {savedCount} salva(s) • {selectedCount} pendente(s)
             {extractedQuestions.some((q) => q.isDuplicate) && (
-              <span className="text-orange-500 ml-2">
+              <span className="text-destructive ml-2">
                 • {extractedQuestions.filter((q) => q.isDuplicate).length} duplicada(s)
               </span>
             )}
@@ -436,19 +440,55 @@ export default function QuestionBank() {
 
           <div className="space-y-4">
             {extractedQuestions.map((q, i) => (
-              <Card key={i} className={`${q.isDuplicate ? "border-orange-300 bg-orange-50/50 dark:bg-orange-900/10" : ""} ${!q.selected ? "opacity-60" : ""}`}>
+              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10 opacity-75" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved ? "opacity-50" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
-                      checked={q.selected}
-                      onCheckedChange={(v) => updateExtracted(i, "selected", !!v)}
+                      checked={q.selected || q.saved}
+                      onCheckedChange={(v) => !q.saved && updateExtracted(i, "selected", !!v)}
+                      disabled={q.saved}
                       aria-label={`Selecionar questão ${i + 1}`}
                     />
                     <div className="flex-1 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{i + 1}</Badge>
-                        {q.isDuplicate && <Badge variant="outline" className="text-orange-600 border-orange-300">Duplicada</Badge>}
-                        {q.has_figure && <Badge variant="outline" className="text-blue-600 border-blue-300"><ImageIcon className="w-3 h-3 mr-1" />Figura</Badge>}
+                      {/* Header row with badges and action buttons */}
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">{i + 1}</Badge>
+                          {q.saved && <Badge className="bg-green-600 text-white">✓ Salva</Badge>}
+                          {q.isDuplicate && !q.saved && <Badge variant="destructive">Duplicada</Badge>}
+                          {q.imageUrl && <Badge variant="outline"><ImageIcon className="w-3 h-3 mr-1" />Imagem</Badge>}
+                        </div>
+                        {!q.saved && (
+                          <div className="flex gap-1">
+                            {/* View PDF button */}
+                            {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setPdfPreviewForQuestion(true)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" /> Visualizar Prova
+                              </Button>
+                            )}
+                            {/* Crop image button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setCropperForQuestion(i)}
+                            >
+                              <Crop className="w-3 h-3 mr-1" /> Recortar Imagem
+                            </Button>
+                            {/* Save individual */}
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveOne(i)}
+                              disabled={q.saving || !q.text.trim()}
+                            >
+                              {q.saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              Salvar
+                            </Button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Enunciado */}
@@ -459,21 +499,24 @@ export default function QuestionBank() {
                           onChange={(e) => updateExtracted(i, "text", e.target.value)}
                           rows={3}
                           className="text-sm"
+                          disabled={q.saved}
                         />
                       </div>
 
                       {/* Image */}
                       {q.imageUrl && (
                         <div className="relative inline-block">
-                          <img src={q.imageUrl} alt="Figura" className="max-h-40 rounded border" />
-                          <Button
-                            size="icon"
-                            variant="destructive"
-                            className="absolute top-1 right-1 w-6 h-6"
-                            onClick={() => updateExtracted(i, "imageUrl", undefined)}
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
+                          <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
+                          {!q.saved && (
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="absolute top-1 right-1 w-6 h-6"
+                              onClick={() => updateExtracted(i, "imageUrl", undefined)}
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          )}
                         </div>
                       )}
 
@@ -481,7 +524,7 @@ export default function QuestionBank() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div>
                           <Label className="text-xs">Matéria</Label>
-                          <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)}>
+                          <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)} disabled={q.saved}>
                             <SelectTrigger className="h-8 text-sm">
                               <SelectValue />
                             </SelectTrigger>
@@ -496,6 +539,7 @@ export default function QuestionBank() {
                             value={q.topic || ""}
                             onChange={(e) => updateExtracted(i, "topic", e.target.value)}
                             className="h-8 text-sm"
+                            disabled={q.saved}
                           />
                         </div>
                       </div>
@@ -505,13 +549,14 @@ export default function QuestionBank() {
                         <div>
                           <Label className="text-xs">Alternativas</Label>
                           <div className="space-y-1 mt-1">
-                            {q.options.map((opt, j) => (
+                            {q.options.map((opt: string, j: number) => (
                               <div key={j} className="flex items-center gap-2">
                                 <Button
                                   size="sm"
                                   variant={q.correct_answer === j ? "default" : "outline"}
                                   className="w-8 h-7 text-xs shrink-0"
-                                  onClick={() => updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
+                                  onClick={() => !q.saved && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
+                                  disabled={q.saved}
                                 >
                                   {String.fromCharCode(65 + j)}
                                 </Button>
@@ -521,8 +566,8 @@ export default function QuestionBank() {
                               </div>
                             ))}
                           </div>
-                          {(q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
-                            <p className="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                          {!q.saved && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
                             </p>
                           )}
@@ -538,6 +583,7 @@ export default function QuestionBank() {
                           rows={2}
                           className="text-sm"
                           placeholder="Explicação da resposta..."
+                          disabled={q.saved}
                         />
                       </div>
                     </div>
@@ -549,14 +595,30 @@ export default function QuestionBank() {
 
           <div className="flex gap-2 sticky bottom-4">
             <Button variant="outline" onClick={() => { setShowReview(false); setExtractedQuestions([]); }} className="flex-1">
-              Cancelar
+              {savedCount > 0 ? "Concluir" : "Cancelar"}
             </Button>
             <Button onClick={handleSaveExtracted} disabled={saving || selectedCount === 0} className="flex-1">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-              Salvar {selectedCount} questão(ões)
+              Salvar todas ({selectedCount})
             </Button>
           </div>
         </div>
+
+        {/* Per-question PDF Preview */}
+        <PdfPreviewModal open={pdfPreviewForQuestion} onOpenChange={setPdfPreviewForQuestion} file={uploadFile} />
+
+        {/* Per-question Image Cropper */}
+        <ImageCropperModal
+          open={cropperForQuestion !== null}
+          onOpenChange={(open) => { if (!open) setCropperForQuestion(null); }}
+          onSaved={() => {}}
+          onImageCropped={(imageUrl) => {
+            if (cropperForQuestion !== null) {
+              updateExtracted(cropperForQuestion, "imageUrl", imageUrl);
+              setCropperForQuestion(null);
+            }
+          }}
+        />
       </Layout>
     );
   }
