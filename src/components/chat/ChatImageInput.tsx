@@ -68,7 +68,7 @@ export default function ChatImageInput({ imagePreview, onImageChange, disabled }
 
   return (
     <div className="flex items-center gap-1">
-      {/* Camera capture (mobile-friendly) */}
+      {/* Camera capture */}
       <input
         ref={cameraRef}
         type="file"
@@ -77,6 +77,7 @@ export default function ChatImageInput({ imagePreview, onImageChange, disabled }
         className="hidden"
         onChange={handleFile}
         disabled={disabled}
+        key="camera"
       />
       <Button
         type="button"
