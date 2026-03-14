@@ -218,14 +218,14 @@ export async function exportToPdf(data: ExportData) {
       }
 
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         logging: false,
         backgroundColor: "#ffffff",
       });
 
-      const scaledW = canvas.width / 2;
-      const scaledH = canvas.height / 2;
+      const scaledW = canvas.width / 1.5;
+      const scaledH = canvas.height / 1.5;
       const scaleFactor = CONTENT_WIDTH_MM / scaledW;
       const heightMM = scaledH * scaleFactor;
 
