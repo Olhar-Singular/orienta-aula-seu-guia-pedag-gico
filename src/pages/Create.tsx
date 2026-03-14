@@ -505,7 +505,7 @@ export default function Create() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </Layout>
+      </>
     );
   }
 
