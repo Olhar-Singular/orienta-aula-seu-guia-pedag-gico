@@ -820,7 +820,7 @@ export default function QuestionBank() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-foreground">Histórico de Provas Enviadas</h2>
               {loadingUploads ? (
-                <p className="text-muted-foreground text-sm">Carregando...</p>
+                <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-primary" /></div>
               ) : pdfUploads.length === 0 ? (
                 <Card>
                   <CardContent className="py-8 text-center text-muted-foreground">
@@ -907,7 +907,9 @@ export default function QuestionBank() {
 
             {/* Question list */}
             {loading ? (
-              <p className="text-muted-foreground">Carregando...</p>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
             ) : filteredQuestions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
