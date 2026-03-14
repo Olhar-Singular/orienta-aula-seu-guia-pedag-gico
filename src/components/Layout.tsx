@@ -15,6 +15,7 @@ const navItems = [
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
   { path: "/pricing", label: "Planos", icon: CreditCard },
+  { path: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
