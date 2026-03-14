@@ -587,12 +587,17 @@ export default function QuestionBank() {
 
                       {/* Image after enunciado */}
                       {q.imageUrl ? (
-                        <div className="relative inline-block">
-                          <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.imageUrl || null)}>
-                              <Eye className="w-3 h-3 mr-1" /> Prévia
-                            </Button>
+                        <div className="space-y-1">
+                          <div
+                            className="relative inline-block cursor-zoom-in group"
+                            onClick={() => setPreviewImageUrl(q.imageUrl || null)}
+                          >
+                            <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors rounded">
+                              <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                            </div>
+                          </div>
+                          <div className="flex gap-1 flex-wrap">
                             {!q.saved && !q.isDuplicate && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
@@ -932,11 +937,14 @@ export default function QuestionBank() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground line-clamp-3">{q.text}</p>
                           {q.image_url && (
-                            <div className="mt-2 space-y-1">
+                            <div
+                              className="mt-2 relative inline-block cursor-zoom-in group"
+                              onClick={() => setPreviewImageUrl(q.image_url)}
+                            >
                               <img src={q.image_url} alt="Imagem da questão" className="max-h-32 rounded border" loading="lazy" />
-                              <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.image_url)}>
-                                <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
-                              </Button>
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors rounded">
+                                <Search className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                              </div>
                             </div>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
