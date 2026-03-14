@@ -75,7 +75,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     let query = (supabase.from as any)("question_bank")
-      .select("id, text, subject, topic, difficulty, options")
+      .select("id, text, subject, topic, difficulty, image_url, options")
       .order("created_at", { ascending: false })
       .limit(50);
     if (bankSearch.trim()) {
