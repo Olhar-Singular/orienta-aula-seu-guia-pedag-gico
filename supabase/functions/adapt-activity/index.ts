@@ -231,6 +231,15 @@ serve(async (req) => {
       }
     }
 
+    // Build image context
+    let imageContext = "";
+    if (question_images && Array.isArray(question_images) && question_images.length > 0) {
+      imageContext = `\n\nIMAGENS DAS QUESTÕES:
+As seguintes questões possuem imagens associadas que são parte fundamental do enunciado.
+Ao adaptar, PRESERVE a referência às imagens e mencione-as nas instruções (ex: "observe a imagem", "analise o gráfico").
+${question_images.map((img: any) => `- Questão "${sanitize(img.question_text, 100)}": possui imagem ilustrativa`).join("\n")}`;
+    }
+
     const userPrompt = `TIPO DE ATIVIDADE: ${sanitizedType}
 
 ATIVIDADE ORIGINAL:
@@ -238,11 +247,12 @@ ${sanitizedActivity}
 
 BARREIRAS OBSERVÁVEIS DO ALUNO:
 ${barriersDescription}
-${studentContext}
+${studentContext}${imageContext}
 
 Adapte esta atividade considerando as barreiras listadas. Lembre-se:
 - Foque em remover barreiras pedagógicas, sem fazer diagnóstico clínico
 - Preserve os objetivos de aprendizagem originais
+- Se houver questões com imagens, mantenha referências às imagens e adapte as instruções para que o aluno consiga interpretar as imagens
 - OBRIGATÓRIO: cada questão em LINHA SEPARADA (1. , 2. etc)
 - OBRIGATÓRIO: cada alternativa em LINHA SEPARADA (a) , b) , c) , d) )
 - NUNCA coloque questões ou alternativas na mesma linha`;
