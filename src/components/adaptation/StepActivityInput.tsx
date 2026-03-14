@@ -54,7 +54,7 @@ const difficulties = [
   { value: "dificil", label: "Difícil" },
 ];
 
-export default function StepActivityInput({ value, onChange, onNext, onPrev }: Props) {
+export default function StepActivityInput({ value, onChange, selectedQuestions, onSelectedQuestionsChange, onNext, onPrev }: Props) {
   const [tab, setTab] = useState<Tab>("manual");
   const [showBankModal, setShowBankModal] = useState(false);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
