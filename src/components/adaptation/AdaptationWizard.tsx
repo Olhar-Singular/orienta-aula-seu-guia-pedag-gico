@@ -243,6 +243,7 @@ export default function AdaptationWizard() {
                   adaptForWholeClass: false,
                   observationNotes: "",
                   result: null,
+                  questionImages: { version_universal: {}, version_directed: {} },
                 });
               }} />
             )}
