@@ -75,6 +75,8 @@ type ExtractedQuestion = {
   imageUrl?: string; // auto-cropped or manual image
   selected: boolean;
   isDuplicate?: boolean;
+  saved?: boolean; // already saved to DB
+  saving?: boolean; // currently saving
 };
 
 const subjects = [
