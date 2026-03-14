@@ -932,7 +932,12 @@ export default function QuestionBank() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground line-clamp-3">{q.text}</p>
                           {q.image_url && (
-                            <img src={q.image_url} alt="Imagem da questão" className="mt-2 max-h-32 rounded border" loading="lazy" />
+                            <div className="mt-2 space-y-1">
+                              <img src={q.image_url} alt="Imagem da questão" className="max-h-32 rounded border" loading="lazy" />
+                              <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.image_url)}>
+                                <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
+                              </Button>
+                            </div>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge variant="secondary">{q.subject}</Badge>
