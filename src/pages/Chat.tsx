@@ -10,9 +10,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import ChatImageInput, { handlePasteImage } from "@/components/chat/ChatImageInput";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 
-type Message = { role: "user" | "assistant"; content: string };
+type MessageContent = string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
+type Message = { role: "user" | "assistant"; content: MessageContent };
 type Conversation = { id: string; title: string; updated_at: string };
+
+function getTextContent(content: MessageContent): string {
+  if (typeof content === "string") return content;
+  return content.filter((p) => p.type === "text").map((p) => (p as any).text).join(" ");
+}
+
+function hasImage(content: MessageContent): string | null {
+  if (typeof content === "string") return null;
+  const img = content.find((p) => p.type === "image_url");
+  return img ? (img as any).image_url.url : null;
+}
 
 const quickChips = [
   "Como adaptar uma prova de matemática?",
@@ -24,7 +38,7 @@ const quickChips = [
 const WELCOME_MSG: Message = {
   role: "assistant",
   content:
-    "Olá! Sou o assistente pedagógico do Orienta Aula. Posso ajudar com estratégias de adaptação, dúvidas sobre como usar a ferramenta e sugestões práticas para sala de aula.\n\n⚠️ Ferramenta pedagógica. Não diagnostica. Você decide.",
+    "Olá! Sou o assistente pedagógico do Orienta Aula. Posso ajudar com estratégias de adaptação, dúvidas sobre como usar a ferramenta e sugestões práticas para sala de aula.\n\n📷 Você pode enviar fotos de atividades, provas ou cadernos para eu analisar!\n\n⚠️ Ferramenta pedagógica. Não diagnostica. Você decide.",
 };
 
 export default function Chat() {
@@ -33,8 +47,10 @@ export default function Chat() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([WELCOME_MSG]);
   const [input, setInput] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Load conversations list
@@ -60,7 +76,15 @@ export default function Chat() {
       .eq("conversation_id", convId)
       .order("created_at", { ascending: true });
     if (data && data.length > 0) {
-      setMessages([WELCOME_MSG, ...data as Message[]]);
+      const parsed = data.map((m) => {
+        let content: MessageContent = m.content;
+        try {
+          const parsed = JSON.parse(m.content);
+          if (Array.isArray(parsed)) content = parsed;
+        } catch { /* plain text */ }
+        return { role: m.role as "user" | "assistant", content };
+      });
+      setMessages([WELCOME_MSG, ...parsed]);
     } else {
       setMessages([WELCOME_MSG]);
     }
@@ -79,6 +103,7 @@ export default function Chat() {
     setActiveConvId(null);
     setMessages([WELCOME_MSG]);
     setInput("");
+    setImagePreview(null);
   };
 
   const deleteConversation = async (convId: string, e: React.MouseEvent) => {
@@ -89,18 +114,33 @@ export default function Chat() {
   };
 
   const send = async (text: string) => {
-    if (!text.trim() || loading || !user) return;
-    const userMsg: Message = { role: "user", content: text.trim() };
+    const trimmed = text.trim();
+    if ((!trimmed && !imagePreview) || loading || !user) return;
+
+    // Build multimodal content if image is attached
+    let userContent: MessageContent;
+    if (imagePreview) {
+      const parts: MessageContent = [];
+      if (trimmed) parts.push({ type: "text", text: trimmed });
+      else parts.push({ type: "text", text: "Analise esta imagem." });
+      parts.push({ type: "image_url", image_url: { url: imagePreview } });
+      userContent = parts;
+    } else {
+      userContent = trimmed;
+    }
+
+    const userMsg: Message = { role: "user", content: userContent };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
     setInput("");
+    setImagePreview(null);
     setLoading(true);
 
     let convId = activeConvId;
 
     // Create conversation if new
     if (!convId) {
-      const title = text.trim().slice(0, 60);
+      const title = (trimmed || "Análise de imagem").slice(0, 60);
       const { data } = await supabase
         .from("chat_conversations")
         .insert({ user_id: user.id, title })
@@ -112,12 +152,13 @@ export default function Chat() {
       }
     }
 
-    // Persist user message
+    // Persist user message (store multimodal as JSON string)
     if (convId) {
+      const contentToStore = typeof userContent === "string" ? userContent : JSON.stringify(userContent);
       await supabase.from("chat_messages").insert({
         conversation_id: convId,
         role: "user",
-        content: text.trim(),
+        content: contentToStore,
       });
     }
 
@@ -136,18 +177,18 @@ export default function Chat() {
 
     const finalConvId = convId;
 
+    // Prepare messages for the API - send multimodal content as-is
+    const apiMessages = allMessages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .slice(-20)
+      .map((m) => ({ role: m.role, content: m.content }));
+
     streamAI({
       endpoint: "chat",
-      body: {
-        messages: allMessages
-          .filter((m) => m.role === "user" || m.role === "assistant")
-          .slice(-20)
-          .map((m) => ({ role: m.role, content: m.content })),
-      },
+      body: { messages: apiMessages },
       onDelta: (chunk) => upsertAssistant(chunk),
       onDone: async () => {
         setLoading(false);
-        // Persist assistant message
         if (finalConvId && assistantSoFar) {
           await supabase.from("chat_messages").insert({
             conversation_id: finalConvId,
@@ -162,6 +203,11 @@ export default function Chat() {
         toast.error(err);
       },
     });
+  };
+
+  const onPaste = async (e: React.ClipboardEvent) => {
+    const result = await handlePasteImage(e);
+    if (result) setImagePreview(result);
   };
 
   return (
@@ -225,50 +271,64 @@ export default function Chat() {
           </Button>
           <div>
             <h1 className="text-base font-bold text-foreground">Chat com IA</h1>
-            <p className="text-[11px] text-muted-foreground">Ferramenta pedagógica · Não diagnostica · Você decide</p>
+            <p className="text-[11px] text-muted-foreground">Ferramenta pedagógica · Aceita fotos · Você decide</p>
           </div>
         </div>
 
         {/* Messages */}
         <ScrollArea className="flex-1 px-4 py-4">
           <div className="max-w-3xl mx-auto space-y-4">
-            {messages.map((msg, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={cn("flex gap-3", msg.role === "user" && "flex-row-reverse")}
-              >
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1",
-                    msg.role === "assistant"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}
+            {messages.map((msg, i) => {
+              const text = getTextContent(msg.content);
+              const imgUrl = hasImage(msg.content);
+
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={cn("flex gap-3", msg.role === "user" && "flex-row-reverse")}
                 >
-                  {msg.role === "assistant" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                </div>
-                <div
-                  className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                    msg.role === "assistant"
-                      ? "bg-card border border-border text-foreground"
-                      : "bg-primary text-primary-foreground"
-                  )}
-                >
-                  {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:bg-muted prose-pre:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    msg.content.split("\n").map((line, j) => (
-                      <p key={j} className={j > 0 ? "mt-2" : ""}>{line}</p>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            ))}
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1",
+                      msg.role === "assistant"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {msg.role === "assistant" ? <Bot className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                  </div>
+                  <div
+                    className={cn(
+                      "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                      msg.role === "assistant"
+                        ? "bg-card border border-border text-foreground"
+                        : "bg-primary text-primary-foreground"
+                    )}
+                  >
+                    {/* Attached image */}
+                    {imgUrl && (
+                      <img
+                        src={imgUrl}
+                        alt="Imagem enviada"
+                        className="max-h-48 rounded-lg mb-2 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setZoomImage(imgUrl)}
+                      />
+                    )}
+                    {msg.role === "assistant" ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-pre:bg-muted prose-pre:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs">
+                        <ReactMarkdown>{text}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      text && text.split("\n").map((line, j) => (
+                        <p key={j} className={j > 0 ? "mt-2" : ""}>{line}</p>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
             {loading && messages[messages.length - 1]?.role !== "assistant" && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -304,23 +364,56 @@ export default function Chat() {
           </div>
         )}
 
+        {/* Image preview strip */}
+        {imagePreview && (
+          <div className="px-4 pb-1">
+            <div className="max-w-3xl mx-auto">
+              <div className="inline-flex items-center gap-2 bg-muted rounded-lg p-2">
+                <img src={imagePreview} className="h-16 rounded border object-cover" alt="Imagem anexada" />
+                <button onClick={() => setImagePreview(null)} className="text-muted-foreground hover:text-destructive">
+                  <span className="text-xs">Remover</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input */}
         <div className="px-4 py-3 border-t border-border bg-background">
-          <div className="max-w-3xl mx-auto flex gap-2">
+          <div className="max-w-3xl mx-auto flex gap-2 items-center">
+            <ChatImageInput
+              imagePreview={null}
+              onImageChange={setImagePreview}
+              disabled={loading}
+            />
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send(input)}
-              placeholder="Digite sua dúvida pedagógica..."
+              onPaste={onPaste}
+              placeholder={imagePreview ? "Descreva ou pergunte sobre a imagem..." : "Digite sua dúvida pedagógica..."}
               disabled={loading}
               className="rounded-full"
             />
-            <Button onClick={() => send(input)} disabled={loading || !input.trim()} size="icon" className="rounded-full shrink-0">
+            <Button
+              onClick={() => send(input)}
+              disabled={loading || (!input.trim() && !imagePreview)}
+              size="icon"
+              className="rounded-full shrink-0"
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Image zoom dialog */}
+      <ImagePreviewDialog
+        open={!!zoomImage}
+        onOpenChange={(open) => !open && setZoomImage(null)}
+        imageUrl={zoomImage}
+        title="Imagem da conversa"
+      />
     </div>
   );
 }
