@@ -16,6 +16,12 @@ const FORMULA_REGEX =
 
 const BOLD_REGEX = /\*\*(.+?)\*\*/g;
 
+// Clean up broken bold markers like "Período (T):** Use..." → "Período (T): Use..."
+function cleanBrokenBold(text: string): string {
+  // Remove orphan closing ** that have no opening match
+  return text.replace(/(?<!\*\*[^*]*)\*\*(?![^*]*\*\*)/g, "");
+}
+
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
