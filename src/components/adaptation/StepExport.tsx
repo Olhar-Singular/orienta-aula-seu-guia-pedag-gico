@@ -39,9 +39,16 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     toast({ title: "Adaptação salva no histórico!" });
   };
 
-  const imageUrls = data.selectedQuestions
+  // Collect all images: from selected questions AND from per-question edits
+  const selectedImageUrls = data.selectedQuestions
     ?.filter((q) => q.image_url)
     .map((q) => q.image_url as string) || [];
+
+  const editedImageUrls = Object.values(data.questionImages.version_universal)
+    .concat(Object.values(data.questionImages.version_directed))
+    .flat();
+
+  const imageUrls = Array.from(new Set([...selectedImageUrls, ...editedImageUrls]));
 
   const handleExportPdf = async () => {
     setExportingPdf(true);
