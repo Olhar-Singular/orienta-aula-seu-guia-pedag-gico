@@ -1,0 +1,205 @@
+import { cn } from "@/lib/utils";
+
+/**
+ * Parses AI-generated adapted content and renders it with rich formatting:
+ * - Numbered questions (**1., *1., 1.) become styled question blocks
+ * - Alternatives (a), b), c), d)) render as a clean grid
+ * - Formulas (v = λ * f, T = 1/f, etc.) get highlighted
+ * - Bold markers (**text**) render as bold
+ * - Section headers get proper styling
+ */
+
+type Props = {
+  content: string;
+  className?: string;
+};
+
+// Detect formula-like patterns: variables, equals signs, operators, units
+const FORMULA_REGEX =
+  /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|K)\b))/g;
+
+const BOLD_REGEX = /\*\*(.+?)\*\*/g;
+
+function parseInlineFormatting(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+
+  // First pass: split by bold markers
+  const boldParts = remaining.split(BOLD_REGEX);
+  for (let i = 0; i < boldParts.length; i++) {
+    if (i % 2 === 1) {
+      // Bold content
+      nodes.push(
+        <strong key={key++} className="font-semibold text-foreground">
+          {boldParts[i]}
+        </strong>
+      );
+    } else {
+      // Normal text — highlight formulas
+      const part = boldParts[i];
+      let lastIndex = 0;
+      const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
+      let match;
+      while ((match = formulaRegex.exec(part)) !== null) {
+        const before = part.slice(lastIndex, match.index);
+        if (before) nodes.push(<span key={key++}>{before}</span>);
+        nodes.push(
+          <code
+            key={key++}
+            className="inline-block bg-primary/10 text-primary font-mono text-[0.9em] px-1.5 py-0.5 rounded-md mx-0.5"
+          >
+            {match[1] || match[0].trim()}
+          </code>
+        );
+        lastIndex = match.index + match[0].length;
+      }
+      const tail = part.slice(lastIndex);
+      if (tail) nodes.push(<span key={key++}>{tail}</span>);
+    }
+  }
+
+  return nodes;
+}
+
+// Detect alternative lines like: a) ..., b) ..., A) ..., B) ...
+const ALT_LINE_REGEX = /^([a-eA-E])\)\s*(.+)/;
+// Detect numbered question/item lines like: 1. ..., 2. ..., **1. ...
+const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*(.+)/;
+// Detect section-like headers (all caps or ending with :)
+const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
+
+type Block =
+  | { type: "paragraph"; lines: string[] }
+  | { type: "question"; number: string; text: string }
+  | { type: "alternatives"; items: { letter: string; text: string }[] }
+  | { type: "header"; text: string };
+
+function parseBlocks(content: string): Block[] {
+  const lines = content.split("\n");
+  const blocks: Block[] = [];
+  let currentParagraph: string[] = [];
+  let currentAlts: { letter: string; text: string }[] = [];
+
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      blocks.push({ type: "paragraph", lines: [...currentParagraph] });
+      currentParagraph = [];
+    }
+  };
+
+  const flushAlts = () => {
+    if (currentAlts.length > 0) {
+      blocks.push({ type: "alternatives", items: [...currentAlts] });
+      currentAlts = [];
+    }
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushAlts();
+      flushParagraph();
+      continue;
+    }
+
+    // Check for header
+    const headerMatch = trimmed.match(HEADER_REGEX);
+    if (headerMatch) {
+      flushAlts();
+      flushParagraph();
+      blocks.push({ type: "header", text: trimmed.replace(/:$/, "") });
+      continue;
+    }
+
+    // Check for numbered question
+    const qMatch = trimmed.match(QUESTION_LINE_REGEX);
+    if (qMatch) {
+      flushAlts();
+      flushParagraph();
+      blocks.push({ type: "question", number: qMatch[1], text: qMatch[2] });
+      continue;
+    }
+
+    // Check for alternative
+    const altMatch = trimmed.match(ALT_LINE_REGEX);
+    if (altMatch) {
+      flushParagraph();
+      currentAlts.push({ letter: altMatch[1].toLowerCase(), text: altMatch[2] });
+      continue;
+    }
+
+    // Regular text
+    flushAlts();
+    currentParagraph.push(trimmed);
+  }
+
+  flushAlts();
+  flushParagraph();
+
+  return blocks;
+}
+
+export default function AdaptedContentRenderer({ content, className }: Props) {
+  const blocks = parseBlocks(content);
+
+  return (
+    <div className={cn("space-y-3", className)}>
+      {blocks.map((block, i) => {
+        switch (block.type) {
+          case "header":
+            return (
+              <h4
+                key={i}
+                className="text-sm font-bold uppercase tracking-wide text-primary border-b border-primary/20 pb-1"
+              >
+                {block.text}
+              </h4>
+            );
+
+          case "question":
+            return (
+              <div
+                key={i}
+                className="flex gap-3 items-start bg-muted/50 rounded-lg p-3 border-l-4 border-primary/40"
+              >
+                <span className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                  {block.number}
+                </span>
+                <p className="text-sm text-foreground leading-relaxed flex-1">
+                  {parseInlineFormatting(block.text)}
+                </p>
+              </div>
+            );
+
+          case "alternatives":
+            return (
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4">
+                {block.items.map((alt, j) => (
+                  <div
+                    key={j}
+                    className="flex items-start gap-2 rounded-md border border-border/60 bg-background px-3 py-2"
+                  >
+                    <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-xs font-bold uppercase">
+                      {alt.letter}
+                    </span>
+                    <span className="text-sm text-foreground leading-relaxed">
+                      {parseInlineFormatting(alt.text)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+
+          case "paragraph":
+            return (
+              <p key={i} className="text-sm text-foreground leading-relaxed">
+                {parseInlineFormatting(block.lines.join(" "))}
+              </p>
+            );
+        }
+      })}
+    </div>
+  );
+}
