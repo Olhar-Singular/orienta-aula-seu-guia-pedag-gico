@@ -584,7 +584,7 @@ export default function QuestionBank() {
                       {q.imageUrl ? (
                         <div className="relative inline-block">
                           <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                          {!q.saved && (
+                          {!q.saved && !q.isDuplicate && (
                             <div className="flex gap-1 mt-1">
                               <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
                                 <X className="w-3 h-3 mr-1" /> Remover imagem
@@ -597,19 +597,37 @@ export default function QuestionBank() {
                             </div>
                           )}
                         </div>
-                      ) : !q.saved && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf")) {
-                              setCropperForQuestion(i);
-                            }
-                          }}
-                          disabled={!uploadFile || !uploadFile.name.toLowerCase().endsWith(".pdf")}
-                        >
-                          <ImageIcon className="w-3 h-3 mr-1" /> Adicionar Imagem
-                        </Button>
+                      ) : !q.saved && !q.isDuplicate && (
+                        <div className="flex gap-1">
+                          {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                            <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
+                              <Crop className="w-3 h-3 mr-1" /> Recortar do PDF
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const input = document.createElement("input");
+                              input.type = "file";
+                              input.accept = "image/png,image/jpeg,image/webp,image/gif";
+                              input.onchange = (ev) => {
+                                const file = (ev.target as HTMLInputElement).files?.[0];
+                                if (!file) return;
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast({ title: "Imagem muito grande", description: "Máximo 5 MB.", variant: "destructive" });
+                                  return;
+                                }
+                                const reader = new FileReader();
+                                reader.onload = () => updateExtracted(i, "imageUrl", reader.result as string);
+                                reader.readAsDataURL(file);
+                              };
+                              input.click();
+                            }}
+                          >
+                            <Upload className="w-3 h-3 mr-1" /> Upload Imagem
+                          </Button>
+                        </div>
                       )}
 
                       {/* Subject / Topic */}
