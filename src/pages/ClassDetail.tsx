@@ -190,6 +190,6 @@ export default function ClassDetail() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

@@ -267,6 +267,6 @@ export default function ClassReport() {
           </Card>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

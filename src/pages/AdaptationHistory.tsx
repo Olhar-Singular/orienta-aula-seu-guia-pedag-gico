@@ -285,6 +285,6 @@ export default function AdaptationHistory() {
           )}
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   );
 }

@@ -212,6 +212,6 @@ export default function MyAdaptations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   );
 }

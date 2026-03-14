@@ -140,6 +140,6 @@ export default function Chat() {
           </Button>
         </div>
       </div>
-    </Layout>
+    </>
   );
 }

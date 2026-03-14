@@ -252,6 +252,6 @@ export default function Dashboard() {
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

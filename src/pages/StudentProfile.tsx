@@ -153,6 +153,6 @@ export default function StudentProfile() {
           </div>
         </motion.div>
       </div>
-    </Layout>
+    </>
   );
 }

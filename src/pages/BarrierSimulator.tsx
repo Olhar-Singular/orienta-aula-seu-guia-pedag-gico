@@ -249,6 +249,6 @@ export default function BarrierSimulator() {
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }

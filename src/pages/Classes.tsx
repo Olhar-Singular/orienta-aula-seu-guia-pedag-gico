@@ -150,6 +150,6 @@ export default function Classes() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   );
 }

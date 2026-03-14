@@ -403,6 +403,6 @@ export default function Settings() {
           </Tabs>
         </motion.div>
       </div>
-    </Layout>
+    </>
   );
 }

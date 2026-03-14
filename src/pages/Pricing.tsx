@@ -147,6 +147,6 @@ export default function Pricing() {
           Pagamento seguro via Kiwify. Cancele quando quiser.
         </p>
       </div>
-    </Layout>
+    </>
   );
 }
