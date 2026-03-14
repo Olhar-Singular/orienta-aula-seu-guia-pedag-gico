@@ -518,7 +518,7 @@ export default function QuestionBank() {
 
           <div className="space-y-4">
             {extractedQuestions.map((q, i) => (
-              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10 opacity-75" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved ? "opacity-50" : ""}`}>
+              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved ? "opacity-50" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
