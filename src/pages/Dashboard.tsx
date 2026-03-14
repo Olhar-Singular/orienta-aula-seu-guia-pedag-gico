@@ -126,7 +126,7 @@ export default function Dashboard() {
   const stats = adaptationsData ?? { total: 0, week: 0, month: 0 };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-8">
         {/* Greeting */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
