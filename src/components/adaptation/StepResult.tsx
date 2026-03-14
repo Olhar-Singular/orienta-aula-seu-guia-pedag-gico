@@ -150,7 +150,9 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">ISA está adaptando a atividade...</p>
+        <p className="text-muted-foreground">
+          {isGeneratingImages ? "ISA está gerando as imagens da atividade..." : "ISA está adaptando a atividade..."}
+        </p>
         <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos</p>
       </div>
     );
