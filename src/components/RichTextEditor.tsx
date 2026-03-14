@@ -241,6 +241,15 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
           <ImagePlus className="w-4 h-4" />
         </ToolbarButton>
 
+        {editor.isActive("image") && (
+          <ToolbarButton
+            onClick={() => editor.chain().focus().deleteSelection().run()}
+            title="Remover imagem selecionada"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </ToolbarButton>
+        )}
+
         <Separator orientation="vertical" className="h-6 mx-1" />
 
         <ToolbarButton
