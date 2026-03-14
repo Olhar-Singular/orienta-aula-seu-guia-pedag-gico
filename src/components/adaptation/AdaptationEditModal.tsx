@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Upload, X, Loader2, Sparkles, ImageIcon } from "lucide-react";
+import { Upload, X, Loader2, Sparkles, ImageIcon, Plus } from "lucide-react";
+
+const subjects = [
+  "Física", "Matemática", "Química", "Biologia", "Português",
+  "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
+];
 
 type Props = {
   open: boolean;
@@ -33,9 +45,28 @@ export default function AdaptationEditModal({
   onSave,
 }: Props) {
   const [text, setText] = useState(content);
-  const [images, setImages] = useState<string[]>(initialImages);
+  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState("");
+  const [difficulty, setDifficulty] = useState("medio");
+  const [questionType, setQuestionType] = useState<"objetiva" | "dissertativa">("dissertativa");
+  const [options, setOptions] = useState<string[]>([]);
+  const [correctAnswer, setCorrectAnswer] = useState<number | null>(null);
+  const [resolution, setResolution] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imagePrompt, setImagePrompt] = useState("");
   const [generatingImage, setGeneratingImage] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setText(content);
+      // Try to detect subject/options from content
+      const img = initialImages.length > 0 ? initialImages[0] : null;
+      setImageUrl(img);
+      setImagePreview(img);
+      setImagePrompt("");
+    }
+  }, [open, content, initialImages]);
 
   const handleImageUpload = () => {
     const input = document.createElement("input");
@@ -60,7 +91,8 @@ export default function AdaptationEditModal({
           const { error } = await supabase.storage.from("question-images").upload(fileName, blob, { contentType: "image/png" });
           if (error) throw error;
           const { data: urlData } = supabase.storage.from("question-images").getPublicUrl(fileName);
-          setImages((prev) => [...prev, urlData.publicUrl]);
+          setImageUrl(urlData.publicUrl);
+          setImagePreview(urlData.publicUrl);
           toast({ title: "Imagem adicionada!" });
         } catch (e: any) {
           toast({ title: "Erro ao fazer upload", description: e.message, variant: "destructive" });
@@ -95,7 +127,8 @@ export default function AdaptationEditModal({
         throw new Error(err.error || "Falha na geração da imagem");
       }
       const result = await resp.json();
-      setImages((prev) => [...prev, result.image_url]);
+      setImageUrl(result.image_url);
+      setImagePreview(result.image_url);
       setImagePrompt("");
       toast({ title: "Imagem gerada com sucesso!" });
     } catch (e: any) {
@@ -106,7 +139,8 @@ export default function AdaptationEditModal({
   };
 
   const handleSave = () => {
-    onSave(text, images);
+    const allImages = imageUrl ? [imageUrl] : [];
+    onSave(text, allImages);
     onOpenChange(false);
   };
 
@@ -117,42 +151,37 @@ export default function AdaptationEditModal({
           <DialogTitle>Editar: {title}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Content */}
+          {/* Enunciado */}
           <div>
-            <Label>Conteúdo</Label>
+            <Label>Enunciado *</Label>
             <Textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              rows={12}
-              placeholder="Edite o conteúdo da adaptação..."
+              rows={4}
+              placeholder="Digite o enunciado da questão..."
             />
           </div>
 
-          {/* Images */}
+          {/* Image */}
           <div>
-            <Label>Imagens</Label>
-            {images.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {images.map((url, i) => (
-                  <div key={i} className="relative group">
-                    <img src={url} alt={`Imagem ${i + 1}`} className="max-h-32 rounded border border-border object-contain" />
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="absolute -top-2 -right-2 w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
+            <Label>Imagem (opcional)</Label>
+            {imagePreview ? (
+              <div className="mt-1">
+                <img src={imagePreview} alt="Imagem da questão" className="max-h-48 rounded border border-border" />
+                <div className="flex gap-1 mt-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => { setImageUrl(null); setImagePreview(null); }}>
+                    <X className="w-3 h-3 mr-1" /> Remover
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={handleImageUpload}>
+                    <Upload className="w-3 h-3 mr-1" /> Trocar
+                  </Button>
+                </div>
               </div>
-            )}
-            <div className="flex gap-2 mt-2">
-              <Button type="button" size="sm" variant="outline" onClick={handleImageUpload}>
+            ) : (
+              <Button type="button" size="sm" variant="outline" className="mt-1" onClick={handleImageUpload}>
                 <Upload className="w-3 h-3 mr-1" /> Upload Imagem
               </Button>
-            </div>
+            )}
           </div>
 
           {/* AI Image Generator */}
@@ -173,6 +202,109 @@ export default function AdaptationEditModal({
                 {generatingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <><ImageIcon className="w-4 h-4 mr-1" /> Gerar</>}
               </Button>
             </div>
+          </div>
+
+          {/* Subject / Topic / Difficulty */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Matéria</Label>
+              <Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {subjects.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Tópico</Label>
+              <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ex: Termometria" />
+            </div>
+            <div>
+              <Label>Dificuldade</Label>
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="facil">Fácil</SelectItem>
+                  <SelectItem value="medio">Médio</SelectItem>
+                  <SelectItem value="dificil">Difícil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Question type toggle */}
+          <div>
+            <Label>Tipo de Questão</Label>
+            <Select value={questionType} onValueChange={(v) => setQuestionType(v as "objetiva" | "dissertativa")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dissertativa">Dissertativa</SelectItem>
+                <SelectItem value="objetiva">Objetiva (múltipla escolha)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Options (only for objetiva) */}
+          {questionType === "objetiva" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Label>Alternativas</Label>
+                <Button type="button" size="sm" variant="outline" onClick={() => setOptions([...options, ""])}>
+                  <Plus className="w-3 h-3 mr-1" /> Adicionar
+                </Button>
+              </div>
+              {options.length === 0 && (
+                <p className="text-xs text-muted-foreground">Clique em "Adicionar" para criar alternativas.</p>
+              )}
+              {options.map((opt, i) => (
+                <div key={i} className="flex gap-2 mb-2">
+                  <Input
+                    value={opt}
+                    onChange={(e) => {
+                      const n = [...options];
+                      n[i] = e.target.value;
+                      setOptions(n);
+                    }}
+                    placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={correctAnswer === i ? "default" : "outline"}
+                    onClick={() => setCorrectAnswer(correctAnswer === i ? null : i)}
+                    className="shrink-0"
+                  >
+                    {correctAnswer === i ? "✓" : String.fromCharCode(65 + i)}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => {
+                      setOptions(options.filter((_, j) => j !== i));
+                      if (correctAnswer === i) setCorrectAnswer(null);
+                      else if (correctAnswer !== null && correctAnswer > i)
+                        setCorrectAnswer(correctAnswer - 1);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Resolution */}
+          <div>
+            <Label>Resolução (opcional)</Label>
+            <Textarea
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value)}
+              rows={2}
+              placeholder="Explicação da resposta..."
+            />
           </div>
 
           <Button onClick={handleSave} className="w-full">
