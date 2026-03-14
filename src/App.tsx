@@ -26,6 +26,7 @@ import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
 import Settings from "./pages/Settings";
 import BarrierSimulator from "./pages/BarrierSimulator";
+import SharedAdaptation from "./pages/SharedAdaptation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
