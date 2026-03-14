@@ -364,7 +364,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       key={q.id}
                       onClick={() => toggleQuestion(q.id)}
                       className={`border rounded-lg p-3 cursor-pointer transition-all flex items-start gap-3 ${
-                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-accent/50"
+                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-accent/20"
                       }`}
                     >
                       <div
