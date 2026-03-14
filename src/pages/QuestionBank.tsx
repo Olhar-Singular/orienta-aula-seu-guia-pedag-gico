@@ -589,18 +589,23 @@ export default function QuestionBank() {
                       {q.imageUrl ? (
                         <div className="relative inline-block">
                           <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                          {!q.saved && !q.isDuplicate && (
-                            <div className="flex gap-1 mt-1">
-                              <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
-                                <X className="w-3 h-3 mr-1" /> Remover imagem
-                              </Button>
-                              {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                                <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
-                                  <Crop className="w-3 h-3 mr-1" /> Trocar recorte
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.imageUrl || null)}>
+                              <Eye className="w-3 h-3 mr-1" /> Prévia
+                            </Button>
+                            {!q.saved && !q.isDuplicate && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
+                                  <X className="w-3 h-3 mr-1" /> Remover imagem
                                 </Button>
-                              )}
-                            </div>
-                          )}
+                                {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                                  <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
+                                    <Crop className="w-3 h-3 mr-1" /> Trocar recorte
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       ) : !q.saved && !q.isDuplicate && (
                         <div className="flex gap-1">
