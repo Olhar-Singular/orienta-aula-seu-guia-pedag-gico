@@ -587,12 +587,17 @@ export default function QuestionBank() {
 
                       {/* Image after enunciado */}
                       {q.imageUrl ? (
-                        <div className="relative inline-block">
-                          <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                          <div className="flex gap-1 mt-1 flex-wrap">
-                            <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.imageUrl || null)}>
-                              <Eye className="w-3 h-3 mr-1" /> Prévia
-                            </Button>
+                        <div className="space-y-1">
+                          <div
+                            className="relative inline-block cursor-zoom-in"
+                            onClick={() => setPreviewImageUrl(q.imageUrl || null)}
+                          >
+                            <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors rounded">
+                              <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow pointer-events-none" />
+                            </div>
+                          </div>
+                          <div className="flex gap-1 flex-wrap">
                             {!q.saved && !q.isDuplicate && (
                               <>
                                 <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
