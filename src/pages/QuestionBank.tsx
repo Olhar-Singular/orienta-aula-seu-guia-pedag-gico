@@ -942,8 +942,8 @@ export default function QuestionBank() {
                           <Button size="icon" variant="ghost" onClick={() => { setEditingQuestion(q); setShowForm(true); }} aria-label="Editar questão">
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} aria-label="Excluir questão">
-                            <Trash2 className="w-4 h-4" />
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} disabled={deletingId === q.id} aria-label="Excluir questão">
+                            {deletingId === q.id ? <Loader2 className="w-4 h-4 animate-spin text-destructive" /> : <Trash2 className="w-4 h-4" />}
                           </Button>
                         </div>
                       </div>
