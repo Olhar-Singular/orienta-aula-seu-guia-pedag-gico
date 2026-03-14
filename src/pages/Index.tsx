@@ -75,7 +75,7 @@ export default function Index() {
           </nav>
           <div className="flex items-center gap-3">
             <Link to="/login">
-              <Button variant="outline" size="sm" className="border-border text-foreground hover:bg-muted">Entrar</Button>
+              <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold">Entrar</Button>
             </Link>
             <Link to="/cadastro">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
