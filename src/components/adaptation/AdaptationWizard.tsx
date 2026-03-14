@@ -44,6 +44,7 @@ export type WizardData = {
   studentName: string | null;
   barriers: BarrierItem[];
   adaptForWholeClass: boolean;
+  observationNotes: string;
   result: AdaptationResult | null;
 };
 
