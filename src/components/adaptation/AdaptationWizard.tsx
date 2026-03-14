@@ -25,9 +25,20 @@ export type AdaptationResult = {
   implementation_tips: string[];
 };
 
+export type SelectedQuestion = {
+  id: string;
+  text: string;
+  image_url: string | null;
+  options: string[] | null;
+  subject: string;
+  topic: string | null;
+  difficulty: string | null;
+};
+
 export type WizardData = {
   activityType: ActivityType | null;
   activityText: string;
+  selectedQuestions: SelectedQuestion[];
   classId: string | null;
   studentId: string | null;
   studentName: string | null;
@@ -67,6 +78,7 @@ export default function AdaptationWizard() {
   const [data, setData] = useState<WizardData>({
     activityType: null,
     activityText: "",
+    selectedQuestions: [],
     classId: null,
     studentId: null,
     studentName: null,
@@ -77,7 +89,6 @@ export default function AdaptationWizard() {
 
   const updateData = (partial: Partial<WizardData>) =>
     setData((prev) => ({ ...prev, ...partial }));
-
   const next = useCallback(() => {
     setDirection(1);
     setStep((s) => {
@@ -189,6 +200,8 @@ export default function AdaptationWizard() {
               <StepActivityInput
                 value={data.activityText}
                 onChange={(t) => updateData({ activityText: t })}
+                selectedQuestions={data.selectedQuestions}
+                onSelectedQuestionsChange={(q) => updateData({ selectedQuestions: q })}
                 onNext={next}
                 onPrev={prev}
               />
@@ -216,6 +229,7 @@ export default function AdaptationWizard() {
                 setData({
                   activityType: null,
                   activityText: "",
+                  selectedQuestions: [],
                   classId: null,
                   studentId: null,
                   studentName: null,
