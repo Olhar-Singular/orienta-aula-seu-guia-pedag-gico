@@ -62,6 +62,7 @@ function ToolbarButton({
 }
 
 export default function RichTextEditor({ content, onChange, placeholder }: Props) {
+  const [, setTick] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
