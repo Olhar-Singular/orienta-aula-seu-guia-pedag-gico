@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, FileText, Filter, User, Clock, ChevronRight } from "lucide-react";
+import { Calendar, FileText, Filter, User, Clock, ChevronRight, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
+import { toast } from "sonner";
 
 const ACTIVITY_TYPES: Record<string, string> = {
   prova: "Prova",
@@ -30,11 +30,13 @@ function barrierLabel(key: string): string {
 
 export default function AdaptationHistory() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [classFilter, setClassFilter] = useState<string>("all");
   const [studentFilter, setStudentFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [periodFilter, setPeriodFilter] = useState<string>("all");
   const [selected, setSelected] = useState<any | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: classes } = useQuery({
     queryKey: ["classes", user?.id],
@@ -93,6 +95,19 @@ export default function AdaptationHistory() {
 
   const result = selected?.adaptation_result as any;
   const barriers = (selected?.barriers_used as any[]) || [];
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("adaptations_history").delete().eq("id", deleteId);
+    if (error) {
+      toast.error("Erro ao excluir adaptação.");
+    } else {
+      toast.success("Adaptação excluída!");
+      queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
+      queryClient.invalidateQueries({ queryKey: ["my-adaptations-all"] });
+    }
+    setDeleteId(null);
+  };
 
   return (
     <>
@@ -204,6 +219,17 @@ export default function AdaptationHistory() {
                           <Clock className="w-3 h-3" />
                           {new Date(item.created_at!).toLocaleDateString("pt-BR")}
                         </span>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(item.id);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
                         <ChevronRight className="w-4 h-4 text-muted-foreground" />
                       </div>
                     </CardContent>
@@ -281,8 +307,35 @@ export default function AdaptationHistory() {
                   )}
                 </>
               )}
+
+              <div className="flex justify-end pt-2 border-t">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setSelected(null);
+                    setDeleteId(selected.id);
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" /> Excluir
+                </Button>
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Excluir adaptação?</DialogTitle>
+            <DialogDescription>Esta ação não pode ser desfeita. A adaptação será removida permanentemente.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
