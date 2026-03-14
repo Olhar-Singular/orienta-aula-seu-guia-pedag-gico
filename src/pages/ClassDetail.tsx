@@ -51,8 +51,8 @@ export default function ClassDetail() {
     mutationFn: async () => {
       const { error } = await supabase.from("class_students").insert({
         class_id: id!,
-        name: studentName,
-        registration_code: studentCode || null,
+        name: studentName.trim().slice(0, 100),
+        registration_code: studentCode.trim().slice(0, 30) || null,
       });
       if (error) throw error;
     },

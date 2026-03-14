@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 
+const MAX_NOTES_LENGTH = 1000;
+
 export default function StudentProfile() {
   const { id: classId, alunoId } = useParams<{ id: string; alunoId: string }>();
   const queryClient = useQueryClient();
@@ -48,37 +50,51 @@ export default function StudentProfile() {
 
   const toggleBarrier = useMutation({
     mutationFn: async ({ barrierKey, dimension, isActive }: { barrierKey: string; dimension: string; isActive: boolean }) => {
-      if (isActive) {
-        // Upsert: insert or update to active
-        const { error } = await supabase
-          .from("student_barriers")
-          .upsert(
-            { student_id: alunoId!, barrier_key: barrierKey, dimension, is_active: true },
-            { onConflict: "student_id,barrier_key" }
-          );
-        if (error) throw error;
-      } else {
-        // Set inactive
-        const { error } = await supabase
-          .from("student_barriers")
-          .upsert(
-            { student_id: alunoId!, barrier_key: barrierKey, dimension, is_active: false },
-            { onConflict: "student_id,barrier_key" }
-          );
-        if (error) throw error;
-      }
+      const { error } = await supabase
+        .from("student_barriers")
+        .upsert(
+          { student_id: alunoId!, barrier_key: barrierKey, dimension, is_active: isActive },
+          { onConflict: "student_id,barrier_key" }
+        );
+      if (error) throw error;
     },
-    onSuccess: () => {
+    onMutate: async ({ barrierKey, dimension, isActive }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["student-barriers", alunoId] });
+
+      // Snapshot previous value
+      const previous = queryClient.getQueryData(["student-barriers", alunoId]);
+
+      // Optimistically update
+      queryClient.setQueryData(["student-barriers", alunoId], (old: any[] | undefined) => {
+        if (!old) return old;
+        const exists = old.find((b) => b.barrier_key === barrierKey);
+        if (exists) {
+          return old.map((b) => b.barrier_key === barrierKey ? { ...b, is_active: isActive } : b);
+        }
+        return [...old, { student_id: alunoId, barrier_key: barrierKey, dimension, is_active: isActive, id: `temp-${barrierKey}` }];
+      });
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        queryClient.setQueryData(["student-barriers", alunoId], context.previous);
+      }
+      toast.error("Erro ao atualizar barreira.");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["student-barriers", alunoId] });
     },
-    onError: () => toast.error("Erro ao atualizar barreira."),
   });
 
   const saveNotes = useMutation({
     mutationFn: async () => {
+      const trimmed = notes.trim().slice(0, MAX_NOTES_LENGTH);
       const { error } = await supabase
         .from("class_students")
-        .update({ notes })
+        .update({ notes: trimmed })
         .eq("id", alunoId!);
       if (error) throw error;
     },
@@ -105,12 +121,18 @@ export default function StudentProfile() {
               <CardTitle className="text-base">Observações gerais</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Anotações sobre o aluno..."
-                rows={3}
-              />
+              <div className="relative">
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
+                  placeholder="Anotações sobre o aluno..."
+                  rows={3}
+                  maxLength={MAX_NOTES_LENGTH}
+                />
+                <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground">
+                  {notes.length}/{MAX_NOTES_LENGTH}
+                </span>
+              </div>
               <Button size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending}>
                 <Save className="w-4 h-4 mr-2" /> Salvar
               </Button>
