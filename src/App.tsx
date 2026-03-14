@@ -57,6 +57,7 @@ const App = () => (
             <Route path="/dashboard/historico" element={<ProtectedRoute><AdaptationHistory /></ProtectedRoute>} />
             <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
             <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/dashboard/simulador" element={<ProtectedRoute><BarrierSimulator /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />

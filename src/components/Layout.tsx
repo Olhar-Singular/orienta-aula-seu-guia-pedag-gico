@@ -13,6 +13,7 @@ const navItems = [
   { path: "/dashboard/turmas", label: "Turmas", icon: Users },
   { path: "/dashboard/historico", label: "Histórico", icon: History },
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
+  { path: "/dashboard/simulador", label: "Simulador", icon: ScanSearch },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
   { path: "/pricing", label: "Planos", icon: CreditCard },
   { path: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
