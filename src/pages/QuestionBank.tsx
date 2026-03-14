@@ -248,6 +248,15 @@ export default function QuestionBank() {
       // Upload original to storage
       const safeName = uploadFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
       const filePath = `${user.id}/${Date.now()}_${safeName}`;
+
+      // Check for duplicate exam name
+      const existingExam = pdfUploads.find((u) => u.file_name === uploadFile.name);
+      if (existingExam) {
+        toast({ title: "Prova já enviada", description: `O arquivo "${uploadFile.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
+        setExtracting(false);
+        return;
+      }
+
       await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
 
       // Register in pdf_uploads
