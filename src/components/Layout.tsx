@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import logoImg from "@/assets/logo-orienta-aula.png";
+import logoImg from "@/assets/logo-orienta-aula-eye.png";
 import CreditsBadge from "@/components/CreditsBadge";
 
 const navItems = [

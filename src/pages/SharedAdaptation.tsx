@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import logoImg from "@/assets/logo-orienta-aula.png";
+import logoImg from "@/assets/logo-orienta-aula-eye.png";
 
 type SharedData = {
   expires_at: string;
