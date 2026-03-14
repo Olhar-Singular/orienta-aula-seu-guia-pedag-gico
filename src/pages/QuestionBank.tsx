@@ -140,7 +140,7 @@ export default function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
-
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -425,23 +425,26 @@ export default function QuestionBank() {
   };
 
   const handleDelete = async (id: string) => {
+    setDeletingId(id);
     const { error } = await (supabase.from as any)("question_bank").delete().eq("id", id);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else { toast({ title: "Questão removida" }); fetchQuestions(); }
+    setDeletingId(null);
   };
 
   // ─── Delete exam upload ───
   const handleDeleteUpload = async (upload: PdfUpload) => {
+    setDeletingId(upload.id);
     try {
-      // Delete file from storage
       await supabase.storage.from("question-pdfs").remove([upload.file_path]);
-      // Delete record
       const { error } = await (supabase.from as any)("pdf_uploads").delete().eq("id", upload.id);
       if (error) throw error;
       toast({ title: "Prova excluída" });
       fetchUploads();
     } catch (e: any) {
       toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -845,8 +848,8 @@ export default function QuestionBank() {
                           <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
                             <FileUp className="w-4 h-4 mr-1" /> Extrair
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} aria-label="Excluir prova">
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} disabled={deletingId === p.id} aria-label="Excluir prova">
+                            {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin text-destructive" /> : <Trash2 className="w-4 h-4 text-destructive" />}
                           </Button>
                         </div>
                       </CardContent>
@@ -939,8 +942,8 @@ export default function QuestionBank() {
                           <Button size="icon" variant="ghost" onClick={() => { setEditingQuestion(q); setShowForm(true); }} aria-label="Editar questão">
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} aria-label="Excluir questão">
-                            <Trash2 className="w-4 h-4" />
+                          <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} disabled={deletingId === q.id} aria-label="Excluir questão">
+                            {deletingId === q.id ? <Loader2 className="w-4 h-4 animate-spin text-destructive" /> : <Trash2 className="w-4 h-4" />}
                           </Button>
                         </div>
                       </div>
