@@ -60,8 +60,11 @@ import StepExport from "@/components/adaptation/StepExport";
 const mockData = {
   activityType: "prova" as const,
   activityText: "Test",
+  classId: null,
+  studentId: null,
   barriers: [],
   studentName: "João",
+  adaptForWholeClass: false,
   result: {
     version_universal: "Universal version",
     version_directed: "Directed version",

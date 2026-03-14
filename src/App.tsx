@@ -62,6 +62,7 @@ const App = () => (
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+            <Route path="/compartilhado/:token" element={<SharedAdaptation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
