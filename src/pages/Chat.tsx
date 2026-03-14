@@ -171,7 +171,7 @@ export default function Chat() {
         {sidebarOpen && (
           <motion.aside
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 300, opacity: 1 }}
+            animate={{ width: 220, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="border-r border-border bg-muted/30 flex flex-col overflow-hidden shrink-0"
