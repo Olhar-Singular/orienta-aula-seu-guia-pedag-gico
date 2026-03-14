@@ -26,6 +26,30 @@ DIMENSÕES DE BARREIRAS OBSERVÁVEIS:
 - Engajamento: desinteresse, resistência, necessidade de mediação
 - Expressão: dificuldade escrita, melhor desempenho oral, organização de ideias
 
+REGRAS ABSOLUTAS DE FORMATAÇÃO:
+1. Cada questão DEVE começar em uma NOVA LINHA com o número seguido de ponto (1. , 2. , 3. etc.)
+2. Cada alternativa DEVE começar em uma NOVA LINHA com a letra seguida de parêntese (a) , b) , c) , d) )
+3. NUNCA coloque múltiplas questões ou alternativas na mesma linha
+4. Fórmulas e equações devem aparecer em LINHA ISOLADA com espaçamento
+5. Use notação escolar simples (Unicode): v₀, v², m/s², Δv — NUNCA use LaTeX ($, {}, \\, ^, _)
+6. Preserve integralmente fórmulas, símbolos e unidades (m, s, kg, N, J, m/s, m/s²)
+7. NÃO simplifique fórmulas nem as transforme em texto discursivo
+8. Use **negrito** para termos-chave e instruções importantes
+9. Use títulos em CAIXA ALTA para seções (ex: QUESTÕES, INSTRUÇÕES)
+
+EXEMPLO DE FORMATO CORRETO:
+1. Qual o período da onda?
+a) 2,0 s
+b) 0,5 s
+c) 1,0 s
+d) 4,0 s
+
+2. Qual a amplitude da onda?
+a) 10 cm
+b) 20 cm
+c) 5 cm
+d) 40 cm
+
 IMPORTANTE: Você é uma ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
 
 const ADAPTATION_TOOL = {
@@ -38,11 +62,11 @@ const ADAPTATION_TOOL = {
       properties: {
         version_universal: {
           type: "string",
-          description: "Versão da atividade adaptada para toda a turma (Design Universal)",
+          description: "Versão da atividade adaptada para toda a turma (Design Universal). IMPORTANTE: cada questão em linha separada numerada (1. , 2. etc), cada alternativa em linha separada (a) , b) etc).",
         },
         version_directed: {
           type: "string",
-          description: "Versão com adaptações específicas para o aluno",
+          description: "Versão com adaptações específicas para o aluno. IMPORTANTE: cada questão em linha separada numerada (1. , 2. etc), cada alternativa em linha separada (a) , b) etc).",
         },
         strategies_applied: {
           type: "array",
@@ -155,6 +179,57 @@ serve(async (req) => {
       })
       .join("\n");
 
+    // Fetch student history if student_id is provided
+    let studentContext = "";
+    if (student_id) {
+      // Get student info
+      const { data: student } = await admin
+        .from("class_students")
+        .select("name, notes")
+        .eq("id", student_id)
+        .single();
+
+      // Get student's barrier history
+      const { data: studentBarriers } = await admin
+        .from("student_barriers")
+        .select("dimension, barrier_key, notes, is_active")
+        .eq("student_id", student_id);
+
+      // Get recent adaptations for this student (last 5)
+      const { data: pastAdaptations } = await admin
+        .from("adaptations_history")
+        .select("activity_type, original_activity, adaptation_result, created_at")
+        .eq("student_id", student_id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (student) {
+        studentContext += `\nCONTEXTO DO ALUNO:`;
+        studentContext += `\n- Nome: ${student.name}`;
+        if (student.notes) studentContext += `\n- Observações do professor: ${student.notes}`;
+      }
+
+      if (studentBarriers && studentBarriers.length > 0) {
+        const activeBarriers = studentBarriers.filter((b: any) => b.is_active);
+        if (activeBarriers.length > 0) {
+          studentContext += `\n\nHISTÓRICO COMPLETO DE BARREIRAS DO ALUNO:`;
+          activeBarriers.forEach((b: any) => {
+            const note = b.notes ? ` (obs: ${b.notes})` : "";
+            studentContext += `\n- [${b.dimension}] ${b.barrier_key}${note}`;
+          });
+        }
+      }
+
+      if (pastAdaptations && pastAdaptations.length > 0) {
+        studentContext += `\n\nADAPTAÇÕES ANTERIORES DESTE ALUNO (${pastAdaptations.length} mais recentes):`;
+        pastAdaptations.forEach((a: any, idx: number) => {
+          const strategies = (a.adaptation_result as any)?.strategies_applied;
+          studentContext += `\n${idx + 1}. Tipo: ${a.activity_type || "atividade"} | Estratégias: ${strategies?.join(", ") || "N/A"}`;
+        });
+        studentContext += `\n\nUse este histórico para manter CONSISTÊNCIA nas estratégias que funcionam e VARIAR abordagens quando necessário.`;
+      }
+    }
+
     const userPrompt = `TIPO DE ATIVIDADE: ${sanitizedType}
 
 ATIVIDADE ORIGINAL:
@@ -162,8 +237,14 @@ ${sanitizedActivity}
 
 BARREIRAS OBSERVÁVEIS DO ALUNO:
 ${barriersDescription}
+${studentContext}
 
-Adapte esta atividade considerando as barreiras listadas. Lembre-se: foque em remover barreiras pedagógicas, sem fazer diagnóstico clínico. Preserve os objetivos de aprendizagem originais.`;
+Adapte esta atividade considerando as barreiras listadas. Lembre-se:
+- Foque em remover barreiras pedagógicas, sem fazer diagnóstico clínico
+- Preserve os objetivos de aprendizagem originais
+- OBRIGATÓRIO: cada questão em LINHA SEPARADA (1. , 2. etc)
+- OBRIGATÓRIO: cada alternativa em LINHA SEPARADA (a) , b) , c) , d) )
+- NUNCA coloque questões ou alternativas na mesma linha`;
 
     // Call AI
     const modelName = "google/gemini-2.5-flash";
@@ -253,9 +334,7 @@ Adapte esta atividade considerando as barreiras listadas. Lembre-se: foque em re
 
     if (insertError) {
       console.error("Failed to save adaptation history:", insertError);
-      // Don't fail the request — still return the adaptation
     }
-
 
     return new Response(
       JSON.stringify({
