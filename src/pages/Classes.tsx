@@ -39,9 +39,9 @@ export default function Classes() {
     mutationFn: async () => {
       const { error } = await supabase.from("classes").insert({
         teacher_id: user!.id,
-        name,
-        description: description || null,
-        school_year: schoolYear || null,
+        name: name.trim().slice(0, 100),
+        description: description.trim().slice(0, 200) || null,
+        school_year: schoolYear.trim().slice(0, 10) || null,
       });
       if (error) throw error;
     },
@@ -87,15 +87,15 @@ export default function Classes() {
               <div className="space-y-4">
                 <div>
                   <Label>Nome da turma *</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: 5º Ano A" />
+                  <Input value={name} onChange={(e) => setName(e.target.value.slice(0, 100))} placeholder="Ex: 5º Ano A" maxLength={100} />
                 </div>
                 <div>
                   <Label>Descrição</Label>
-                  <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Turma vespertina" />
+                  <Input value={description} onChange={(e) => setDescription(e.target.value.slice(0, 200))} placeholder="Ex: Turma vespertina" maxLength={200} />
                 </div>
                 <div>
                   <Label>Ano letivo</Label>
-                  <Input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)} placeholder="Ex: 2026" />
+                  <Input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value.slice(0, 10))} placeholder="Ex: 2026" maxLength={10} />
                 </div>
                 <Button onClick={() => createClass.mutate()} disabled={!name.trim() || createClass.isPending} className="w-full">
                   {createClass.isPending ? "Criando..." : "Criar Turma"}
