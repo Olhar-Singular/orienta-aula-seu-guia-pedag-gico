@@ -15,9 +15,10 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import type { WizardData, BarrierItem } from "./AdaptationWizard";
-import { Users, User } from "lucide-react";
+import { Users, User, MessageSquare } from "lucide-react";
 
 type ClassRow = { id: string; name: string };
 type StudentRow = { id: string; name: string };
