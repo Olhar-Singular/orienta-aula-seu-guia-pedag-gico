@@ -66,6 +66,7 @@ const mockData = {
   barriers: [],
   studentName: "João",
   adaptForWholeClass: false,
+  observationNotes: "",
   result: {
     version_universal: "Universal version",
     version_directed: "Directed version",
