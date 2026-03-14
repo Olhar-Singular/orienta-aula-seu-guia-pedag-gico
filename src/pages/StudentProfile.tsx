@@ -99,7 +99,10 @@ export default function StudentProfile() {
         .eq("id", alunoId!);
       if (error) throw error;
     },
-    onSuccess: () => toast.success("Observações salvas!"),
+    onSuccess: () => {
+      toast.success("Observações salvas!");
+      navigate(`/dashboard/turmas/${classId}`);
+    },
     onError: () => toast.error("Erro ao salvar observações."),
   });
 
