@@ -421,7 +421,8 @@ export default function MyAdaptations() {
                   }}>
                     <Copy className="w-4 h-4 mr-1" /> Copiar
                   </Button>
-                  <Button variant="outline" size="sm" onClick={async () => {
+                  <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
+                    setExportingPdf(true);
                     const savedImages: string[] = Array.isArray(result?.question_images)
                       ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
                       : [];
@@ -441,8 +442,10 @@ export default function MyAdaptations() {
                     } catch {
                       toast.error("Erro ao gerar PDF");
                     }
+                    setExportingPdf(false);
                   }}>
-                    <Printer className="w-4 h-4 mr-1" /> Exportar PDF
+                    {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
+                    {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
                   </Button>
                 </div>
               </div>
