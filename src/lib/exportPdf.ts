@@ -224,8 +224,8 @@ export async function exportToPdf(data: ExportData) {
         backgroundColor: "#ffffff",
       });
 
-      const scaledW = canvas.width / 2;
-      const scaledH = canvas.height / 2;
+      const scaledW = canvas.width / 1.5;
+      const scaledH = canvas.height / 1.5;
       const scaleFactor = CONTENT_WIDTH_MM / scaledW;
       const heightMM = scaledH * scaleFactor;
 
