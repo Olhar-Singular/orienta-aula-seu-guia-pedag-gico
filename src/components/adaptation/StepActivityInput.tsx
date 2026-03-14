@@ -35,8 +35,20 @@ type BankQuestion = {
   text: string;
   subject: string;
   topic: string | null;
+  difficulty: string | null;
   options: any;
 };
+
+const subjects = [
+  "Física", "Matemática", "Química", "Biologia", "Português",
+  "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
+];
+
+const difficulties = [
+  { value: "facil", label: "Fácil" },
+  { value: "medio", label: "Médio" },
+  { value: "dificil", label: "Difícil" },
+];
 
 export default function StepActivityInput({ value, onChange, onNext, onPrev }: Props) {
   const [tab, setTab] = useState<Tab>("manual");
