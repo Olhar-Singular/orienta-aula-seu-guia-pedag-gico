@@ -1,15 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Type, Database, FileUp, Crop, Search, Check } from "lucide-react";
@@ -28,8 +35,20 @@ type BankQuestion = {
   text: string;
   subject: string;
   topic: string | null;
+  difficulty: string | null;
   options: any;
 };
+
+const subjects = [
+  "Física", "Matemática", "Química", "Biologia", "Português",
+  "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
+];
+
+const difficulties = [
+  { value: "facil", label: "Fácil" },
+  { value: "medio", label: "Médio" },
+  { value: "dificil", label: "Difícil" },
+];
 
 export default function StepActivityInput({ value, onChange, onNext, onPrev }: Props) {
   const [tab, setTab] = useState<Tab>("manual");
@@ -38,6 +57,8 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const [bankSearch, setBankSearch] = useState("");
   const [bankLoading, setBankLoading] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
+  const [filterSubject, setFilterSubject] = useState("all");
+  const [filterDifficulty, setFilterDifficulty] = useState("all");
 
   // File extraction state
   const [fileExtracting, setFileExtracting] = useState(false);
@@ -52,16 +73,18 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     let query = (supabase.from as any)("question_bank")
-      .select("id, text, subject, topic, options")
+      .select("id, text, subject, topic, difficulty, options")
       .order("created_at", { ascending: false })
       .limit(50);
     if (bankSearch.trim()) {
       query = query.ilike("text", `%${bankSearch.trim()}%`);
     }
+    if (filterSubject !== "all") query = query.eq("subject", filterSubject);
+    if (filterDifficulty !== "all") query = query.eq("difficulty", filterDifficulty);
     const { data } = await query;
     setBankQuestions(data || []);
     setBankLoading(false);
-  }, [bankSearch]);
+  }, [bankSearch, filterSubject, filterDifficulty]);
 
   useEffect(() => {
     if (showBankModal) fetchBankQuestions();
@@ -291,56 +314,86 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
 
       {/* Bank Modal */}
       <Dialog open={showBankModal} onOpenChange={setShowBankModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Selecionar Questões</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <label htmlFor="bank-search" className="sr-only">Buscar questões</label>
-              <Input
-                id="bank-search"
-                value={bankSearch}
-                onChange={(e) => setBankSearch(e.target.value)}
-                placeholder="Buscar questões..."
-                className="flex-1"
-              />
-              <Button size="icon" variant="outline" onClick={fetchBankQuestions} aria-label="Buscar">
-                <Search className="w-4 h-4" />
-              </Button>
+          <div className="space-y-3 flex-1 flex flex-col min-h-0">
+            {/* Search + Filters */}
+            <div className="flex flex-wrap gap-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={bankSearch}
+                  onChange={(e) => setBankSearch(e.target.value)}
+                  placeholder="Buscar questões..."
+                  className="pl-9"
+                />
+              </div>
+              <Select value={filterSubject} onValueChange={setFilterSubject}>
+                <SelectTrigger className="w-40"><SelectValue placeholder="Matéria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+                <SelectTrigger className="w-36"><SelectValue placeholder="Dificuldade" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  {difficulties.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Question list */}
             {bankLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando...</p>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
             ) : bankQuestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma questão encontrada.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma questão encontrada.</p>
             ) : (
-              <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-                {bankQuestions.map((q) => (
-                  <div
-                    key={q.id}
-                    onClick={() => toggleQuestion(q.id)}
-                    className={`border rounded-lg p-3 cursor-pointer transition-colors ${
-                      selectedQuestions.has(q.id) ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <p className="text-sm line-clamp-2 flex-1">{q.text}</p>
-                      {selectedQuestions.has(q.id) && (
-                        <Check className="w-4 h-4 text-primary shrink-0 ml-2" />
-                      )}
+              <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+                {bankQuestions.map((q) => {
+                  const isSelected = selectedQuestions.has(q.id);
+                  return (
+                    <div
+                      key={q.id}
+                      onClick={() => toggleQuestion(q.id)}
+                      className={`border rounded-lg p-3 cursor-pointer transition-all flex items-start gap-3 ${
+                        isSelected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                          isSelected ? "bg-primary border-primary" : "border-muted-foreground/40"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm line-clamp-2">{q.text}</p>
+                        <div className="flex gap-2 mt-1.5">
+                          <Badge variant="secondary" className="text-xs">{q.subject}</Badge>
+                          {q.topic && <Badge variant="outline" className="text-xs">{q.topic}</Badge>}
+                          {q.difficulty && (
+                            <Badge variant="outline" className="text-xs">
+                              {difficulties.find((d) => d.value === q.difficulty)?.label || q.difficulty}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="secondary" className="text-xs">{q.subject}</Badge>
-                      {q.topic && <Badge variant="outline" className="text-xs">{q.topic}</Badge>}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+
             <Button
               onClick={confirmBankSelection}
               disabled={selectedQuestions.size === 0}
-              className="w-full"
+              className="w-full shrink-0"
             >
               Adicionar {selectedQuestions.size} questão(ões)
             </Button>
