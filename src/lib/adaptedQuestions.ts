@@ -109,7 +109,12 @@ export function replaceQuestionInAdaptedContent(
   const questionText = payload.text.trim();
   if (!questionText) return content;
 
-  const nextQuestionLines: string[] = [`${currentQuestion.number}. ${questionText}`];
+  // Split multi-line text: first line goes with the question number, rest on separate lines
+  const textLines = questionText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const nextQuestionLines: string[] = [`${currentQuestion.number}. ${textLines[0]}`];
+  for (let i = 1; i < textLines.length; i++) {
+    nextQuestionLines.push(textLines[i]);
+  }
 
   payload.options
     .map((option) => option.trim())
