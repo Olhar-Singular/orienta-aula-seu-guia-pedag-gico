@@ -241,6 +241,31 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
         </div>
       )}
 
+      {/* Observation notes */}
+      {data.barriers.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <MessageSquare className="w-4 h-4" />
+              Observações do professor
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Descreva contextos, comportamentos ou necessidades específicas do aluno. Estas informações serão usadas pela IA para personalizar a adaptação.
+            </p>
+            <Textarea
+              placeholder="Ex: O aluno responde melhor com apoio visual, precisa de tempo extra nas avaliações, tem dificuldade em copiar do quadro..."
+              value={data.observationNotes}
+              onChange={(e) => updateData({ observationNotes: e.target.value })}
+              className="min-h-[100px] resize-y"
+              maxLength={2000}
+            />
+            <p className="text-xs text-muted-foreground text-right mt-1">
+              {data.observationNotes.length}/2000
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {(data.adaptForWholeClass || data.studentId) && data.barriers.length > 0 && !canProceed && (
         <p className="text-sm text-destructive">Selecione pelo menos uma barreira para continuar.</p>
       )}

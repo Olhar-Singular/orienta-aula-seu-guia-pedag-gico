@@ -346,7 +346,7 @@ ${sanitizedActivity}
 
 BARREIRAS OBSERVÁVEIS IDENTIFICADAS PELO PROFESSOR:
 ${barriersDescription}
-${studentContext}${imageContext}
+${studentContext}${imageContext}${observation_notes ? `\n\nOBSERVAÇÕES DO PROFESSOR (contexto adicional para personalização):\n${sanitize(observation_notes, 2000)}` : ""}
 
 INSTRUÇÕES DE ADAPTAÇÃO:
 1. Analise cada questão e identifique seu nível cognitivo (Bloom)

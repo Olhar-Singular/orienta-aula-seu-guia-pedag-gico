@@ -148,6 +148,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
             barriers: activeBarriers,
             student_id: data.studentId || undefined,
             class_id: data.classId || undefined,
+            observation_notes: data.observationNotes || undefined,
             question_images: data.selectedQuestions
               .filter((q) => q.image_url)
               .map((q) => ({
