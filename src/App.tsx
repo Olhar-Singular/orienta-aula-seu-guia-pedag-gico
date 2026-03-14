@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Cadastro from "./pages/Cadastro";
@@ -35,37 +36,39 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/cadastro" element={<Cadastro />} />
-            <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            {/* Legacy route redirect */}
-            <Route path="/auth" element={<Navigate to="/login" replace />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
-            <Route path="/dashboard/adaptar" element={<ProtectedRoute><AdaptWizard /></ProtectedRoute>} />
-            <Route path="/my-adaptations" element={<ProtectedRoute><MyAdaptations /></ProtectedRoute>} />
-            <Route path="/dashboard/turmas" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
-            <Route path="/dashboard/turmas/:id" element={<ProtectedRoute><ClassDetail /></ProtectedRoute>} />
-            <Route path="/dashboard/turmas/:id/aluno/:alunoId" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-            <Route path="/dashboard/turmas/:id/aluno/:alunoId/relatorio" element={<ProtectedRoute><StudentReport /></ProtectedRoute>} />
-            <Route path="/dashboard/turmas/:id/relatorio" element={<ProtectedRoute><ClassReport /></ProtectedRoute>} />
-            <Route path="/dashboard/historico" element={<ProtectedRoute><AdaptationHistory /></ProtectedRoute>} />
-            <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
-            <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/dashboard/simulador" element={<ProtectedRoute><BarrierSimulator /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
-            <Route path="/compartilhado/:token" element={<SharedAdaptation />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+        <ErrorBoundary fallbackMessage="Ocorreu um erro na aplicação. Tente recarregar a página.">
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/cadastro" element={<Cadastro />} />
+              <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Legacy route redirect */}
+              <Route path="/auth" element={<Navigate to="/login" replace />} />
+              <Route path="/dashboard" element={<ProtectedRoute><ErrorBoundary><Dashboard /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/create" element={<ProtectedRoute><ErrorBoundary><Create /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/adaptar" element={<ProtectedRoute><ErrorBoundary><AdaptWizard /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/my-adaptations" element={<ProtectedRoute><ErrorBoundary><MyAdaptations /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/turmas" element={<ProtectedRoute><ErrorBoundary><Classes /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/turmas/:id" element={<ProtectedRoute><ErrorBoundary><ClassDetail /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/turmas/:id/aluno/:alunoId" element={<ProtectedRoute><ErrorBoundary><StudentProfile /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/turmas/:id/aluno/:alunoId/relatorio" element={<ProtectedRoute><ErrorBoundary><StudentReport /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/turmas/:id/relatorio" element={<ProtectedRoute><ErrorBoundary><ClassReport /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/historico" element={<ProtectedRoute><ErrorBoundary><AdaptationHistory /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><ErrorBoundary><QuestionBank /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/configuracoes" element={<ProtectedRoute><ErrorBoundary><Settings /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/dashboard/simulador" element={<ProtectedRoute><ErrorBoundary><BarrierSimulator /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><ErrorBoundary><Chat /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ErrorBoundary><Profile /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/pricing" element={<ProtectedRoute><ErrorBoundary><Pricing /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
