@@ -296,10 +296,18 @@ export default function AdaptationEditModal({
   };
 
   const getRelativeCoords = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    const img = cropImgRef.current;
+    if (!img) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+        y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+      };
+    }
+    const imgRect = img.getBoundingClientRect();
     return {
-      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+      x: Math.max(0, Math.min(1, (e.clientX - imgRect.left) / imgRect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - imgRect.top) / imgRect.height)),
     };
   };
 
@@ -772,18 +780,21 @@ export default function AdaptationEditModal({
               </div>
             ) : cropSource ? (
               <div
-                className="relative max-h-[55vh] overflow-auto rounded-md border border-border cursor-crosshair select-none"
+                className="relative rounded-md border border-border cursor-crosshair select-none"
                 onMouseDown={handleCropMouseDown}
                 onMouseMove={handleCropMouseMove}
                 onMouseUp={handleCropMouseUp}
                 onMouseLeave={handleCropMouseUp}
               >
+                <div className="max-h-[55vh] overflow-auto">
+                  <div className="relative inline-block">
                 <img
                   ref={cropImgRef}
                   src={cropSource}
                   alt="Recorte"
-                  className="max-w-full"
+                  className="max-w-full block"
                   draggable={false}
+                  crossOrigin="anonymous"
                 />
 
                 {cropRect && (
@@ -823,6 +834,8 @@ export default function AdaptationEditModal({
                     />
                   </>
                 )}
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Não foi possível carregar a imagem.</p>
