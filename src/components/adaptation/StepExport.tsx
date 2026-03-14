@@ -1,10 +1,15 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import type { WizardData } from "./AdaptationWizard";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
-import { Save, FileText, FileDown, Copy, RotateCcw, Check } from "lucide-react";
+import { Save, FileText, FileDown, Copy, RotateCcw, Check, Share2, Link2, Loader2 } from "lucide-react";
+import { exportToPdf } from "@/lib/exportPdf";
+import { exportToDocx } from "@/lib/exportDocx";
+import { generateShareToken } from "@/lib/shareToken";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 type Props = {
   data: WizardData;
@@ -13,8 +18,12 @@ type Props = {
 };
 
 export default function StepExport({ data, onPrev, onRestart }: Props) {
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const r = data.result;
   if (!r) return null;
@@ -23,107 +32,45 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
 
   const handleSaveHistory = async () => {
     setSaving(true);
-    // Already saved by adapt-activity edge function, but we mark as saved
     setSaved(true);
     setSaving(false);
     toast({ title: "Adaptação salva no histórico!" });
   };
 
   const handleExportPdf = () => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast({ title: "Permita pop-ups para exportar PDF.", variant: "destructive" });
-      return;
+    try {
+      exportToPdf({
+        teacherName: user?.user_metadata?.name,
+        studentName: data.studentName || undefined,
+        activityType: data.activityType || undefined,
+        date: new Date().toLocaleDateString("pt-BR"),
+        versionUniversal: r.version_universal,
+        versionDirected: r.version_directed,
+        strategiesApplied: r.strategies_applied,
+        pedagogicalJustification: r.pedagogical_justification,
+        implementationTips: r.implementation_tips,
+      });
+      toast({ title: "PDF exportado!" });
+    } catch {
+      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
     }
-
-    const studentInfo = data.studentName ? `<p><strong>Aluno:</strong> ${data.studentName}</p>` : "";
-    const typeLabel = { prova: "Prova", exercicio: "Exercício", atividade_casa: "Atividade de Casa", trabalho: "Trabalho" }[data.activityType || ""] || "";
-
-    printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Adaptação - Orienta Aula</title>
-<style>
-  body { font-family: Georgia, serif; max-width: 700px; margin: 40px auto; padding: 20px; color: #222; line-height: 1.6; }
-  h1 { font-size: 22px; border-bottom: 2px solid #333; padding-bottom: 8px; }
-  h2 { font-size: 16px; color: #555; margin-top: 24px; }
-  .badge { display: inline-block; background: #f0f0f0; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
-  .disclaimer { font-size: 11px; color: #888; margin-top: 32px; border-top: 1px solid #ddd; padding-top: 8px; font-style: italic; }
-  ul { padding-left: 20px; }
-  @media print { body { margin: 0; } }
-</style></head><body>
-<h1>Atividade Adaptada</h1>
-${typeLabel ? `<p><strong>Tipo:</strong> ${typeLabel}</p>` : ""}
-${studentInfo}
-<h2>Versão Universal (Design Universal para Aprendizagem)</h2>
-<div>${r.version_universal.replace(/\n/g, "<br>")}</div>
-<h2>Versão Direcionada</h2>
-<div>${r.version_directed.replace(/\n/g, "<br>")}</div>
-<h2>Estratégias Aplicadas</h2>
-<div>${r.strategies_applied.map((s) => `<span class="badge">${s}</span>`).join(" ")}</div>
-<h2>Justificativa Pedagógica</h2>
-<div>${r.pedagogical_justification.replace(/\n/g, "<br>")}</div>
-<h2>Dicas de Implementação</h2>
-<ul>${r.implementation_tips.map((t) => `<li>${t}</li>`).join("")}</ul>
-<p class="disclaimer">Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.</p>
-</body></html>`);
-    printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
   };
 
   const handleExportDocx = async () => {
     try {
-      const doc = new Document({
-        sections: [
-          {
-            children: [
-              new Paragraph({
-                text: "Atividade Adaptada",
-                heading: HeadingLevel.HEADING_1,
-              }),
-              ...(data.activityType
-                ? [new Paragraph({ children: [new TextRun({ text: `Tipo: ${data.activityType}`, bold: true })] })]
-                : []),
-              ...(data.studentName
-                ? [new Paragraph({ children: [new TextRun({ text: `Aluno: ${data.studentName}`, bold: true })] })]
-                : []),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
-              ...r.version_universal.split("\n").map((line) => new Paragraph({ text: line })),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
-              ...r.version_directed.split("\n").map((line) => new Paragraph({ text: line })),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "Estratégias Aplicadas", heading: HeadingLevel.HEADING_2 }),
-              ...r.strategies_applied.map((s) => new Paragraph({ text: `• ${s}` })),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "Justificativa Pedagógica", heading: HeadingLevel.HEADING_2 }),
-              ...r.pedagogical_justification.split("\n").map((line) => new Paragraph({ text: line })),
-              new Paragraph({ text: "" }),
-              new Paragraph({ text: "Dicas de Implementação", heading: HeadingLevel.HEADING_2 }),
-              ...r.implementation_tips.map((t, i) => new Paragraph({ text: `${i + 1}. ${t}` })),
-              new Paragraph({ text: "" }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: "Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.",
-                    italics: true,
-                    size: 18,
-                    color: "888888",
-                  }),
-                ],
-              }),
-            ],
-          },
-        ],
+      await exportToDocx({
+        teacherName: user?.user_metadata?.name,
+        studentName: data.studentName || undefined,
+        activityType: data.activityType || undefined,
+        date: new Date().toLocaleDateString("pt-BR"),
+        versionUniversal: r.version_universal,
+        versionDirected: r.version_directed,
+        strategiesApplied: r.strategies_applied,
+        pedagogicalJustification: r.pedagogical_justification,
+        implementationTips: r.implementation_tips,
       });
-
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `adaptacao-${Date.now()}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
       toast({ title: "Arquivo Word exportado!" });
-    } catch (e) {
+    } catch {
       toast({ title: "Erro ao gerar DOCX", variant: "destructive" });
     }
   };
@@ -137,15 +84,66 @@ ${studentInfo}
     }
   };
 
+  const handleShare = async () => {
+    if (!user) return;
+    setSharing(true);
+
+    try {
+      // We need the adaptation_id from history. Try to find last saved one.
+      const { data: lastAdaptation } = await supabase
+        .from("adaptations_history")
+        .select("id")
+        .eq("teacher_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!lastAdaptation) {
+        toast({ title: "Salve a adaptação no histórico antes de compartilhar.", variant: "destructive" });
+        setSharing(false);
+        return;
+      }
+
+      const token = generateShareToken();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      const { error } = await supabase.from("shared_adaptations").insert({
+        adaptation_id: lastAdaptation.id,
+        token,
+        expires_at: expiresAt.toISOString(),
+        created_by: user.id,
+      });
+
+      if (error) {
+        toast({ title: "Erro ao gerar link.", variant: "destructive" });
+        setSharing(false);
+        return;
+      }
+
+      const url = `${window.location.origin}/compartilhado/${token}`;
+      setShareUrl(url);
+      toast({ title: "Link de compartilhamento gerado!" });
+    } catch {
+      toast({ title: "Erro ao compartilhar.", variant: "destructive" });
+    }
+    setSharing(false);
+  };
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Link copiado!" });
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">Exportar e Salvar</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Card
-          className="cursor-pointer hover:shadow-md transition-all"
-          onClick={handleSaveHistory}
-        >
+        <Card className="cursor-pointer hover:shadow-md transition-all" onClick={handleSaveHistory}>
           <CardContent className="flex items-center gap-4 p-5">
             <div className={`p-3 rounded-lg ${saved ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
               {saved ? <Check className="w-6 h-6" /> : <Save className="w-6 h-6" />}
@@ -166,7 +164,7 @@ ${studentInfo}
             </div>
             <div>
               <p className="font-medium text-foreground">Exportar como PDF</p>
-              <p className="text-sm text-muted-foreground">Gera PDF pronto para imprimir</p>
+              <p className="text-sm text-muted-foreground">Com cabeçalho e rodapé formatados</p>
             </div>
           </CardContent>
         </Card>
@@ -191,6 +189,27 @@ ${studentInfo}
             <div>
               <p className="font-medium text-foreground">Copiar Texto</p>
               <p className="text-sm text-muted-foreground">Copiar adaptação para a área de transferência</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="cursor-pointer hover:shadow-md transition-all sm:col-span-2" onClick={!shareUrl ? handleShare : undefined}>
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="p-3 rounded-lg bg-accent/10 text-accent">
+              {sharing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Share2 className="w-6 h-6" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-foreground">Compartilhar Link</p>
+              <p className="text-sm text-muted-foreground">Link público que expira em 7 dias</p>
+              {shareUrl && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Input value={shareUrl} readOnly className="text-xs font-mono h-8" />
+                  <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); copyShareUrl(); }} className="shrink-0 gap-1">
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
+                    {copied ? "Copiado" : "Copiar"}
+                  </Button>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

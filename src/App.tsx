@@ -26,6 +26,7 @@ import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
 import Settings from "./pages/Settings";
 import BarrierSimulator from "./pages/BarrierSimulator";
+import SharedAdaptation from "./pages/SharedAdaptation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+            <Route path="/compartilhado/:token" element={<SharedAdaptation />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

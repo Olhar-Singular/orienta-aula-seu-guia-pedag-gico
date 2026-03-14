@@ -461,6 +461,41 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_adaptations: {
+        Row: {
+          adaptation_id: string
+          created_at: string | null
+          created_by: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          adaptation_id: string
+          created_at?: string | null
+          created_by: string
+          expires_at: string
+          id?: string
+          token: string
+        }
+        Update: {
+          adaptation_id?: string
+          created_at?: string | null
+          created_by?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_adaptations_adaptation_id_fkey"
+            columns: ["adaptation_id"]
+            isOneToOne: false
+            referencedRelation: "adaptations_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_barriers: {
         Row: {
           barrier_key: string
