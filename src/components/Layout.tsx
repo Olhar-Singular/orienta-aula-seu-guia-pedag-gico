@@ -126,7 +126,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               aria-label="Menu de navegação mobile"
             >
               {navItems.map((item) => {
-                const active = location.pathname.startsWith(item.path);
+                const active = item.path === "/dashboard"
+                  ? location.pathname === "/dashboard"
+                  : location.pathname.startsWith(item.path);
                 return (
                   <Link
                     key={item.path}

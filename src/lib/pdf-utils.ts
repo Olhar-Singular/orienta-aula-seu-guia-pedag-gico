@@ -1,48 +1,14 @@
 /**
- * PDF utilities using pdf.js via CDN (no npm install needed).
+ * PDF utilities using pdfjs-dist (npm).
  * Extracts text and renders pages as JPEG images.
  */
+import * as pdfjsLib from "pdfjs-dist";
 
-const PDFJS_CDN = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168";
-
-let pdfjsLib: any = null;
-
-async function loadPdfJs(): Promise<any> {
-  if (pdfjsLib) return pdfjsLib;
-
-  // Dynamically load pdf.js from CDN
-  if (!(window as any).pdfjsLib) {
-    await new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = `${PDFJS_CDN}/pdf.min.mjs`;
-      script.type = "module";
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error("Failed to load pdf.js"));
-      document.head.appendChild(script);
-    });
-
-    // Fallback: try legacy build if module didn't work
-    if (!(window as any).pdfjsLib) {
-      await new Promise<void>((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = `${PDFJS_CDN}/pdf.min.js`;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error("Failed to load pdf.js legacy"));
-        document.head.appendChild(script);
-      });
-    }
-  }
-
-  pdfjsLib = (window as any).pdfjsLib;
-  if (!pdfjsLib) {
-    // Try dynamic import as last resort
-    const mod = await import(/* @vite-ignore */ `${PDFJS_CDN}/pdf.min.mjs`);
-    pdfjsLib = mod;
-  }
-
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_CDN}/pdf.worker.min.js`;
-  return pdfjsLib;
-}
+// Set worker source
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 export type PdfParseResult = {
   text: string;
@@ -62,9 +28,8 @@ export async function parsePdf(
   file: File,
   onProgress?: (page: number, total: number) => void
 ): Promise<PdfParseResult> {
-  const pdfjs = await loadPdfJs();
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
   const pageCount = pdf.numPages;
   let fullText = "";
@@ -124,9 +89,8 @@ export async function renderPdfPage(
   pageNumber: number,
   scale = 1.5
 ): Promise<string> {
-  const pdfjs = await loadPdfJs();
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const page = await pdf.getPage(pageNumber);
   const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
@@ -145,8 +109,7 @@ export async function renderPdfPage(
  * Get the number of pages in a PDF.
  */
 export async function getPdfPageCount(file: File): Promise<number> {
-  const pdfjs = await loadPdfJs();
   const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   return pdf.numPages;
 }
