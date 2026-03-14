@@ -39,7 +39,12 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     toast({ title: "Adaptação salva no histórico!" });
   };
 
+  const imageUrls = data.selectedQuestions
+    ?.filter((q) => q.image_url)
+    .map((q) => q.image_url as string) || [];
+
   const handleExportPdf = async () => {
+    setExportingPdf(true);
     try {
       await exportToPdf({
         teacherName: user?.user_metadata?.name,
@@ -51,17 +56,17 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
-        images: data.selectedQuestions
-          ?.filter((q) => q.image_url)
-          .map((q) => q.image_url as string),
+        images: imageUrls,
       });
       toast({ title: "PDF exportado!" });
     } catch {
       toast({ title: "Erro ao gerar PDF", variant: "destructive" });
     }
+    setExportingPdf(false);
   };
 
   const handleExportDocx = async () => {
+    setExportingDocx(true);
     try {
       await exportToDocx({
         teacherName: user?.user_metadata?.name,
@@ -73,11 +78,13 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
+        images: imageUrls,
       });
       toast({ title: "Arquivo Word exportado!" });
     } catch {
       toast({ title: "Erro ao gerar DOCX", variant: "destructive" });
     }
+    setExportingDocx(false);
   };
 
   const handleCopy = async () => {
