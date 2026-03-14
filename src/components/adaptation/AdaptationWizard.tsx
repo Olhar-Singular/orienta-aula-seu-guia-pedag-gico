@@ -237,6 +237,7 @@ export default function AdaptationWizard() {
                   studentName: null,
                   barriers: [],
                   adaptForWholeClass: false,
+                  observationNotes: "",
                   result: null,
                 });
               }} />
