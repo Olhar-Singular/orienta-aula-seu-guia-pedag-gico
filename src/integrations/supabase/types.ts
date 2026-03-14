@@ -238,6 +238,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pdf_uploads: {
+        Row: {
+          description: string | null
+          file_name: string
+          file_path: string
+          id: string
+          questions_extracted: number | null
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          description?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          questions_extracted?: number | null
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          questions_extracted?: number | null
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
