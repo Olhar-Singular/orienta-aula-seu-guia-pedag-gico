@@ -780,18 +780,21 @@ export default function AdaptationEditModal({
               </div>
             ) : cropSource ? (
               <div
-                className="relative max-h-[55vh] overflow-auto rounded-md border border-border cursor-crosshair select-none"
+                className="relative rounded-md border border-border cursor-crosshair select-none"
                 onMouseDown={handleCropMouseDown}
                 onMouseMove={handleCropMouseMove}
                 onMouseUp={handleCropMouseUp}
                 onMouseLeave={handleCropMouseUp}
               >
+                <div className="max-h-[55vh] overflow-auto">
+                  <div className="relative inline-block">
                 <img
                   ref={cropImgRef}
                   src={cropSource}
                   alt="Recorte"
-                  className="max-w-full"
+                  className="max-w-full block"
                   draggable={false}
+                  crossOrigin="anonymous"
                 />
 
                 {cropRect && (
