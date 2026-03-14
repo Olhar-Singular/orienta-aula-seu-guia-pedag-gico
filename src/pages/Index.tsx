@@ -109,7 +109,7 @@ export default function Index() {
                     </Button>
                   </Link>
                   <Link to="/login">
-                    <Button variant="outline" size="lg" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+                    <Button variant="outline" size="lg" className="border-white/40 text-white hover:bg-white/10">
                       Entrar
                     </Button>
                   </Link>
