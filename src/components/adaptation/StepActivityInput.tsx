@@ -390,7 +390,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
             ) : (
               <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1">
                 {bankQuestions.map((q) => {
-                  const isSelected = selectedQuestions.has(q.id);
+                  const isSelected = checkedIds.has(q.id);
                   return (
                     <div
                       key={q.id}
