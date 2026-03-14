@@ -275,10 +275,60 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
           <Button onClick={() => setShowBankModal(true)} variant="outline">
             <Database className="w-4 h-4 mr-1" /> Abrir Banco de Questões
           </Button>
-          {value && (
-            <div className="border rounded-lg p-3 bg-muted/30">
-              <p className="text-xs text-muted-foreground mb-1">Conteúdo selecionado:</p>
-              <p className="text-sm whitespace-pre-wrap line-clamp-6">{value}</p>
+          {selectedQuestions.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground font-medium">
+                {selectedQuestions.length} questão(ões) selecionada(s):
+              </p>
+              {selectedQuestions.map((q, i) => (
+                <div key={q.id} className="border rounded-lg p-3 bg-muted/30 relative group">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeQuestion(q.id)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                  <div className="flex gap-3">
+                    <span className="text-xs font-bold text-primary shrink-0 mt-0.5">{i + 1})</span>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <p className="text-sm line-clamp-3">{q.text}</p>
+                      {q.image_url && (
+                        <div
+                          className="inline-block cursor-zoom-in"
+                          onClick={() => setPreviewImageUrl(q.image_url)}
+                        >
+                          <img
+                            src={q.image_url}
+                            alt="Imagem da questão"
+                            className="max-h-28 rounded border border-border/50"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
+                      {q.options && q.options.length > 0 && (
+                        <div className="space-y-0.5 pl-2">
+                          {q.options.map((o, j) => (
+                            <p key={j} className="text-xs text-muted-foreground">
+                              {String.fromCharCode(65 + j)}) {o}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex gap-1.5">
+                        <Badge variant="secondary" className="text-[10px]">{q.subject}</Badge>
+                        {q.topic && <Badge variant="outline" className="text-[10px]">{q.topic}</Badge>}
+                        {q.image_url && (
+                          <Badge variant="outline" className="text-[10px]">
+                            <ImageIcon className="w-2.5 h-2.5 mr-0.5" /> Com imagem
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
