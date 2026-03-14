@@ -67,7 +67,7 @@ export default function MyAdaptations() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <div>
           <h1 className="text-xl font-bold text-foreground mb-1">Minhas Adaptações</h1>
