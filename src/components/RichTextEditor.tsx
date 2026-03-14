@@ -81,6 +81,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
+    onSelectionUpdate: () => {
+      setTick((t) => t + 1);
+    },
     editorProps: {
       attributes: {
         class:
