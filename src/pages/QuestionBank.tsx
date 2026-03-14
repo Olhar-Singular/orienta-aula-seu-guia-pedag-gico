@@ -623,7 +623,6 @@ export default function QuestionBank() {
             <Plus className="w-4 h-4 mr-1" /> Adicionar
           </Button>
         </div>
-        </div>
 
         {/* Upload + Extract section */}
         <Card>
