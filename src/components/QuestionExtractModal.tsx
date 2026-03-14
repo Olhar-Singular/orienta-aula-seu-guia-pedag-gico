@@ -5,6 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { detectFileType } from "@/lib/fileValidation";
+import { parsePdf } from "@/lib/pdf-utils";
+import { extractDocxText } from "@/lib/docx-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
