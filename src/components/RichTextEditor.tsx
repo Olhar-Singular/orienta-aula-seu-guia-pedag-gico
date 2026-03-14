@@ -70,7 +70,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
       }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Image.configure({ inline: false, allowBase64: true }),
+      Image.configure({ inline: false, allowBase64: true, HTMLAttributes: { class: "editor-image" } }),
       Placeholder.configure({
         placeholder: placeholder || "Digite aqui...",
       }),
