@@ -60,6 +60,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // File extraction state
   const [fileExtracting, setFileExtracting] = useState(false);
