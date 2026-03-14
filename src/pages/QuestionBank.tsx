@@ -490,7 +490,7 @@ export default function QuestionBank() {
   // ─── REVIEW MODE ───
   if (showReview) {
     return (
-      <Layout>
+      <>
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
