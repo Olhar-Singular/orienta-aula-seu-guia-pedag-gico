@@ -123,7 +123,7 @@ export default function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
-  const [pdfPreviewForQuestion, setPdfPreviewForQuestion] = useState(false);
+  
 
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -425,7 +425,7 @@ export default function QuestionBank() {
             <AlertTriangle className="w-4 h-4" />
             <AlertDescription>
               A IA pode errar na classificação, gabarito ou resolução. <strong>Revise cada questão antes de salvar.</strong>
-              Use os botões <strong>"Visualizar Prova"</strong> e <strong>"Recortar Imagem"</strong> para adicionar figuras.
+              Use o botão <strong>"Visualizar Prova"</strong> para ver o PDF original e recortar figuras.
             </AlertDescription>
           </Alert>
 
@@ -460,24 +460,16 @@ export default function QuestionBank() {
                         </div>
                         {!q.saved && (
                           <div className="flex gap-1">
-                            {/* View PDF button */}
+                            {/* View PDF + Crop button (combined) */}
                             {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setPdfPreviewForQuestion(true)}
+                                onClick={() => setCropperForQuestion(i)}
                               >
                                 <Eye className="w-3 h-3 mr-1" /> Visualizar Prova
                               </Button>
                             )}
-                            {/* Crop image button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setCropperForQuestion(i)}
-                            >
-                              <Crop className="w-3 h-3 mr-1" /> Recortar Imagem
-                            </Button>
                             {/* Save individual */}
                             <Button
                               size="sm"
@@ -604,17 +596,15 @@ export default function QuestionBank() {
           </div>
         </div>
 
-        {/* Per-question PDF Preview */}
-        <PdfPreviewModal open={pdfPreviewForQuestion} onOpenChange={setPdfPreviewForQuestion} file={uploadFile} />
-
-        {/* Per-question Image Cropper */}
-        <ImageCropperModal
+        {/* Per-question PDF Preview with Crop */}
+        <PdfPreviewModal
           open={cropperForQuestion !== null}
           onOpenChange={(open) => { if (!open) setCropperForQuestion(null); }}
-          onSaved={() => {}}
-          onImageCropped={(imageUrl) => {
+          file={uploadFile}
+          initialPage={cropperForQuestion !== null ? extractedQuestions[cropperForQuestion]?.image_page : undefined}
+          onCrop={(dataUrl) => {
             if (cropperForQuestion !== null) {
-              updateExtracted(cropperForQuestion, "imageUrl", imageUrl);
+              updateExtracted(cropperForQuestion, "imageUrl", dataUrl);
               setCropperForQuestion(null);
             }
           }}
