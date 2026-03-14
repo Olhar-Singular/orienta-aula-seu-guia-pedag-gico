@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -12,11 +16,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, FileUp, Crop, Trash2, Pencil } from "lucide-react";
+import {
+  Alert,
+  AlertDescription,
+} from "@/components/ui/alert";
+import {
+  Plus,
+  FileUp,
+  Crop,
+  Trash2,
+  Pencil,
+  Eye,
+  Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  ImageIcon,
+  Upload,
+  Clock,
+  Search,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
-import QuestionExtractModal from "@/components/QuestionExtractModal";
 import ImageCropperModal from "@/components/ImageCropperModal";
+import PdfPreviewModal from "@/components/PdfPreviewModal";
+import { detectFileType } from "@/lib/fileValidation";
+import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
+import { extractDocxText } from "@/lib/docx-utils";
+import { autoCropFromBbox, normalizeTextForDedup, dataUrlToBlob } from "@/lib/extraction-utils";
 
 type Question = {
   id: string;
@@ -34,15 +61,25 @@ type Question = {
   created_at: string;
 };
 
+type ExtractedQuestion = {
+  text: string;
+  subject: string;
+  topic?: string;
+  options?: string[];
+  correct_answer?: number;
+  resolution?: string;
+  has_figure?: boolean;
+  figure_description?: string;
+  image_page?: number;
+  figure_bbox?: { x: number; y: number; width: number; height: number };
+  imageUrl?: string; // auto-cropped or manual image
+  selected: boolean;
+  isDuplicate?: boolean;
+};
+
 const subjects = [
-  "Matemática",
-  "Português",
-  "Ciências",
-  "História",
-  "Geografia",
-  "Inglês",
-  "Arte",
-  "Ed. Física",
+  "Física", "Matemática", "Química", "Biologia", "Português",
+  "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
 ];
 
 const difficulties = [
@@ -60,16 +97,34 @@ const sourceLabels: Record<string, string> = {
 
 export default function QuestionBank() {
   const { user } = useAuth();
+
+  // Main list state
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [filterSource, setFilterSource] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Modal states
   const [showForm, setShowForm] = useState(false);
-  const [showExtract, setShowExtract] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
+  // Upload + extraction state
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionTime, setExtractionTime] = useState(0);
+  const [extractedQuestions, setExtractedQuestions] = useState<ExtractedQuestion[]>([]);
+  const [pageImages, setPageImages] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── Fetch existing questions ───
   const fetchQuestions = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -87,36 +142,433 @@ export default function QuestionBank() {
     setLoading(false);
   }, [user, filterSubject, filterDifficulty, filterSource]);
 
+  useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
+
+  // Timer for extraction
   useEffect(() => {
-    fetchQuestions();
-  }, [fetchQuestions]);
+    if (extracting) {
+      setExtractionTime(0);
+      timerRef.current = setInterval(() => setExtractionTime((t) => t + 1), 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [extracting]);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return m > 0 ? `${m}m ${sec.toString().padStart(2, "0")}s` : `${sec}s`;
+  };
+
+  // ─── File upload handler ───
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 10 MB.", variant: "destructive" });
+      return;
+    }
+
+    const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const type = detectFileType(bytes);
+    if (type !== "pdf" && type !== "docx") {
+      toast({ title: "Formato inválido", description: "Apenas PDF e DOCX.", variant: "destructive" });
+      return;
+    }
+    setUploadFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      if (fileRef.current) {
+        fileRef.current.files = dt.files;
+        handleFileSelect({ target: fileRef.current } as any);
+      }
+    }
+  };
+
+  // ─── Extract questions ───
+  const handleExtract = async () => {
+    if (!uploadFile || !user) return;
+    setExtracting(true);
+
+    try {
+      const bytes = new Uint8Array(await uploadFile.slice(0, 4).arrayBuffer());
+      const type = detectFileType(bytes);
+
+      let pdfText = "";
+      let images: string[] = [];
+
+      if (type === "pdf") {
+        const result: PdfParseResult = await parsePdf(uploadFile, (page, total) => {
+          // Progress feedback could be added here
+        });
+        pdfText = result.text;
+        images = result.pageImages;
+        setPageImages(images);
+      } else if (type === "docx") {
+        pdfText = await extractDocxText(uploadFile);
+      }
+
+      // Upload original to storage
+      const filePath = `${user.id}/${Date.now()}_${uploadFile.name}`;
+      await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
+
+      // Register in pdf_uploads
+      await (supabase.from as any)("pdf_uploads").insert({
+        user_id: user.id,
+        file_name: uploadFile.name,
+        file_path: filePath,
+      });
+
+      // Call edge function with pre-parsed data
+      const session = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-questions`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.data.session?.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            pdfText,
+            pdfFileName: uploadFile.name,
+            pageImages: images,
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || "Falha na extração");
+      }
+
+      const data = await resp.json();
+      const rawQuestions = data.questions || [];
+
+      if (rawQuestions.length === 0) {
+        toast({ title: "Nenhuma questão encontrada", description: "Tente cadastro manual.", variant: "destructive" });
+        setExtracting(false);
+        return;
+      }
+
+      // Auto-crop figures using bounding boxes
+      const processed: ExtractedQuestion[] = [];
+      for (const q of rawQuestions) {
+        let imageUrl: string | undefined;
+        if (q.has_figure && q.figure_bbox && q.image_page && images[q.image_page - 1]) {
+          try {
+            imageUrl = await autoCropFromBbox(images[q.image_page - 1], q.figure_bbox);
+          } catch (e) {
+            console.warn("Auto-crop failed:", e);
+          }
+        }
+        processed.push({
+          text: q.text || "",
+          subject: q.subject || "Geral",
+          topic: q.topic || undefined,
+          options: q.options || undefined,
+          correct_answer: q.correct_answer != null ? q.correct_answer : undefined,
+          resolution: q.resolution || undefined,
+          has_figure: q.has_figure || false,
+          figure_description: q.figure_description || undefined,
+          image_page: q.image_page || undefined,
+          figure_bbox: q.figure_bbox || undefined,
+          imageUrl,
+          selected: true,
+        });
+      }
+
+      // Check duplicates
+      const existingTexts = questions.map((q) => ({ text: q.text }));
+      const dupes = new Set<number>();
+      const existingNorm = new Set(existingTexts.map((q) => normalizeTextForDedup(q.text)));
+      processed.forEach((q, i) => {
+        if (existingNorm.has(normalizeTextForDedup(q.text))) {
+          q.isDuplicate = true;
+          q.selected = false;
+          dupes.add(i);
+        }
+      });
+
+      setExtractedQuestions(processed);
+      setShowReview(true);
+      toast({ title: `${processed.length} questão(ões) extraída(s)!${dupes.size > 0 ? ` (${dupes.size} duplicada(s))` : ""}` });
+    } catch (e: any) {
+      toast({ title: "Erro na extração", description: e.message, variant: "destructive" });
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  // ─── Save extracted questions ───
+  const handleSaveExtracted = async () => {
+    if (!user) return;
+    const toSave = extractedQuestions.filter((q) => q.selected && q.text.trim());
+    if (toSave.length === 0) {
+      toast({ title: "Nenhuma questão selecionada", variant: "destructive" });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Upload images first
+      const rows = [];
+      for (const q of toSave) {
+        let imageUrl = q.imageUrl || null;
+
+        // Upload auto-cropped image to storage
+        if (imageUrl && imageUrl.startsWith("data:")) {
+          const blob = dataUrlToBlob(imageUrl);
+          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
+          const { error: upErr } = await supabase.storage
+            .from("question-images")
+            .upload(fileName, blob, { contentType: "image/png" });
+          if (!upErr) {
+            const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
+            imageUrl = publicUrl;
+          } else {
+            imageUrl = null;
+          }
+        }
+
+        rows.push({
+          text: q.text,
+          subject: q.subject,
+          topic: q.topic || null,
+          options: q.options || null,
+          correct_answer: q.correct_answer ?? null,
+          resolution: q.resolution || null,
+          difficulty: "medio",
+          source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
+          source_file_name: uploadFile?.name || null,
+          image_url: imageUrl,
+          created_by: user.id,
+        });
+      }
+
+      const { error } = await (supabase.from as any)("question_bank").insert(rows);
+      if (error) throw error;
+
+      // Update pdf_uploads count
+      if (uploadFile) {
+        await (supabase.from as any)("pdf_uploads")
+          .update({ questions_extracted: rows.length })
+          .eq("file_name", uploadFile.name)
+          .eq("user_id", user.id);
+      }
+
+      toast({ title: `${rows.length} questão(ões) salva(s) com sucesso!` });
+      setShowReview(false);
+      setExtractedQuestions([]);
+      setUploadFile(null);
+      setPageImages([]);
+      fetchQuestions();
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     const { error } = await (supabase.from as any)("question_bank").delete().eq("id", id);
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else {
-      toast({ title: "Questão removida" });
-      fetchQuestions();
-    }
+    else { toast({ title: "Questão removida" }); fetchQuestions(); }
   };
 
+  const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
+    setExtractedQuestions((prev) => prev.map((q, idx) => idx === i ? { ...q, [field]: value } : q));
+  };
+
+  const filteredQuestions = questions.filter((q) => {
+    if (searchQuery) {
+      const norm = searchQuery.toLowerCase();
+      return q.text.toLowerCase().includes(norm) || q.subject.toLowerCase().includes(norm);
+    }
+    return true;
+  });
+
+  const selectedCount = extractedQuestions.filter((q) => q.selected).length;
+
+  // ─── REVIEW MODE ───
+  if (showReview) {
+    return (
+      <Layout>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setShowReview(false); setExtractedQuestions([]); }}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveExtracted} disabled={saving || selectedCount === 0}>
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                Salvar {selectedCount} questão(ões)
+              </Button>
+            </div>
+          </div>
+
+          <Alert>
+            <AlertTriangle className="w-4 h-4" />
+            <AlertDescription>
+              A IA pode errar na classificação, gabarito ou resolução. <strong>Revise cada questão antes de salvar.</strong>
+            </AlertDescription>
+          </Alert>
+
+          <p className="text-sm text-muted-foreground">
+            {extractedQuestions.length} extraída(s) • {selectedCount} selecionada(s)
+            {extractedQuestions.some((q) => q.isDuplicate) && (
+              <span className="text-orange-500 ml-2">
+                • {extractedQuestions.filter((q) => q.isDuplicate).length} duplicada(s)
+              </span>
+            )}
+          </p>
+
+          <div className="space-y-4">
+            {extractedQuestions.map((q, i) => (
+              <Card key={i} className={`${q.isDuplicate ? "border-orange-300 bg-orange-50/50 dark:bg-orange-900/10" : ""} ${!q.selected ? "opacity-60" : ""}`}>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={q.selected}
+                      onCheckedChange={(v) => updateExtracted(i, "selected", !!v)}
+                      aria-label={`Selecionar questão ${i + 1}`}
+                    />
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{i + 1}</Badge>
+                        {q.isDuplicate && <Badge variant="outline" className="text-orange-600 border-orange-300">Duplicada</Badge>}
+                        {q.has_figure && <Badge variant="outline" className="text-blue-600 border-blue-300"><ImageIcon className="w-3 h-3 mr-1" />Figura</Badge>}
+                      </div>
+
+                      {/* Enunciado */}
+                      <div>
+                        <Label className="text-xs">Enunciado</Label>
+                        <Textarea
+                          value={q.text}
+                          onChange={(e) => updateExtracted(i, "text", e.target.value)}
+                          rows={3}
+                          className="text-sm"
+                        />
+                      </div>
+
+                      {/* Image */}
+                      {q.imageUrl && (
+                        <div className="relative inline-block">
+                          <img src={q.imageUrl} alt="Figura" className="max-h-40 rounded border" />
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            className="absolute top-1 right-1 w-6 h-6"
+                            onClick={() => updateExtracted(i, "imageUrl", undefined)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Subject / Topic */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div>
+                          <Label className="text-xs">Matéria</Label>
+                          <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)}>
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs">Tópico</Label>
+                          <Input
+                            value={q.topic || ""}
+                            onChange={(e) => updateExtracted(i, "topic", e.target.value)}
+                            className="h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Options + answer */}
+                      {q.options && q.options.length > 0 && (
+                        <div>
+                          <Label className="text-xs">Alternativas</Label>
+                          <div className="space-y-1 mt-1">
+                            {q.options.map((opt, j) => (
+                              <div key={j} className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant={q.correct_answer === j ? "default" : "outline"}
+                                  className="w-8 h-7 text-xs shrink-0"
+                                  onClick={() => updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
+                                >
+                                  {String.fromCharCode(65 + j)}
+                                </Button>
+                                <span className={`text-sm ${q.correct_answer === j ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                                  {opt}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          {(q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
+                            <p className="text-xs text-orange-500 mt-1 flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Resolution */}
+                      <div>
+                        <Label className="text-xs">Resolução</Label>
+                        <Textarea
+                          value={q.resolution || ""}
+                          onChange={(e) => updateExtracted(i, "resolution", e.target.value)}
+                          rows={2}
+                          className="text-sm"
+                          placeholder="Explicação da resposta..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="flex gap-2 sticky bottom-4">
+            <Button variant="outline" onClick={() => { setShowReview(false); setExtractedQuestions([]); }} className="flex-1">
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveExtracted} disabled={saving || selectedCount === 0} className="flex-1">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+              Salvar {selectedCount} questão(ões)
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // ─── MAIN VIEW ───
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">Banco de Questões</h1>
           <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => {
-                setEditingQuestion(null);
-                setShowForm(true);
-              }}
-              size="sm"
-            >
+            <Button onClick={() => { setEditingQuestion(null); setShowForm(true); }} size="sm">
               <Plus className="w-4 h-4 mr-1" /> Adicionar
-            </Button>
-            <Button onClick={() => setShowExtract(true)} size="sm" variant="outline">
-              <FileUp className="w-4 h-4 mr-1" /> Extrair de Arquivo
             </Button>
             <Button onClick={() => setShowCropper(true)} size="sm" variant="outline">
               <Crop className="w-4 h-4 mr-1" /> Recortar Imagem
@@ -124,37 +576,97 @@ export default function QuestionBank() {
           </div>
         </div>
 
+        {/* Upload + Extract section */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileUp className="w-5 h-5" /> Extrair Questões de Arquivo
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Alert className="bg-amber-50 dark:bg-amber-900/10 border-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <AlertDescription className="text-xs text-amber-800 dark:text-amber-200">
+                A IA funciona melhor com PDFs digitais. PDFs escaneados, fórmulas complexas e imagens de baixa resolução podem gerar resultados imprecisos. Revise sempre o resultado.
+              </AlertDescription>
+            </Alert>
+
+            <div
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                uploadFile ? "border-primary bg-primary/5" : "hover:border-primary/50"
+              }`}
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-primary"); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove("border-primary"); }}
+              onDrop={handleDrop}
+            >
+              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {uploadFile
+                  ? `📄 ${uploadFile.name} (${(uploadFile.size / 1024 / 1024).toFixed(1)} MB)`
+                  : "Arraste um PDF ou Word aqui, ou clique para selecionar"}
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+            </div>
+
+            {uploadFile && (
+              <div className="flex gap-2">
+                <Button onClick={handleExtract} disabled={extracting} className="flex-1">
+                  {extracting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Extraindo... <Clock className="w-3 h-3 ml-2" /> ⏱ {formatTime(extractionTime)}
+                    </>
+                  ) : (
+                    <>Extrair com IA</>
+                  )}
+                </Button>
+                {uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                  <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
+                    <Eye className="w-4 h-4 mr-1" /> Visualizar
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => setUploadFile(null)} aria-label="Remover arquivo">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Filters */}
         <div className="flex flex-wrap gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar questão..."
+              className="pl-9"
+            />
+          </div>
           <Select value={filterSubject} onValueChange={setFilterSubject}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Matéria" />
-            </SelectTrigger>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Matéria" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {subjects.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s}
-                </SelectItem>
-              ))}
+              {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Dificuldade" />
-            </SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Dificuldade" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {difficulties.map((d) => (
-                <SelectItem key={d.value} value={d.value}>
-                  {d.label}
-                </SelectItem>
-              ))}
+              {difficulties.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filterSource} onValueChange={setFilterSource}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Fonte" />
-            </SelectTrigger>
+            <SelectTrigger className="w-36"><SelectValue placeholder="Fonte" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
@@ -165,17 +677,18 @@ export default function QuestionBank() {
           </Select>
         </div>
 
+        {/* Question list */}
         {loading ? (
           <p className="text-muted-foreground">Carregando...</p>
-        ) : questions.length === 0 ? (
+        ) : filteredQuestions.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              Nenhuma questão encontrada. Comece adicionando!
+              {searchQuery ? "Nenhuma questão encontrada para esta busca." : "Nenhuma questão encontrada. Comece adicionando ou extraindo de um arquivo!"}
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-3">
-            {questions.map((q) => (
+            {filteredQuestions.map((q) => (
               <Card key={q.id}>
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start gap-4">
@@ -194,25 +707,14 @@ export default function QuestionBank() {
                         )}
                       </div>
                       {q.image_url && (
-                        <img
-                          src={q.image_url}
-                          alt="Imagem da questão"
-                          className="mt-2 max-h-32 rounded border"
-                        />
+                        <img src={q.image_url} alt="Imagem da questão" className="mt-2 max-h-32 rounded border" loading="lazy" />
                       )}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditingQuestion(q);
-                          setShowForm(true);
-                        }}
-                      >
+                      <Button size="icon" variant="ghost" onClick={() => { setEditingQuestion(q); setShowForm(true); }} aria-label="Editar questão">
                         <Pencil className="w-4 h-4" />
                       </Button>
-                      <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} aria-label="Excluir questão">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -220,14 +722,7 @@ export default function QuestionBank() {
                   {q.options && Array.isArray(q.options) && (
                     <div className="mt-3 space-y-1">
                       {(q.options as string[]).map((opt, i) => (
-                        <p
-                          key={i}
-                          className={`text-sm pl-2 ${
-                            i === q.correct_answer
-                              ? "font-semibold text-primary"
-                              : "text-muted-foreground"
-                          }`}
-                        >
+                        <p key={i} className={`text-sm pl-2 ${i === q.correct_answer ? "font-semibold text-primary" : "text-muted-foreground"}`}>
                           {String.fromCharCode(65 + i)}) {opt}
                         </p>
                       ))}
@@ -240,22 +735,9 @@ export default function QuestionBank() {
         )}
       </div>
 
-      <QuestionForm
-        open={showForm}
-        onOpenChange={setShowForm}
-        question={editingQuestion}
-        onSaved={fetchQuestions}
-      />
-      <QuestionExtractModal
-        open={showExtract}
-        onOpenChange={setShowExtract}
-        onSaved={fetchQuestions}
-      />
-      <ImageCropperModal
-        open={showCropper}
-        onOpenChange={setShowCropper}
-        onSaved={fetchQuestions}
-      />
+      <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
+      <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
+      <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
     </Layout>
   );
 }
