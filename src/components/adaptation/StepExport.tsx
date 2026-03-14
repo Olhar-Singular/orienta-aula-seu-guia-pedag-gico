@@ -169,26 +169,26 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-all" onClick={handleExportPdf}>
+        <Card className={`cursor-pointer hover:shadow-md transition-all ${exportingPdf ? "opacity-70 pointer-events-none" : ""}`} onClick={handleExportPdf}>
           <CardContent className="flex items-center gap-4 p-5">
             <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              <FileText className="w-6 h-6" />
+              {exportingPdf ? <Loader2 className="w-6 h-6 animate-spin" /> : <FileText className="w-6 h-6" />}
             </div>
             <div>
-              <p className="font-medium text-foreground">Exportar como PDF</p>
+              <p className="font-medium text-foreground">{exportingPdf ? "Gerando PDF..." : "Exportar como PDF"}</p>
               <p className="text-sm text-muted-foreground">Com cabeçalho e rodapé formatados</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-all" onClick={handleExportDocx}>
+        <Card className={`cursor-pointer hover:shadow-md transition-all ${exportingDocx ? "opacity-70 pointer-events-none" : ""}`} onClick={handleExportDocx}>
           <CardContent className="flex items-center gap-4 p-5">
             <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              <FileDown className="w-6 h-6" />
+              {exportingDocx ? <Loader2 className="w-6 h-6 animate-spin" /> : <FileDown className="w-6 h-6" />}
             </div>
             <div>
-              <p className="font-medium text-foreground">Exportar como Word</p>
-              <p className="text-sm text-muted-foreground">Arquivo .docx editável</p>
+              <p className="font-medium text-foreground">{exportingDocx ? "Gerando Word..." : "Exportar como Word"}</p>
+              <p className="text-sm text-muted-foreground">Arquivo .docx editável com imagens</p>
             </div>
           </CardContent>
         </Card>
