@@ -24,6 +24,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
 
   const r = data.result;
   if (!r) return null;
