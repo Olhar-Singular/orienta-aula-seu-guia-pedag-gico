@@ -21,7 +21,7 @@ const navItems = [
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
