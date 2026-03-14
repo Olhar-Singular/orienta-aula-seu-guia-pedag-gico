@@ -73,16 +73,18 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     let query = (supabase.from as any)("question_bank")
-      .select("id, text, subject, topic, options")
+      .select("id, text, subject, topic, difficulty, options")
       .order("created_at", { ascending: false })
       .limit(50);
     if (bankSearch.trim()) {
       query = query.ilike("text", `%${bankSearch.trim()}%`);
     }
+    if (filterSubject !== "all") query = query.eq("subject", filterSubject);
+    if (filterDifficulty !== "all") query = query.eq("difficulty", filterDifficulty);
     const { data } = await query;
     setBankQuestions(data || []);
     setBankLoading(false);
-  }, [bankSearch]);
+  }, [bankSearch, filterSubject, filterDifficulty]);
 
   useEffect(() => {
     if (showBankModal) fetchBankQuestions();
