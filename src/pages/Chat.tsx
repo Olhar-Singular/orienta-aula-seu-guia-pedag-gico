@@ -71,7 +71,7 @@ export default function Chat() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="flex flex-col h-[calc(100vh-8rem)] lg:h-[calc(100vh-5rem)]">
         <div className="mb-4">
           <h1 className="text-xl font-bold text-foreground">Chat com IA</h1>
