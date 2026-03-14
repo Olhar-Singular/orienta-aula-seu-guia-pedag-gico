@@ -58,7 +58,7 @@ export default function Pricing() {
   };
 
   return (
-    <Layout>
+    <>
       <div className="space-y-8 max-w-4xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Escolha seu plano</h1>
