@@ -126,74 +126,20 @@ serve(async (req) => {
     // Build messages for AI
     const messages: any[] = [{ role: "system", content: OCR_SYSTEM_PROMPT }];
 
-    if (singleFile) {
-      // Legacy FormData path: read file bytes
-      const bytes = new Uint8Array(await singleFile.arrayBuffer());
-      const isPdf = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46;
-      const isDocx = bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
-      const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-      const isPng = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+    // JSON path: text + page images from client-side parsing
+    const contentParts: any[] = [
+      { type: "text", text: `${EXTRACT_PROMPT}\n\nTexto extraído do documento "${sanitize(pdfFileName, 200)}":\n${sanitize(pdfText, 50000)}` },
+    ];
 
-      if (!isPdf && !isDocx && !isJpeg && !isPng) {
-        return new Response(
-          JSON.stringify({ error: "Tipo de arquivo inválido. Apenas PDF, DOCX, JPEG e PNG." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      if (isDocx) {
-        let extractedText = "";
-        try {
-          const mammoth = await import("https://esm.sh/mammoth@1.8.0");
-          const result = await mammoth.default.extractRawText({ arrayBuffer: bytes.buffer });
-          extractedText = result.value;
-        } catch {
-          try {
-            const { default: JSZip } = await import("https://esm.sh/jszip@3.10.1");
-            const zip = await JSZip.loadAsync(bytes);
-            const xml = await zip.file("word/document.xml")?.async("string");
-            extractedText = xml?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
-          } catch { /* empty */ }
-        }
-        if (!extractedText) {
-          return new Response(
-            JSON.stringify({ error: "Não foi possível extrair texto do documento." }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        messages.push({
-          role: "user",
-          content: `${EXTRACT_PROMPT}\n\nTexto do documento:\n${sanitize(extractedText, 50000)}`,
-        });
-      } else {
-        // PDF or Image — send as base64 multimodal
-        const { encode: base64Encode } = await import("https://deno.land/std@0.168.0/encoding/base64.ts");
-        const mimeType = isPdf ? "application/pdf" : isJpeg ? "image/jpeg" : "image/png";
-        const b64 = base64Encode(bytes);
-        messages.push({
-          role: "user",
-          content: [
-            { type: "text", text: EXTRACT_PROMPT },
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${b64}` } },
-          ],
-        });
-      }
-    } else {
-      // New JSON path: text + page images from client-side parsing
-      const contentParts: any[] = [
-        { type: "text", text: `${EXTRACT_PROMPT}\n\nTexto extraído do documento "${sanitize(pdfFileName, 200)}":\n${sanitize(pdfText, 50000)}` },
-      ];
-
-      for (let i = 0; i < pageImages.length; i++) {
-        contentParts.push({ type: "text", text: `\n[Página ${i + 1}]` });
-        contentParts.push({
-          type: "image_url",
-          image_url: { url: pageImages[i] },
-        });
-      }
-
-      messages.push({ role: "user", content: contentParts });
+    for (let i = 0; i < pageImages.length; i++) {
+      contentParts.push({ type: "text", text: `\n[Página ${i + 1}]` });
+      contentParts.push({
+        type: "image_url",
+        image_url: { url: pageImages[i] },
+      });
     }
+
+    messages.push({ role: "user", content: contentParts });
 
     // Call AI Gateway
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
