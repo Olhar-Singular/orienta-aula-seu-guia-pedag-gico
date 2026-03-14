@@ -377,24 +377,23 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       <div className="flex-1 min-w-0 space-y-2">
                         <p className="text-sm line-clamp-2">{q.text}</p>
 
-                        {q.image_url && (
-                          <div className="space-y-1">
+                      {q.image_url && (
+                          <div
+                            className="relative inline-block cursor-zoom-in"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewImageUrl(q.image_url);
+                            }}
+                          >
                             <img
                               src={q.image_url}
                               alt="Imagem da questão"
                               className="max-h-24 rounded border"
                               loading="lazy"
                             />
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPreviewImageUrl(q.image_url);
-                              }}
-                            >
-                              <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
-                            </Button>
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors rounded">
+                              <Search className="w-5 h-5 text-white opacity-0 hover:opacity-100 transition-opacity drop-shadow" />
+                            </div>
                           </div>
                         )}
 
