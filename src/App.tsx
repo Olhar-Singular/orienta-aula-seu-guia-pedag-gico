@@ -20,6 +20,7 @@ import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
 import QuestionBank from "./pages/QuestionBank";
+import AdaptWizard from "./pages/AdaptWizard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
