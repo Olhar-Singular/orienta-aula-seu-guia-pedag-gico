@@ -37,9 +37,9 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     toast({ title: "Adaptação salva no histórico!" });
   };
 
-  const handleExportPdf = () => {
+  const handleExportPdf = async () => {
     try {
-      exportToPdf({
+      await exportToPdf({
         teacherName: user?.user_metadata?.name,
         studentName: data.studentName || undefined,
         activityType: data.activityType || undefined,
@@ -49,6 +49,9 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
+        images: data.selectedQuestions
+          ?.filter((q) => q.image_url)
+          .map((q) => q.image_url as string),
       });
       toast({ title: "PDF exportado!" });
     } catch {
