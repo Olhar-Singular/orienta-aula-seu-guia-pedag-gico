@@ -116,35 +116,12 @@ serve(async (req) => {
       window_start: newWindow,
     });
 
-    // Parse request body (JSON with pdfText + pageImages)
-    const contentType = req.headers.get("content-type") || "";
-    let pdfText = "";
-    let pdfFileName = "";
-    let pageImages: string[] = [];
-    let singleFile: File | null = null;
-
-    if (contentType.includes("multipart/form-data")) {
-      // Legacy: FormData upload (single file)
-      const formData = await req.formData();
-      singleFile = formData.get("file") as File;
-      if (!singleFile) {
-        return new Response(JSON.stringify({ error: "Nenhum arquivo enviado." }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (singleFile.size > 10 * 1024 * 1024) {
-        return new Response(JSON.stringify({ error: "Arquivo muito grande. Máximo 10 MB." }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      pdfFileName = singleFile.name;
-    } else {
-      // New: JSON with pre-parsed text + images from client
-      const body = await req.json();
-      pdfText = body.pdfText || "";
-      pdfFileName = body.pdfFileName || "";
-      pageImages = body.pageImages || [];
-    }
+    // Parse request body — always JSON with pre-parsed text + images from client
+    const body = await req.json();
+    let pdfText: string = body.pdfText || "";
+    let pdfFileName: string = body.pdfFileName || "";
+    let pageImages: string[] = body.pageImages || [];
+    const singleFile: File | null = null;
 
     // Build messages for AI
     const messages: any[] = [{ role: "system", content: OCR_SYSTEM_PROMPT }];
