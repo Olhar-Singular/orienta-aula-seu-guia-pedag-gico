@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
+import { fireEvent } from "@testing-library/dom";
 import {
   MOCK_USER,
   MOCK_PROFILE,
