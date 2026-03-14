@@ -192,6 +192,8 @@ export default function BarrierSimulator() {
                     <Card key={dim} className="border-border overflow-hidden">
                       <button
                         onClick={() => setExpandedDim(isOpen ? null : dim)}
+                        aria-expanded={isOpen}
+                        aria-label={`${meta.label}: ${barriers.length} ${barriers.length === 1 ? "barreira" : "barreiras"}`}
                         className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-3">

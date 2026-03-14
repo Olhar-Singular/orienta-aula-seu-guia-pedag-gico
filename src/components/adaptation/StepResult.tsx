@@ -116,6 +116,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
               editing === field ? saveEdit(field) : startEdit(field, content)
             }
             className="ml-auto"
+            aria-label={editing === field ? `Salvar ${title}` : `Editar ${title}`}
           >
             {editing === field ? <Check className="w-3 h-3" /> : <Pencil className="w-3 h-3" />}
           </Button>
