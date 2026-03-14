@@ -109,9 +109,9 @@ export default function Index() {
                     </Button>
                   </Link>
                   <Link to="/login">
-                    <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white/20 font-semibold">
+                    <button className="h-11 px-8 rounded-md border-2 border-white text-white font-semibold hover:bg-white/20 transition-colors">
                       Entrar
-                    </Button>
+                    </button>
                   </Link>
                 </div>
               </motion.div>
@@ -124,7 +124,7 @@ export default function Index() {
                 <img
                   src={heroImg}
                   alt="Ilustração de uma sala de aula inclusiva"
-                  className="w-full max-w-md mx-auto rounded-2xl shadow-2xl"
+                  className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                   loading="eager"
                 />
               </motion.div>
