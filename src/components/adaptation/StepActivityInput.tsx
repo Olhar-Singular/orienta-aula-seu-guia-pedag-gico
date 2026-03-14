@@ -197,13 +197,17 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
 
       {/* Tab Content */}
       {tab === "manual" && (
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={10}
-          placeholder="Cole ou digite o texto da atividade aqui..."
-          className="font-mono text-sm"
-        />
+        <div>
+          <label htmlFor="activity-manual" className="sr-only">Texto da atividade</label>
+          <Textarea
+            id="activity-manual"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={10}
+            placeholder="Cole ou digite o texto da atividade aqui..."
+            className="font-mono text-sm"
+          />
+        </div>
       )}
 
       {tab === "banco" && (
@@ -293,13 +297,15 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
           </DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-2">
+              <label htmlFor="bank-search" className="sr-only">Buscar questões</label>
               <Input
+                id="bank-search"
                 value={bankSearch}
                 onChange={(e) => setBankSearch(e.target.value)}
                 placeholder="Buscar questões..."
                 className="flex-1"
               />
-              <Button size="icon" variant="outline" onClick={fetchBankQuestions}>
+              <Button size="icon" variant="outline" onClick={fetchBankQuestions} aria-label="Buscar">
                 <Search className="w-4 h-4" />
               </Button>
             </div>

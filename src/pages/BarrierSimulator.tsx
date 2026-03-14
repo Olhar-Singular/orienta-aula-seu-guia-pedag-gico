@@ -104,19 +104,24 @@ export default function BarrierSimulator() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-border">
             <CardContent className="p-5 space-y-4">
+              <label htmlFor="activity-input" className="text-sm font-medium text-foreground block mb-2">
+                Texto da atividade
+              </label>
               <Textarea
+                id="activity-input"
                 placeholder="Cole aqui o texto da atividade que deseja analisar..."
                 className="min-h-[140px] resize-y"
                 value={activityText}
                 onChange={(e) => setActivityText(e.target.value)}
                 data-testid="activity-input"
+                aria-describedby="activity-char-count"
               />
               <div className="flex items-center gap-3">
                 <Button onClick={analyze} disabled={loading || activityText.trim().length < 10} className="gap-2">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {loading ? "Analisando..." : "Analisar Barreiras"}
                 </Button>
-                <span className="text-xs text-muted-foreground">{activityText.length} caracteres</span>
+                <span className="text-xs text-muted-foreground" id="activity-char-count">{activityText.length} caracteres</span>
               </div>
             </CardContent>
           </Card>
@@ -187,6 +192,8 @@ export default function BarrierSimulator() {
                     <Card key={dim} className="border-border overflow-hidden">
                       <button
                         onClick={() => setExpandedDim(isOpen ? null : dim)}
+                        aria-expanded={isOpen}
+                        aria-label={`${meta.label}: ${barriers.length} ${barriers.length === 1 ? "barreira" : "barreiras"}`}
                         className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors text-left"
                       >
                         <div className="flex items-center gap-3">

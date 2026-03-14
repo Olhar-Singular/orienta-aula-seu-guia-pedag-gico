@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Check } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import StepActivityType from "./StepActivityType";
 import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
@@ -43,8 +44,26 @@ const STEPS = [
   { label: "Exportar", description: "Salvar e exportar" },
 ];
 
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 80 : -80,
+    opacity: 0,
+  }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -80 : 80,
+    opacity: 0,
+  }),
+};
+
+function announce(message: string) {
+  const el = document.getElementById("live-announcer");
+  if (el) el.textContent = message;
+}
+
 export default function AdaptationWizard() {
   const [step, setStep] = useState(0);
+  const [direction, setDirection] = useState(1);
   const [data, setData] = useState<WizardData>({
     activityType: null,
     activityText: "",
@@ -59,10 +78,30 @@ export default function AdaptationWizard() {
   const updateData = (partial: Partial<WizardData>) =>
     setData((prev) => ({ ...prev, ...partial }));
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
-  const prev = () => setStep((s) => Math.max(s - 1, 0));
+  const next = useCallback(() => {
+    setDirection(1);
+    setStep((s) => {
+      const newStep = Math.min(s + 1, STEPS.length - 1);
+      announce(`Passo ${newStep + 1} de ${STEPS.length}: ${STEPS[newStep].description}`);
+      return newStep;
+    });
+  }, []);
+
+  const prev = useCallback(() => {
+    setDirection(-1);
+    setStep((s) => {
+      const newStep = Math.max(s - 1, 0);
+      announce(`Passo ${newStep + 1} de ${STEPS.length}: ${STEPS[newStep].description}`);
+      return newStep;
+    });
+  }, []);
+
   const goTo = (s: number) => {
-    if (s < step) setStep(s);
+    if (s < step) {
+      setDirection(-1);
+      setStep(s);
+      announce(`Passo ${s + 1} de ${STEPS.length}: ${STEPS[s].description}`);
+    }
   };
 
   return (
@@ -75,16 +114,17 @@ export default function AdaptationWizard() {
       </div>
 
       {/* Stepper */}
-      <nav aria-label="Progresso" className="hidden sm:block">
-        <ol className="flex items-center gap-2">
+      <nav aria-label="Progresso da adaptação" className="hidden sm:block">
+        <ol className="flex items-center gap-2" role="list">
           {STEPS.map((s, i) => {
             const completed = i < step;
             const current = i === step;
             return (
-              <li key={i} className="flex items-center gap-2 flex-1">
+              <li key={i} className="flex items-center gap-2 flex-1" aria-current={current ? "step" : undefined}>
                 <button
                   onClick={() => goTo(i)}
                   disabled={i >= step}
+                  aria-label={`${s.label}: ${completed ? "concluído" : current ? "passo atual" : "pendente"}`}
                   className={`flex items-center gap-2 text-left transition-colors ${
                     current
                       ? "text-primary font-semibold"
@@ -101,6 +141,7 @@ export default function AdaptationWizard() {
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground"
                     }`}
+                    aria-hidden="true"
                   >
                     {completed ? <Check className="w-4 h-4" /> : i + 1}
                   </span>
@@ -111,6 +152,7 @@ export default function AdaptationWizard() {
                     className={`flex-1 h-0.5 ${
                       completed ? "bg-primary" : "bg-muted"
                     }`}
+                    aria-hidden="true"
                   />
                 )}
               </li>
@@ -120,58 +162,71 @@ export default function AdaptationWizard() {
       </nav>
 
       {/* Mobile step indicator */}
-      <p className="sm:hidden text-sm text-muted-foreground">
+      <p className="sm:hidden text-sm text-muted-foreground" role="status">
         Passo {step + 1} de {STEPS.length}: {STEPS[step].description}
       </p>
 
-      {/* Step Content */}
-      <div className="min-h-[400px]">
-        {step === 0 && (
-          <StepActivityType
-            value={data.activityType}
-            onChange={(t) => updateData({ activityType: t })}
-            onNext={next}
-          />
-        )}
-        {step === 1 && (
-          <StepActivityInput
-            value={data.activityText}
-            onChange={(t) => updateData({ activityText: t })}
-            onNext={next}
-            onPrev={prev}
-          />
-        )}
-        {step === 2 && (
-          <StepBarrierSelection
-            data={data}
-            updateData={updateData}
-            onNext={next}
-            onPrev={prev}
-          />
-        )}
-        {step === 3 && (
-          <StepResult
-            data={data}
-            updateData={updateData}
-            onNext={next}
-            onPrev={prev}
-          />
-        )}
-        {step === 4 && (
-          <StepExport data={data} onPrev={prev} onRestart={() => {
-            setStep(0);
-            setData({
-              activityType: null,
-              activityText: "",
-              classId: null,
-              studentId: null,
-              studentName: null,
-              barriers: [],
-              adaptForWholeClass: false,
-              result: null,
-            });
-          }} />
-        )}
+      {/* Step Content with slide animation */}
+      <div className="min-h-[400px] relative overflow-hidden">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
+          <motion.div
+            key={step}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+          >
+            {step === 0 && (
+              <StepActivityType
+                value={data.activityType}
+                onChange={(t) => updateData({ activityType: t })}
+                onNext={next}
+              />
+            )}
+            {step === 1 && (
+              <StepActivityInput
+                value={data.activityText}
+                onChange={(t) => updateData({ activityText: t })}
+                onNext={next}
+                onPrev={prev}
+              />
+            )}
+            {step === 2 && (
+              <StepBarrierSelection
+                data={data}
+                updateData={updateData}
+                onNext={next}
+                onPrev={prev}
+              />
+            )}
+            {step === 3 && (
+              <StepResult
+                data={data}
+                updateData={updateData}
+                onNext={next}
+                onPrev={prev}
+              />
+            )}
+            {step === 4 && (
+              <StepExport data={data} onPrev={prev} onRestart={() => {
+                setStep(0);
+                setDirection(-1);
+                setData({
+                  activityType: null,
+                  activityText: "",
+                  classId: null,
+                  studentId: null,
+                  studentName: null,
+                  barriers: [],
+                  adaptForWholeClass: false,
+                  result: null,
+                });
+              }} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

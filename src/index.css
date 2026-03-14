@@ -84,6 +84,29 @@
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   }
+
+  /* Focus visible for all interactive elements */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring rounded-sm;
+  }
+
+  /* Skip to content link */
+  .skip-to-content {
+    @apply absolute -top-full left-4 z-[100] bg-primary text-primary-foreground px-4 py-2 rounded-b-lg font-medium text-sm transition-all;
+  }
+  .skip-to-content:focus {
+    @apply top-0;
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @layer utilities {
