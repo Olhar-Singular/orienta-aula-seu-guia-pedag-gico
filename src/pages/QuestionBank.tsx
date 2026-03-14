@@ -425,7 +425,7 @@ export default function QuestionBank() {
             <AlertTriangle className="w-4 h-4" />
             <AlertDescription>
               A IA pode errar na classificação, gabarito ou resolução. <strong>Revise cada questão antes de salvar.</strong>
-              Use os botões <strong>"Visualizar Prova"</strong> e <strong>"Recortar Imagem"</strong> para adicionar figuras.
+              Use o botão <strong>"Visualizar Prova"</strong> para ver o PDF original e recortar figuras.
             </AlertDescription>
           </Alert>
 
