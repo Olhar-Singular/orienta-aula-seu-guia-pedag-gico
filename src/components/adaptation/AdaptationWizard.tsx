@@ -167,7 +167,7 @@ export default function AdaptationWizard() {
       </p>
 
       {/* Step Content with slide animation */}
-      <div className="min-h-[400px] relative overflow-hidden">
+      <div className="min-h-[400px] relative overflow-x-hidden overflow-y-visible px-1">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={step}
