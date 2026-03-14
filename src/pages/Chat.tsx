@@ -174,7 +174,8 @@ export default function Chat() {
             animate={{ width: 220, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="border-r border-border bg-muted/30 flex flex-col overflow-hidden shrink-0"
+            className="border-r border-border bg-muted/30 flex flex-col shrink-0 min-w-0"
+            style={{ overflow: "hidden", maxWidth: 220 }}
           >
             <div className="p-3 border-b border-border flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-foreground truncate">Conversas</h2>
