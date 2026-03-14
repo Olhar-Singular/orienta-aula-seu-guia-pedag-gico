@@ -229,10 +229,10 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
                 {/* Crop overlays */}
                 {cropping && cropRect && (
                   <>
-                    <div className="absolute left-0 top-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${cropRect.y}px` }} />
-                    <div className="absolute left-0 bottom-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${cropRect.displayHeight - cropRect.y - cropRect.height}px` }} />
-                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${cropRect.x}px`, height: `${cropRect.height}px` }} />
-                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${cropRect.displayWidth - cropRect.x - cropRect.width}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute left-0 top-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${Math.max(0, cropRect.y)}px` }} />
+                    <div className="absolute left-0 bottom-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${Math.max(0, cropRect.displayHeight - cropRect.y - cropRect.height)}px` }} />
+                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${Math.max(0, cropRect.x)}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${Math.max(0, cropRect.displayWidth - cropRect.x - cropRect.width)}px`, height: `${cropRect.height}px` }} />
                     <div className="absolute border-2 border-primary pointer-events-none" style={{ left: `${cropRect.x}px`, top: `${cropRect.y}px`, width: `${cropRect.width}px`, height: `${cropRect.height}px` }}>
                       {[{ top: -4, left: -4 }, { top: -4, right: -4 }, { bottom: -4, left: -4 }, { bottom: -4, right: -4 }].map((pos, i) => (
                         <div key={i} className="absolute w-2 h-2 bg-primary rounded-full" style={pos as any} />
