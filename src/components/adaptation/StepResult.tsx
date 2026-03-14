@@ -132,7 +132,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
             className="text-sm"
           />
         ) : (
-          <p className="text-sm text-foreground whitespace-pre-wrap">{content}</p>
+          <AdaptedContentRenderer content={content} />
         )}
       </CardContent>
     </Card>
