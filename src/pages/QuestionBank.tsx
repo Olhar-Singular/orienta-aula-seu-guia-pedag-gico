@@ -535,7 +535,7 @@ export default function QuestionBank() {
                           {q.isDuplicate && !q.saved && <Badge variant="destructive">Duplicada</Badge>}
                           {q.imageUrl && <Badge variant="outline"><ImageIcon className="w-3 h-3 mr-1" />Imagem</Badge>}
                         </div>
-                        {!q.saved && (
+                        {!q.saved && !q.isDuplicate && (
                           <Button
                             size="sm"
                             onClick={() => handleSaveOne(i)}
@@ -543,6 +543,18 @@ export default function QuestionBank() {
                           >
                             {q.saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
                             Salvar
+                          </Button>
+                        )}
+                        {q.isDuplicate && !q.saved && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              updateExtracted(i, "isDuplicate", false);
+                              updateExtracted(i, "selected", true);
+                            }}
+                          >
+                            <Pencil className="w-3 h-3 mr-1" /> Editar
                           </Button>
                         )}
                         {q.saved && (
