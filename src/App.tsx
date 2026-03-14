@@ -13,6 +13,9 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Create from "./pages/Create";
 import MyAdaptations from "./pages/MyAdaptations";
+import Classes from "./pages/Classes";
+import ClassDetail from "./pages/ClassDetail";
+import StudentProfile from "./pages/StudentProfile";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import Pricing from "./pages/Pricing";
@@ -38,6 +41,9 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
             <Route path="/my-adaptations" element={<ProtectedRoute><MyAdaptations /></ProtectedRoute>} />
+            <Route path="/dashboard/turmas" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
+            <Route path="/dashboard/turmas/:id" element={<ProtectedRoute><ClassDetail /></ProtectedRoute>} />
+            <Route path="/dashboard/turmas/:id/aluno/:alunoId" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />

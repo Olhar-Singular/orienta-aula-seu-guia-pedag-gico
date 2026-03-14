@@ -89,6 +89,71 @@ export type Database = {
         }
         Relationships: []
       }
+      class_students: {
+        Row: {
+          class_id: string
+          created_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          registration_code: string | null
+        }
+        Insert: {
+          class_id: string
+          created_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          registration_code?: string | null
+        }
+        Update: {
+          class_id?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          registration_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          school_year: string | null
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          school_year?: string | null
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          school_year?: string | null
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credit_usage: {
         Row: {
           action: string
@@ -221,6 +286,44 @@ export type Database = {
         }
         Relationships: []
       }
+      student_barriers: {
+        Row: {
+          barrier_key: string
+          dimension: string
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          barrier_key: string
+          dimension: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          barrier_key?: string
+          dimension?: string
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_barriers_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "class_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           created_at: string
@@ -271,6 +374,10 @@ export type Database = {
     }
     Functions: {
       get_credits_used: { Args: { p_user_id: string }; Returns: number }
+      is_class_owner: {
+        Args: { _class_id: string; _user_id: string }
+        Returns: boolean
+      }
       sanitize_input: {
         Args: { input: string; max_length?: number }
         Returns: string
