@@ -121,7 +121,7 @@ export default function BarrierSimulator() {
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   {loading ? "Analisando..." : "Analisar Barreiras"}
                 </Button>
-                <span className="text-xs text-muted-foreground">{activityText.length} caracteres</span>
+                <span className="text-xs text-muted-foreground" id="activity-char-count">{activityText.length} caracteres</span>
               </div>
             </CardContent>
           </Card>
