@@ -619,14 +619,10 @@ export default function QuestionBank() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-foreground">Banco de Questões</h1>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => { setEditingQuestion(null); setShowForm(true); }} size="sm">
-              <Plus className="w-4 h-4 mr-1" /> Adicionar
-            </Button>
-            <Button onClick={() => setShowCropper(true)} size="sm" variant="outline">
-              <Crop className="w-4 h-4 mr-1" /> Recortar Imagem
-            </Button>
-          </div>
+          <Button onClick={() => { setEditingQuestion(null); setShowForm(true); }} size="sm">
+            <Plus className="w-4 h-4 mr-1" /> Adicionar
+          </Button>
+        </div>
         </div>
 
         {/* Upload + Extract section */}
