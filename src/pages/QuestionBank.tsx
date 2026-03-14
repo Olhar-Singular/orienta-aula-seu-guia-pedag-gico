@@ -848,8 +848,8 @@ export default function QuestionBank() {
                           <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
                             <FileUp className="w-4 h-4 mr-1" /> Extrair
                           </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} aria-label="Excluir prova">
-                            <Trash2 className="w-4 h-4 text-destructive" />
+                          <Button size="icon" variant="ghost" onClick={() => handleDeleteUpload(p)} disabled={deletingId === p.id} aria-label="Excluir prova">
+                            {deletingId === p.id ? <Loader2 className="w-4 h-4 animate-spin text-destructive" /> : <Trash2 className="w-4 h-4 text-destructive" />}
                           </Button>
                         </div>
                       </CardContent>
