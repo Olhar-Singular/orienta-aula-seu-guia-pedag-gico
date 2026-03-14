@@ -34,7 +34,7 @@ REGRAS ABSOLUTAS DE FORMATAÇÃO:
 5. Use notação escolar simples (Unicode): v₀, v², m/s², Δv — NUNCA use LaTeX ($, {}, \\, ^, _)
 6. Preserve integralmente fórmulas, símbolos e unidades (m, s, kg, N, J, m/s, m/s²)
 7. NÃO simplifique fórmulas nem as transforme em texto discursivo
-8. Use **negrito** para termos-chave e instruções importantes
+8. NUNCA use asteriscos (**) para negrito ou qualquer formatação markdown. Escreva texto limpo sem marcadores.
 9. Use títulos em CAIXA ALTA para seções (ex: QUESTÕES, INSTRUÇÕES)
 
 EXEMPLO DE FORMATO CORRETO:

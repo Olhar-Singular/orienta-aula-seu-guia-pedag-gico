@@ -16,53 +16,32 @@ const FORMULA_REGEX =
 
 const BOLD_REGEX = /\*\*(.+?)\*\*/g;
 
-// Clean up broken bold markers like "Período (T):** Use..." → "Período (T): Use..."
-function cleanBrokenBold(text: string): string {
-  // Remove orphan closing ** that have no opening match
-  return text.replace(/(?<!\*\*[^*]*)\*\*(?![^*]*\*\*)/g, "");
-}
-
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
 
-  // Clean broken bold markers first, then split
-  const cleaned = text.replace(/\*\*/g, (_, offset, str) => {
-    // Count ** occurrences - if odd number, remove the orphan
-    const before = str.slice(0, offset);
-    const count = (before.match(/\*\*/g) || []).length;
-    return count % 2 === 0 ? "**" : "";
-  });
-  const boldParts = cleaned.split(BOLD_REGEX);
-  for (let i = 0; i < boldParts.length; i++) {
-    if (i % 2 === 1) {
-      nodes.push(
-        <strong key={key++} className="font-semibold text-foreground">
-          {boldParts[i]}
-        </strong>
-      );
-    } else {
-      const part = boldParts[i];
-      let lastIndex = 0;
-      const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
-      let match;
-      while ((match = formulaRegex.exec(part)) !== null) {
-        const before = part.slice(lastIndex, match.index);
-        if (before) nodes.push(<span key={key++}>{before}</span>);
-        nodes.push(
-          <code
-            key={key++}
-            className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
-          >
-            {match[1] || match[0].trim()}
-          </code>
-        );
-        lastIndex = match.index + match[0].length;
-      }
-      const tail = part.slice(lastIndex);
-      if (tail) nodes.push(<span key={key++}>{tail}</span>);
-    }
+  // Strip ALL ** markers — the AI should not be using bold markdown
+  const cleaned = text.replace(/\*\*/g, "");
+
+  // Parse formulas
+  let lastIndex = 0;
+  const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
+  let match;
+  while ((match = formulaRegex.exec(cleaned)) !== null) {
+    const before = cleaned.slice(lastIndex, match.index);
+    if (before) nodes.push(<span key={key++}>{before}</span>);
+    nodes.push(
+      <code
+        key={key++}
+        className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
+      >
+        {match[1] || match[0].trim()}
+      </code>
+    );
+    lastIndex = match.index + match[0].length;
   }
+  const tail = cleaned.slice(lastIndex);
+  if (tail) nodes.push(<span key={key++}>{tail}</span>);
 
   return nodes;
 }
