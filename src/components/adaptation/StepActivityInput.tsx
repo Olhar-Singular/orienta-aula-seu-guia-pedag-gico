@@ -36,6 +36,7 @@ type BankQuestion = {
   subject: string;
   topic: string | null;
   difficulty: string | null;
+  image_url: string | null;
   options: any;
 };
 
