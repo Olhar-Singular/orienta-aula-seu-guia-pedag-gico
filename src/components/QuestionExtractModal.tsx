@@ -5,6 +5,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { detectFileType } from "@/lib/fileValidation";
+import { parsePdf } from "@/lib/pdf-utils";
+import { extractDocxText } from "@/lib/docx-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { detectFileType } from "@/lib/fileValidation";
 import {
   validateExtractedQuestions,
   type ExtractedQuestion,
@@ -59,8 +61,19 @@ export default function QuestionExtractModal({
     if (!file) return;
     setExtracting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
+      // Parse file client-side first
+      const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+      const type = detectFileType(bytes);
+      let pdfText = "";
+      let pageImages: string[] = [];
+
+      if (type === "pdf") {
+        const result = await parsePdf(file);
+        pdfText = result.text;
+        pageImages = result.pageImages;
+      } else if (type === "docx") {
+        pdfText = await extractDocxText(file);
+      }
 
       const session = await supabase.auth.getSession();
       const resp = await fetch(
@@ -69,8 +82,10 @@ export default function QuestionExtractModal({
           method: "POST",
           headers: {
             Authorization: `Bearer ${session.data.session?.access_token}`,
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: formData,
+          body: JSON.stringify({ pdfText, pdfFileName: file.name, pageImages }),
         }
       );
 

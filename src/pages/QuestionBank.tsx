@@ -216,8 +216,9 @@ export default function QuestionBank() {
         pdfText = await extractDocxText(uploadFile);
       }
 
-      // Upload original to storage
-      const filePath = `${user.id}/${Date.now()}_${uploadFile.name}`;
+      // Upload original to storage (sanitize filename for Supabase key compatibility)
+      const safeName = uploadFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${Date.now()}_${safeName}`;
       await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
 
       // Register in pdf_uploads
