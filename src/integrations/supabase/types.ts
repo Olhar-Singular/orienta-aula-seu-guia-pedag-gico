@@ -89,6 +89,63 @@ export type Database = {
         }
         Relationships: []
       }
+      adaptations_history: {
+        Row: {
+          activity_type: string | null
+          adaptation_result: Json
+          barriers_used: Json
+          class_id: string | null
+          created_at: string | null
+          id: string
+          model_used: string | null
+          original_activity: string
+          student_id: string | null
+          teacher_id: string
+          tokens_used: number | null
+        }
+        Insert: {
+          activity_type?: string | null
+          adaptation_result?: Json
+          barriers_used?: Json
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          model_used?: string | null
+          original_activity: string
+          student_id?: string | null
+          teacher_id: string
+          tokens_used?: number | null
+        }
+        Update: {
+          activity_type?: string | null
+          adaptation_result?: Json
+          barriers_used?: Json
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          model_used?: string | null
+          original_activity?: string
+          student_id?: string | null
+          teacher_id?: string
+          tokens_used?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adaptations_history_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adaptations_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "class_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_students: {
         Row: {
           class_id: string
