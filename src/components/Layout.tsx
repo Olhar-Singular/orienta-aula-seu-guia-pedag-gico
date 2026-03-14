@@ -85,9 +85,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
             <LogOut className="w-5 h-5" aria-hidden="true" /> Sair
           </button>
         </div>
-        <div className="px-5 mb-3">
-          <CreditsBadge showProgress />
-        </div>
         <div className="p-4 mx-3 mb-4 rounded-lg bg-sidebar-accent/30 text-xs text-primary-foreground/60 leading-relaxed" role="note">
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </div>

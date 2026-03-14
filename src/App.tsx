@@ -67,7 +67,7 @@ const App = () => (
                 <Route path="/dashboard/simulador" element={<ErrorBoundary><BarrierSimulator /></ErrorBoundary>} />
                 <Route path="/chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
                 <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
-                <Route path="/pricing" element={<ErrorBoundary><Pricing /></ErrorBoundary>} />
+                
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />

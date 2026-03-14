@@ -153,10 +153,6 @@ export default function Create() {
 
   const handleGenerate = async () => {
     if (!user) return;
-    if (!hasCredits) {
-      toast.error("Seus créditos acabaram. Faça upgrade para continuar.");
-      return;
-    }
     setGenerating(true);
     setResult(null);
     setSaved(false);
