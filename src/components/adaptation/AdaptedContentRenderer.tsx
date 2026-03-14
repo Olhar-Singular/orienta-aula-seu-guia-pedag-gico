@@ -16,24 +16,13 @@ const FORMULA_REGEX =
 
 const BOLD_REGEX = /\*\*(.+?)\*\*/g;
 
-// Clean up broken bold markers like "Período (T):** Use..." → "Período (T): Use..."
-function cleanBrokenBold(text: string): string {
-  // Remove orphan closing ** that have no opening match
-  return text.replace(/(?<!\*\*[^*]*)\*\*(?![^*]*\*\*)/g, "");
-}
-
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
 
-  // Clean broken bold markers first, then split
-  const cleaned = text.replace(/\*\*/g, (_, offset, str) => {
-    // Count ** occurrences - if odd number, remove the orphan
-    const before = str.slice(0, offset);
-    const count = (before.match(/\*\*/g) || []).length;
-    return count % 2 === 0 ? "**" : "";
-  });
-  const boldParts = cleaned.split(BOLD_REGEX);
+  // Strip ALL ** markers — the AI should not be using bold markdown
+  const cleaned = text.replace(/\*\*/g, "");
+  const boldParts = [cleaned]; // No bold splitting needed anymore
   for (let i = 0; i < boldParts.length; i++) {
     if (i % 2 === 1) {
       nodes.push(
