@@ -186,7 +186,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
             >
-              <div className="relative inline-block">
+              <div ref={imgWrapperRef} className="relative inline-block">
                 <img
                   ref={imgRef}
                   src={pageImage}
