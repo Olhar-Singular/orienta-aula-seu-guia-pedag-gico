@@ -19,8 +19,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { Plus, X, Upload, Loader2 } from "lucide-react";
+import { Plus, X, Upload, Loader2, Search } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 
 const subjects = [
   "Física", "Matemática", "Química", "Biologia", "Português",
@@ -52,6 +53,7 @@ export default function QuestionForm({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     if (question) {
@@ -161,6 +163,7 @@ export default function QuestionForm({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -185,7 +188,12 @@ export default function QuestionForm({
             <Label>Imagem (opcional)</Label>
             {imagePreview ? (
               <div className="mt-1">
-                <img src={imagePreview} alt="Imagem da questão" className="max-h-48 rounded border" />
+                <img
+                  src={imagePreview}
+                  alt="Imagem da questão"
+                  className="max-h-48 rounded border cursor-zoom-in hover:opacity-90 transition-opacity"
+                  onClick={() => setPreviewOpen(true)}
+                />
                 <div className="flex gap-1 mt-1">
                   <Button type="button" size="sm" variant="outline" onClick={() => { setImageUrl(null); setImagePreview(null); }}>
                     <X className="w-3 h-3 mr-1" /> Remover
@@ -311,5 +319,11 @@ export default function QuestionForm({
         </div>
       </DialogContent>
     </Dialog>
+    <ImagePreviewDialog
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      imageUrl={imagePreview || ""}
+    />
+    </>
   );
 }
