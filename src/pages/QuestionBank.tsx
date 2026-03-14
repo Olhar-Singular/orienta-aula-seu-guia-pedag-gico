@@ -314,74 +314,72 @@ export default function QuestionBank() {
     }
   };
 
-  // ─── Save extracted questions ───
-  const handleSaveExtracted = async () => {
+  // ─── Save individual question ───
+  const handleSaveOne = async (index: number) => {
     if (!user) return;
-    const toSave = extractedQuestions.filter((q) => q.selected && q.text.trim());
-    if (toSave.length === 0) {
-      toast({ title: "Nenhuma questão selecionada", variant: "destructive" });
-      return;
-    }
+    const q = extractedQuestions[index];
+    if (!q || !q.text.trim()) return;
 
-    setSaving(true);
+    updateExtracted(index, "saving", true);
     try {
-      // Upload images first
-      const rows = [];
-      for (const q of toSave) {
-        let imageUrl = q.imageUrl || null;
+      let imageUrl = q.imageUrl || null;
 
-        // Upload auto-cropped image to storage
-        if (imageUrl && imageUrl.startsWith("data:")) {
-          const blob = dataUrlToBlob(imageUrl);
-          const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
-          const { error: upErr } = await supabase.storage
-            .from("question-images")
-            .upload(fileName, blob, { contentType: "image/png" });
-          if (!upErr) {
-            const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
-            imageUrl = publicUrl;
-          } else {
-            imageUrl = null;
-          }
+      // Upload image to storage if it's a data URL
+      if (imageUrl && imageUrl.startsWith("data:")) {
+        const blob = dataUrlToBlob(imageUrl);
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
+        const { error: upErr } = await supabase.storage
+          .from("question-images")
+          .upload(fileName, blob, { contentType: "image/png" });
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        } else {
+          imageUrl = null;
         }
-
-        rows.push({
-          text: q.text,
-          subject: q.subject,
-          topic: q.topic || null,
-          options: q.options || null,
-          correct_answer: q.correct_answer ?? null,
-          resolution: q.resolution || null,
-          difficulty: "medio",
-          source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
-          source_file_name: uploadFile?.name || null,
-          image_url: imageUrl,
-          created_by: user.id,
-        });
       }
 
-      const { error } = await (supabase.from as any)("question_bank").insert(rows);
+      const row = {
+        text: q.text,
+        subject: q.subject,
+        topic: q.topic || null,
+        options: q.options || null,
+        correct_answer: q.correct_answer ?? null,
+        resolution: q.resolution || null,
+        difficulty: "medio",
+        source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
+        source_file_name: uploadFile?.name || null,
+        image_url: imageUrl,
+        created_by: user.id,
+      };
+
+      const { error } = await (supabase.from as any)("question_bank").insert([row]);
       if (error) throw error;
 
-      // Update pdf_uploads count
-      if (uploadFile) {
-        await (supabase.from as any)("pdf_uploads")
-          .update({ questions_extracted: rows.length })
-          .eq("file_name", uploadFile.name)
-          .eq("user_id", user.id);
-      }
-
-      toast({ title: `${rows.length} questão(ões) salva(s) com sucesso!` });
-      setShowReview(false);
-      setExtractedQuestions([]);
-      setUploadFile(null);
-      setPageImages([]);
+      updateExtracted(index, "saved", true);
+      updateExtracted(index, "saving", false);
+      toast({ title: `Questão ${index + 1} salva com sucesso!` });
       fetchQuestions();
     } catch (e: any) {
+      updateExtracted(index, "saving", false);
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
     }
+  };
+
+  // ─── Save all selected (batch) ───
+  const handleSaveExtracted = async () => {
+    const unsaved = extractedQuestions
+      .map((q, i) => ({ q, i }))
+      .filter(({ q }) => q.selected && !q.saved && q.text.trim());
+    if (unsaved.length === 0) {
+      toast({ title: "Nenhuma questão para salvar", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    for (const { i } of unsaved) {
+      await handleSaveOne(i);
+    }
+    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
