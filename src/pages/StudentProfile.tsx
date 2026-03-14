@@ -16,6 +16,7 @@ const MAX_NOTES_LENGTH = 1000;
 
 export default function StudentProfile() {
   const { id: classId, alunoId } = useParams<{ id: string; alunoId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
 
