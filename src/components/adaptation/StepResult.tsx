@@ -141,7 +141,9 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
 
   const handleEditSave = (field: keyof AdaptationResult, content: string, images: string[]) => {
     if (data.result) {
-      updateData({ result: { ...data.result, [field]: content } });
+      // Strip HTML tags to store clean text version, but keep images tracked
+      const plainText = content.replace(/<img[^>]*>/g, "").replace(/<[^>]+>/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      updateData({ result: { ...data.result, [field]: plainText } });
     }
     setSectionImages((prev) => ({ ...prev, [field]: images }));
   };
