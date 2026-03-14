@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon } from "lucide-react";
+import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +53,7 @@ export default function MyAdaptations() {
   const [filterType, setFilterType] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Legacy adaptations (old flow)
   const { data: legacyAdaptations = [] } = useQuery({
@@ -420,7 +421,8 @@ export default function MyAdaptations() {
                   }}>
                     <Copy className="w-4 h-4 mr-1" /> Copiar
                   </Button>
-                  <Button variant="outline" size="sm" onClick={async () => {
+                  <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
+                    setExportingPdf(true);
                     const savedImages: string[] = Array.isArray(result?.question_images)
                       ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
                       : [];
@@ -440,8 +442,10 @@ export default function MyAdaptations() {
                     } catch {
                       toast.error("Erro ao gerar PDF");
                     }
+                    setExportingPdf(false);
                   }}>
-                    <Printer className="w-4 h-4 mr-1" /> Exportar PDF
+                    {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
+                    {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
                   </Button>
                 </div>
               </div>
