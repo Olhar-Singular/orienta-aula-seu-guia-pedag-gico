@@ -424,6 +424,13 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImagePreviewDialog
+        open={!!previewImageUrl}
+        onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+        imageUrl={previewImageUrl}
+        title="Prévia da imagem da questão"
+      />
     </div>
   );
 }
