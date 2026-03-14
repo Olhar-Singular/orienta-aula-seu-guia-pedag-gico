@@ -104,12 +104,17 @@ export default function BarrierSimulator() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="border-border">
             <CardContent className="p-5 space-y-4">
+              <label htmlFor="activity-input" className="text-sm font-medium text-foreground block mb-2">
+                Texto da atividade
+              </label>
               <Textarea
+                id="activity-input"
                 placeholder="Cole aqui o texto da atividade que deseja analisar..."
                 className="min-h-[140px] resize-y"
                 value={activityText}
                 onChange={(e) => setActivityText(e.target.value)}
                 data-testid="activity-input"
+                aria-describedby="activity-char-count"
               />
               <div className="flex items-center gap-3">
                 <Button onClick={analyze} disabled={loading || activityText.trim().length < 10} className="gap-2">
