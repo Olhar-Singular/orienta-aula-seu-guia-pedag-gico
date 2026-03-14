@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Plus, ArrowLeft, Upload, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { parseCsv } from "@/lib/csvParser";
 
 export default function ClassDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -62,6 +63,7 @@ export default function ClassDetail() {
       setAddOpen(false);
       setStudentName("");
       setStudentCode("");
+      navigate("/dashboard/turmas");
     },
     onError: () => toast.error("Erro ao adicionar aluno."),
   });
