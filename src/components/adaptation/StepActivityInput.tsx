@@ -19,7 +19,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
-import { Type, Database, FileUp, Crop, Search, Check, Eye, Loader2 } from "lucide-react";
+import { Type, Database, FileUp, Crop, Search, Check, Loader2 } from "lucide-react";
 
 type Props = {
   value: string;
