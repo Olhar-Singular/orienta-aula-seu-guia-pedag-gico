@@ -982,6 +982,12 @@ export default function QuestionBank() {
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
+      <ImagePreviewDialog
+        open={!!previewImageUrl}
+        onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+        imageUrl={previewImageUrl}
+        title="Prévia da imagem da questão"
+      />
     </Layout>
   );
 }
