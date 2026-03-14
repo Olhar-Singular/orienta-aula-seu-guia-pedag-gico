@@ -78,6 +78,7 @@ export default function AdaptationWizard() {
   const [data, setData] = useState<WizardData>({
     activityType: null,
     activityText: "",
+    selectedQuestions: [],
     classId: null,
     studentId: null,
     studentName: null,
@@ -88,7 +89,6 @@ export default function AdaptationWizard() {
 
   const updateData = (partial: Partial<WizardData>) =>
     setData((prev) => ({ ...prev, ...partial }));
-
   const next = useCallback(() => {
     setDirection(1);
     setStep((s) => {
