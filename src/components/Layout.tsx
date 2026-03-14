@@ -11,6 +11,7 @@ const navItems = [
   { path: "/create", label: "Criar Adaptação", icon: PenTool },
   { path: "/my-adaptations", label: "Minhas Adaptações", icon: FolderOpen },
   { path: "/dashboard/turmas", label: "Turmas", icon: Users },
+  { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
   { path: "/pricing", label: "Planos", icon: CreditCard },
   { path: "/profile", label: "Perfil", icon: User },
