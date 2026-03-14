@@ -745,7 +745,7 @@ export default function QuestionBank() {
 
   // ─── MAIN VIEW ───
   return (
-    <Layout>
+    <>
       <div className="space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Banco de Questões</h1>
 
