@@ -248,6 +248,15 @@ export default function QuestionBank() {
       // Upload original to storage
       const safeName = uploadFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
       const filePath = `${user.id}/${Date.now()}_${safeName}`;
+
+      // Check for duplicate exam name
+      const existingExam = pdfUploads.find((u) => u.file_name === uploadFile.name);
+      if (existingExam) {
+        toast({ title: "Prova já enviada", description: `O arquivo "${uploadFile.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
+        setExtracting(false);
+        return;
+      }
+
       await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
 
       // Register in pdf_uploads
@@ -344,6 +353,15 @@ export default function QuestionBank() {
     if (!user) return;
     const q = extractedQuestions[index];
     if (!q || !q.text.trim()) return;
+
+    // Check for duplicate text in DB
+    const normText = normalizeTextForDedup(q.text);
+    const isDup = questions.some((existing) => normalizeTextForDedup(existing.text) === normText);
+    if (isDup) {
+      toast({ title: "Questão duplicada", description: "Já existe uma questão com o mesmo enunciado no banco.", variant: "destructive" });
+      updateExtracted(index, "isDuplicate", true);
+      return;
+    }
 
     updateExtracted(index, "saving", true);
     try {
@@ -500,7 +518,7 @@ export default function QuestionBank() {
 
           <div className="space-y-4">
             {extractedQuestions.map((q, i) => (
-              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10 opacity-75" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved ? "opacity-50" : ""}`}>
+              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved ? "opacity-50" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
@@ -525,6 +543,15 @@ export default function QuestionBank() {
                           >
                             {q.saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
                             Salvar
+                          </Button>
+                        )}
+                        {q.saved && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateExtracted(i, "saved", false)}
+                          >
+                            <Pencil className="w-3 h-3 mr-1" /> Editar
                           </Button>
                         )}
                       </div>
