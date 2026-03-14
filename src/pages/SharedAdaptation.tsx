@@ -28,21 +28,14 @@ export default function SharedAdaptation() {
   useEffect(() => {
     if (!token) return;
     (async () => {
-      // Fetch shared record
-      const { data: shared, error: sErr } = await supabase
-        .from("shared_adaptations")
-        .select("expires_at, adaptation_id")
-        .eq("token", token)
-        .maybeSingle();
+      // Fetch shared record via secure RPC (SECURITY DEFINER)
+      const { data: rows, error: sErr } = await supabase
+        .rpc("get_shared_adaptation", { p_token: token });
+
+      const shared = Array.isArray(rows) ? rows[0] : rows;
 
       if (sErr || !shared) {
-        setError("Link não encontrado.");
-        setLoading(false);
-        return;
-      }
-
-      if (new Date(shared.expires_at) < new Date()) {
-        setError("Este link expirou.");
+        setError("Link não encontrado ou expirado.");
         setLoading(false);
         return;
       }
