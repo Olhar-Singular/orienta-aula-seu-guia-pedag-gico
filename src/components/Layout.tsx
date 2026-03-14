@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
