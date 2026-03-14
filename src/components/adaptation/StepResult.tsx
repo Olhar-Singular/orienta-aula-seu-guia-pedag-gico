@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { WizardData, AdaptationResult } from "./AdaptationWizard";
 import { Loader2, RefreshCw, Pencil, Check, Lightbulb, BookOpen, Target, ClipboardList } from "lucide-react";
+import AdaptedContentRenderer from "./AdaptedContentRenderer";
 
 type Props = {
   data: WizardData;
