@@ -907,7 +907,9 @@ export default function QuestionBank() {
 
             {/* Question list */}
             {loading ? (
-              <p className="text-muted-foreground">Carregando...</p>
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
             ) : filteredQuestions.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center text-muted-foreground">
