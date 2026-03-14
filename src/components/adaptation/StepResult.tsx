@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,10 +21,61 @@ type Props = {
 
 type SectionImages = Record<string, string[]>;
 
+const VISUAL_CUE_REGEX = /\b(figura|imagem|gráfico|grafico|diagrama|esquema|mapa|ilustração|ilustracao|tabela)\b/i;
+
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
   const [loading, setLoading] = useState(!data.result);
+  const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [sectionImages, setSectionImages] = useState<SectionImages>({});
   const [editingField, setEditingField] = useState<{ field: keyof AdaptationResult; title: string } | null>(null);
+
+  const generateImagesForResult = async (accessToken?: string) => {
+    const existingImages = data.selectedQuestions
+      .map((q) => q.image_url)
+      .filter((url): url is string => !!url);
+
+    const candidatesFromSelected = data.selectedQuestions
+      .filter((q) => !q.image_url && VISUAL_CUE_REGEX.test(q.text))
+      .slice(0, 2)
+      .map((q) => ({ prompt: q.text, context: `${q.subject}${q.topic ? ` • ${q.topic}` : ""}` }));
+
+    const fallbackCandidate = candidatesFromSelected.length === 0 && existingImages.length === 0 && VISUAL_CUE_REGEX.test(data.activityText)
+      ? [{ prompt: data.activityText.slice(0, 800), context: data.activityType || "atividade" }]
+      : [];
+
+    const candidates = [...candidatesFromSelected, ...fallbackCandidate];
+    if (!accessToken || candidates.length === 0) {
+      return Array.from(new Set(existingImages));
+    }
+
+    setIsGeneratingImages(true);
+    const generated = await Promise.all(
+      candidates.map(async (candidate) => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-question-image`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              prompt: `Crie uma imagem pedagógica para esta questão: ${candidate.prompt}`,
+              context: candidate.context,
+            }),
+          });
+
+          if (!response.ok) return null;
+          const payload = await response.json();
+          return typeof payload.image_url === "string" ? payload.image_url : null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    setIsGeneratingImages(false);
+
+    return Array.from(new Set([...existingImages, ...generated.filter((u): u is string => !!u)]));
+  };
 
   const generate = async () => {
     setLoading(true);
@@ -34,12 +85,14 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
         .map((b) => ({ dimension: b.dimension, barrier_key: b.label, notes: b.notes }));
 
       const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adapt-activity`,
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
+            Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -62,17 +115,29 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
 
       const result = await resp.json();
       updateData({ result: result.adaptation });
+
+      const mergedImages = await generateImagesForResult(accessToken);
+      setSectionImages((prev) => ({
+        ...prev,
+        version_universal: mergedImages,
+        version_directed: mergedImages,
+      }));
+
+      if (mergedImages.length > 0) {
+        toast({ title: `${mergedImages.length} imagem(ns) vinculada(s) à adaptação` });
+      }
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
       setLoading(false);
+      setIsGeneratingImages(false);
     }
   };
 
-  // Auto-generate on mount if no result
-  useState(() => {
+  useEffect(() => {
     if (!data.result) generate();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleEditSave = (field: keyof AdaptationResult, content: string, images: string[]) => {
     if (data.result) {
@@ -85,7 +150,9 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">ISA está adaptando a atividade...</p>
+        <p className="text-muted-foreground">
+          {isGeneratingImages ? "ISA está gerando as imagens da atividade..." : "ISA está adaptando a atividade..."}
+        </p>
         <p className="text-xs text-muted-foreground">Isso pode levar alguns segundos</p>
       </div>
     );
