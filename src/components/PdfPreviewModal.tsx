@@ -213,7 +213,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
             <div className="overflow-auto max-h-[60vh] w-full flex justify-center">
               <div
                 ref={imgWrapperRef}
-                className={`relative inline-block ${cropping ? "cursor-crosshair select-none" : ""}`}
+                className={`relative inline-block align-top ${cropping ? "cursor-crosshair select-none" : ""}`}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -223,17 +223,17 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
                   ref={imgRef}
                   src={pageImage}
                   alt={`Página ${currentPage}`}
-                  className="max-w-full border rounded shadow-sm"
+                  className="block max-w-full rounded shadow-sm"
                   draggable={false}
                 />
                 {/* Crop overlays */}
                 {cropping && cropRect && (
                   <>
-                    <div className="absolute left-0 right-0 top-0 bg-black/50 pointer-events-none" style={{ height: `${cropRect.y * 100}%` }} />
-                    <div className="absolute left-0 right-0 bottom-0 bg-black/50 pointer-events-none" style={{ height: `${(1 - cropRect.y - cropRect.height) * 100}%` }} />
-                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${cropRect.x * 100}%`, height: `${cropRect.height * 100}%` }} />
-                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y * 100}%`, width: `${(1 - cropRect.x - cropRect.width) * 100}%`, height: `${cropRect.height * 100}%` }} />
-                    <div className="absolute border-2 border-primary pointer-events-none" style={{ left: `${cropRect.x * 100}%`, top: `${cropRect.y * 100}%`, width: `${cropRect.width * 100}%`, height: `${cropRect.height * 100}%` }}>
+                    <div className="absolute left-0 top-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${cropRect.y}px` }} />
+                    <div className="absolute left-0 bottom-0 bg-black/50 pointer-events-none" style={{ width: "100%", height: `${cropRect.displayHeight - cropRect.y - cropRect.height}px` }} />
+                    <div className="absolute left-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${cropRect.x}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute right-0 bg-black/50 pointer-events-none" style={{ top: `${cropRect.y}px`, width: `${cropRect.displayWidth - cropRect.x - cropRect.width}px`, height: `${cropRect.height}px` }} />
+                    <div className="absolute border-2 border-primary pointer-events-none" style={{ left: `${cropRect.x}px`, top: `${cropRect.y}px`, width: `${cropRect.width}px`, height: `${cropRect.height}px` }}>
                       {[{ top: -4, left: -4 }, { top: -4, right: -4 }, { bottom: -4, left: -4 }, { bottom: -4, right: -4 }].map((pos, i) => (
                         <div key={i} className="absolute w-2 h-2 bg-primary rounded-full" style={pos as any} />
                       ))}
