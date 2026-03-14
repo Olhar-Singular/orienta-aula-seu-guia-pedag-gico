@@ -22,36 +22,26 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
 
   // Strip ALL ** markers — the AI should not be using bold markdown
   const cleaned = text.replace(/\*\*/g, "");
-  const boldParts = [cleaned]; // No bold splitting needed anymore
-  for (let i = 0; i < boldParts.length; i++) {
-    if (i % 2 === 1) {
-      nodes.push(
-        <strong key={key++} className="font-semibold text-foreground">
-          {boldParts[i]}
-        </strong>
-      );
-    } else {
-      const part = boldParts[i];
-      let lastIndex = 0;
-      const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
-      let match;
-      while ((match = formulaRegex.exec(part)) !== null) {
-        const before = part.slice(lastIndex, match.index);
-        if (before) nodes.push(<span key={key++}>{before}</span>);
-        nodes.push(
-          <code
-            key={key++}
-            className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
-          >
-            {match[1] || match[0].trim()}
-          </code>
-        );
-        lastIndex = match.index + match[0].length;
-      }
-      const tail = part.slice(lastIndex);
-      if (tail) nodes.push(<span key={key++}>{tail}</span>);
-    }
+
+  // Parse formulas
+  let lastIndex = 0;
+  const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
+  let match;
+  while ((match = formulaRegex.exec(cleaned)) !== null) {
+    const before = cleaned.slice(lastIndex, match.index);
+    if (before) nodes.push(<span key={key++}>{before}</span>);
+    nodes.push(
+      <code
+        key={key++}
+        className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
+      >
+        {match[1] || match[0].trim()}
+      </code>
+    );
+    lastIndex = match.index + match[0].length;
   }
+  const tail = cleaned.slice(lastIndex);
+  if (tail) nodes.push(<span key={key++}>{tail}</span>);
 
   return nodes;
 }
