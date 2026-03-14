@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Type, Database, FileUp, Crop, Search, Check } from "lucide-react";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import { Type, Database, FileUp, Crop, Search, Check, Eye, Loader2 } from "lucide-react";
 
 type Props = {
   value: string;
@@ -36,6 +36,7 @@ type BankQuestion = {
   subject: string;
   topic: string | null;
   difficulty: string | null;
+  image_url: string | null;
   options: any;
 };
 
@@ -59,6 +60,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // File extraction state
   const [fileExtracting, setFileExtracting] = useState(false);
@@ -73,7 +75,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     let query = (supabase.from as any)("question_bank")
-      .select("id, text, subject, topic, difficulty, options")
+      .select("id, text, subject, topic, difficulty, image_url, options")
       .order("created_at", { ascending: false })
       .limit(50);
     if (bankSearch.trim()) {
@@ -354,7 +356,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
             ) : bankQuestions.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Nenhuma questão encontrada.</p>
             ) : (
-              <div className="space-y-2 flex-1 overflow-y-auto pr-1">
+              <div className="space-y-2 flex-1 overflow-y-auto px-1 py-1">
                 {bankQuestions.map((q) => {
                   const isSelected = selectedQuestions.has(q.id);
                   return (
@@ -362,7 +364,7 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       key={q.id}
                       onClick={() => toggleQuestion(q.id)}
                       className={`border rounded-lg p-3 cursor-pointer transition-all flex items-start gap-3 ${
-                        isSelected ? "ring-2 ring-primary bg-primary/5" : "hover:bg-accent/50"
+                        isSelected ? "border-primary bg-primary/5 shadow-sm" : "hover:bg-accent/50"
                       }`}
                     >
                       <div
@@ -372,8 +374,30 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
                       >
                         {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 space-y-2">
                         <p className="text-sm line-clamp-2">{q.text}</p>
+
+                        {q.image_url && (
+                          <div className="space-y-1">
+                            <img
+                              src={q.image_url}
+                              alt="Imagem da questão"
+                              className="max-h-24 rounded border"
+                              loading="lazy"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewImageUrl(q.image_url);
+                              }}
+                            >
+                              <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
+                            </Button>
+                          </div>
+                        )}
+
                         <div className="flex gap-2 mt-1.5">
                           <Badge variant="secondary" className="text-xs">{q.subject}</Badge>
                           {q.topic && <Badge variant="outline" className="text-xs">{q.topic}</Badge>}
@@ -400,6 +424,13 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
           </div>
         </DialogContent>
       </Dialog>
+
+      <ImagePreviewDialog
+        open={!!previewImageUrl}
+        onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+        imageUrl={previewImageUrl}
+        title="Prévia da imagem da questão"
+      />
     </div>
   );
 }

@@ -43,6 +43,7 @@ import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText } from "@/lib/docx-utils";
@@ -141,6 +142,7 @@ export default function QuestionBank() {
   const [showReview, setShowReview] = useState(false);
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -587,18 +589,23 @@ export default function QuestionBank() {
                       {q.imageUrl ? (
                         <div className="relative inline-block">
                           <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
-                          {!q.saved && !q.isDuplicate && (
-                            <div className="flex gap-1 mt-1">
-                              <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
-                                <X className="w-3 h-3 mr-1" /> Remover imagem
-                              </Button>
-                              {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                                <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
-                                  <Crop className="w-3 h-3 mr-1" /> Trocar recorte
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.imageUrl || null)}>
+                              <Eye className="w-3 h-3 mr-1" /> Prévia
+                            </Button>
+                            {!q.saved && !q.isDuplicate && (
+                              <>
+                                <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
+                                  <X className="w-3 h-3 mr-1" /> Remover imagem
                                 </Button>
-                              )}
-                            </div>
-                          )}
+                                {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                                  <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
+                                    <Crop className="w-3 h-3 mr-1" /> Trocar recorte
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       ) : !q.saved && !q.isDuplicate && (
                         <div className="flex gap-1">
@@ -925,7 +932,12 @@ export default function QuestionBank() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground line-clamp-3">{q.text}</p>
                           {q.image_url && (
-                            <img src={q.image_url} alt="Imagem da questão" className="mt-2 max-h-32 rounded border" loading="lazy" />
+                            <div className="mt-2 space-y-1">
+                              <img src={q.image_url} alt="Imagem da questão" className="max-h-32 rounded border" loading="lazy" />
+                              <Button size="sm" variant="outline" onClick={() => setPreviewImageUrl(q.image_url)}>
+                                <Eye className="w-3 h-3 mr-1" /> Prévia da imagem
+                              </Button>
+                            </div>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge variant="secondary">{q.subject}</Badge>
@@ -970,6 +982,12 @@ export default function QuestionBank() {
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
+      <ImagePreviewDialog
+        open={!!previewImageUrl}
+        onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+        imageUrl={previewImageUrl}
+        title="Prévia da imagem da questão"
+      />
     </Layout>
   );
 }
