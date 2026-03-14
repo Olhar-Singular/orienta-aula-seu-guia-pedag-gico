@@ -296,10 +296,18 @@ export default function AdaptationEditModal({
   };
 
   const getRelativeCoords = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    const img = cropImgRef.current;
+    if (!img) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+        y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+      };
+    }
+    const imgRect = img.getBoundingClientRect();
     return {
-      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+      x: Math.max(0, Math.min(1, (e.clientX - imgRect.left) / imgRect.width)),
+      y: Math.max(0, Math.min(1, (e.clientY - imgRect.top) / imgRect.height)),
     };
   };
 
