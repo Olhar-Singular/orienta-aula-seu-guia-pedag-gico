@@ -152,6 +152,7 @@ serve(async (req) => {
       barriers,
       student_id,
       class_id,
+      question_images,
     } = body;
 
     if (!original_activity || typeof original_activity !== "string" || !original_activity.trim()) {
