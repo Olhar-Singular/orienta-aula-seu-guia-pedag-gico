@@ -20,7 +20,7 @@ import ClassDetail from "./pages/ClassDetail";
 import StudentProfile from "./pages/StudentProfile";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
-import Pricing from "./pages/Pricing";
+
 import QuestionBank from "./pages/QuestionBank";
 import AdaptWizard from "./pages/AdaptWizard";
 import AdaptationHistory from "./pages/AdaptationHistory";
@@ -67,7 +67,7 @@ const App = () => (
                 <Route path="/dashboard/simulador" element={<ErrorBoundary><BarrierSimulator /></ErrorBoundary>} />
                 <Route path="/chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
                 <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
-                <Route path="/pricing" element={<ErrorBoundary><Pricing /></ErrorBoundary>} />
+                
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />

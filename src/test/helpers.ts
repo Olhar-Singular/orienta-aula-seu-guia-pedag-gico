@@ -24,14 +24,11 @@ export function mockAuthHook(overrides = {}) {
 }
 
 /**
- * Creates a standard mock for @/hooks/useSubscription
+ * Creates a standard mock for @/hooks/useSubscription (no-op, credits removed)
  */
 export function mockSubscriptionHook(overrides = {}) {
   return {
     useSubscription: () => ({
-      creditsRemaining: 10,
-      monthlyCredits: 20,
-      planName: "pro",
       loading: false,
       ...overrides,
     }),

@@ -1,11 +1,11 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users, BookOpen, Wand2, History, Settings, ScanSearch } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, Users, BookOpen, Wand2, History, Settings, ScanSearch } from "lucide-react";
 import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import logoImg from "@/assets/logo-orienta-aula-eye.png";
-import CreditsBadge from "@/components/CreditsBadge";
+
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -16,7 +16,7 @@ const navItems = [
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
   { path: "/dashboard/simulador", label: "Simulador", icon: ScanSearch },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
-  { path: "/pricing", label: "Planos", icon: CreditCard },
+  
   { path: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   { path: "/profile", label: "Perfil", icon: User },
 ];
@@ -84,9 +84,6 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           >
             <LogOut className="w-5 h-5" aria-hidden="true" /> Sair
           </button>
-        </div>
-        <div className="px-5 mb-3">
-          <CreditsBadge showProgress />
         </div>
         <div className="p-4 mx-3 mb-4 rounded-lg bg-sidebar-accent/30 text-xs text-primary-foreground/60 leading-relaxed" role="note">
           Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.

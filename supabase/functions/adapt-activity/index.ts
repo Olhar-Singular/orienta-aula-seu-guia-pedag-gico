@@ -256,12 +256,6 @@ Adapte esta atividade considerando as barreiras listadas. Lembre-se: foque em re
       // Don't fail the request — still return the adaptation
     }
 
-    // Register credit usage
-    await admin.from("credit_usage").insert({
-      user_id: user.id,
-      action: "adapt_activity",
-      credits_used: 1,
-    });
 
     return new Response(
       JSON.stringify({
