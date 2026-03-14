@@ -322,50 +322,95 @@ export default function MyAdaptations() {
                   </div>
                 )}
 
-                {result && (
-                  <>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                        <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
-                      </h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">
-                        {result.version_universal}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                        <Target className="w-4 h-4 text-primary" /> Versão Direcionada
-                      </h4>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">
-                        {result.version_directed}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground mb-1">Justificativa Pedagógica</h4>
-                      <p className="text-sm text-muted-foreground">{result.pedagogical_justification}</p>
-                    </div>
-                    {result.strategies_applied && (
+                {result && (() => {
+                  // Extract saved images from adaptation_result
+                  const savedImages: string[] = Array.isArray(result.question_images)
+                    ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
+                    : [];
+
+                  // Build a simple question image map: assign all images to the last question
+                  const buildImageMap = (content: string) => {
+                    if (savedImages.length === 0) return {};
+                    const questions = parseAdaptedQuestions(content || "");
+                    if (questions.length === 0) return {};
+                    const lastQ = questions[questions.length - 1];
+                    return { [lastQ.number]: savedImages };
+                  };
+
+                  const universalImageMap = buildImageMap(result.version_universal);
+                  const directedImageMap = buildImageMap(result.version_directed);
+
+                  return (
+                    <>
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground mb-1">Estratégias</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {(result.strategies_applied as string[]).map((s: string, i: number) => (
-                            <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>
-                          ))}
+                        <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                          <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                        </h4>
+                        <div className="bg-secondary/50 rounded-lg p-3">
+                          <AdaptedContentRenderer
+                            content={result.version_universal || ""}
+                            questionImages={universalImageMap}
+                          />
                         </div>
                       </div>
-                    )}
-                    {result.implementation_tips && (
                       <div>
-                        <h4 className="text-sm font-semibold text-foreground mb-1">Dicas de Implementação</h4>
-                        <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                          {(result.implementation_tips as string[]).map((tip: string, i: number) => (
-                            <li key={i}>{tip}</li>
-                          ))}
-                        </ul>
+                        <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                          <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                        </h4>
+                        <div className="bg-secondary/50 rounded-lg p-3">
+                          <AdaptedContentRenderer
+                            content={result.version_directed || ""}
+                            questionImages={directedImageMap}
+                          />
+                        </div>
                       </div>
-                    )}
-                  </>
-                )}
+
+                      {savedImages.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                            <ImageIcon className="w-4 h-4 text-primary" /> Imagens da Atividade
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {savedImages.map((url: string, i: number) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt={`Imagem ${i + 1}`}
+                                className="max-h-40 rounded-lg border border-border object-contain"
+                                crossOrigin="anonymous"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground mb-1">Justificativa Pedagógica</h4>
+                        <p className="text-sm text-muted-foreground">{result.pedagogical_justification}</p>
+                      </div>
+                      {result.strategies_applied && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground mb-1">Estratégias</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {(result.strategies_applied as string[]).map((s: string, i: number) => (
+                              <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {result.implementation_tips && (
+                        <div>
+                          <h4 className="text-sm font-semibold text-foreground mb-1">Dicas de Implementação</h4>
+                          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                            {(result.implementation_tips as string[]).map((tip: string, i: number) => (
+                              <li key={i}>{tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
 
                 <div className="flex flex-wrap gap-2 pt-4 border-t">
                   <Button variant="outline" size="sm" onClick={() => {
@@ -375,15 +420,28 @@ export default function MyAdaptations() {
                   }}>
                     <Copy className="w-4 h-4 mr-1" /> Copiar
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    const w = window.open("", "_blank");
-                    if (w) {
-                      w.document.write(`<html><head><title>Adaptação</title><style>body{font-family:sans-serif;padding:2rem;line-height:1.6}h2{font-size:1rem;margin-top:1.5rem}pre{white-space:pre-wrap}</style></head><body><h1>Adaptação — ${ACTIVITY_TYPES[viewItem.raw.activity_type || ""] || "Atividade"}</h1>${viewItem.student_name ? `<p>Aluno: ${viewItem.student_name}</p>` : ""}<h2>Versão Universal</h2><pre>${result?.version_universal || ""}</pre><h2>Versão Direcionada</h2><pre>${result?.version_directed || ""}</pre><h2>Justificativa</h2><pre>${result?.pedagogical_justification || ""}</pre></body></html>`);
-                      w.document.close();
-                      w.print();
+                  <Button variant="outline" size="sm" onClick={async () => {
+                    const savedImages: string[] = Array.isArray(result?.question_images)
+                      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
+                      : [];
+                    try {
+                      await exportToPdf({
+                        studentName: viewItem.student_name || undefined,
+                        activityType: viewItem.raw.activity_type || undefined,
+                        date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
+                        versionUniversal: result?.version_universal || "",
+                        versionDirected: result?.version_directed || "",
+                        strategiesApplied: result?.strategies_applied || [],
+                        pedagogicalJustification: result?.pedagogical_justification || "",
+                        implementationTips: result?.implementation_tips || [],
+                        images: savedImages,
+                      });
+                      toast.success("PDF exportado!");
+                    } catch {
+                      toast.error("Erro ao gerar PDF");
                     }
                   }}>
-                    <Printer className="w-4 h-4 mr-1" /> Imprimir
+                    <Printer className="w-4 h-4 mr-1" /> Exportar PDF
                   </Button>
                 </div>
               </div>
