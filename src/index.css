@@ -155,9 +155,19 @@
   outline: none;
 }
 
-.tiptap img {
+.tiptap img.editor-image {
   display: block;
   max-width: 100%;
   height: auto;
   margin: 0.5rem auto;
+  cursor: pointer;
+  position: relative;
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.tiptap img.editor-image.ProseMirror-selectednode {
+  border-color: hsl(var(--primary));
+  outline: 2px solid hsl(var(--primary) / 0.3);
 }

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -21,6 +21,7 @@ import {
   Undo,
   Redo,
   RemoveFormatting,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -61,6 +62,7 @@ function ToolbarButton({
 }
 
 export default function RichTextEditor({ content, onChange, placeholder }: Props) {
+  const [, setTick] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
@@ -70,7 +72,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
       }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Image.configure({ inline: false, allowBase64: true }),
+      Image.configure({ inline: false, allowBase64: true, HTMLAttributes: { class: "editor-image" } }),
       Placeholder.configure({
         placeholder: placeholder || "Digite aqui...",
       }),
@@ -78,6 +80,9 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    onSelectionUpdate: () => {
+      setTick((t) => t + 1);
     },
     editorProps: {
       attributes: {
@@ -239,6 +244,15 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
         <ToolbarButton onClick={() => fileRef.current?.click()} title="Inserir imagem">
           <ImagePlus className="w-4 h-4" />
         </ToolbarButton>
+
+        {editor.isActive("image") && (
+          <ToolbarButton
+            onClick={() => editor.chain().focus().deleteSelection().run()}
+            title="Remover imagem selecionada"
+          >
+            <Trash2 className="w-4 h-4 text-destructive" />
+          </ToolbarButton>
+        )}
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
