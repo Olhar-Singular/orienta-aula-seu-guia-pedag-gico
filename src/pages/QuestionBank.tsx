@@ -545,6 +545,15 @@ export default function QuestionBank() {
                             Salvar
                           </Button>
                         )}
+                        {q.saved && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateExtracted(i, "saved", false)}
+                          >
+                            <Pencil className="w-3 h-3 mr-1" /> Editar
+                          </Button>
+                        )}
                       </div>
 
                       {/* Enunciado */}
