@@ -1,12 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Parses AI-generated adapted content and renders it with rich formatting:
- * - Numbered questions (**1., *1., 1.) become styled question blocks
- * - Alternatives (a), b), c), d)) render as a clean grid
- * - Formulas (v = λ * f, T = 1/f, etc.) get highlighted
- * - Bold markers (**text**) render as bold
- * - Section headers get proper styling
+ * Parses AI-generated adapted content and renders it with rich formatting.
+ * Pre-processes inline content to ensure proper line breaks before parsing.
  */
 
 type Props = {
@@ -22,21 +18,17 @@ const BOLD_REGEX = /\*\*(.+?)\*\*/g;
 
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
-  let remaining = text;
   let key = 0;
 
-  // First pass: split by bold markers
-  const boldParts = remaining.split(BOLD_REGEX);
+  const boldParts = text.split(BOLD_REGEX);
   for (let i = 0; i < boldParts.length; i++) {
     if (i % 2 === 1) {
-      // Bold content
       nodes.push(
         <strong key={key++} className="font-semibold text-foreground">
           {boldParts[i]}
         </strong>
       );
     } else {
-      // Normal text — highlight formulas
       const part = boldParts[i];
       let lastIndex = 0;
       const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
@@ -47,7 +39,7 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
         nodes.push(
           <code
             key={key++}
-            className="inline-block bg-primary/10 text-primary font-mono text-[0.9em] px-1.5 py-0.5 rounded-md mx-0.5"
+            className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
           >
             {match[1] || match[0].trim()}
           </code>
@@ -68,6 +60,8 @@ const ALT_LINE_REGEX = /^([a-eA-E])\)\s*(.+)/;
 const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*(.+)/;
 // Detect section-like headers (all caps or ending with :)
 const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
+// Detect markdown headers ## ...
+const MD_HEADER_REGEX = /^#{1,3}\s+(.+)/;
 
 type Block =
   | { type: "paragraph"; lines: string[] }
@@ -75,8 +69,30 @@ type Block =
   | { type: "alternatives"; items: { letter: string; text: string }[] }
   | { type: "header"; text: string };
 
+/**
+ * Pre-process content to insert line breaks before numbered questions and alternatives
+ * that are inline (not already on their own line).
+ * This handles AI output like: "1. Question a) alt b) alt 2. Question..."
+ */
+function preProcessContent(content: string): string {
+  let processed = content;
+
+  // Insert newline before numbered questions that appear mid-text (e.g., "... text 1. Question")
+  // But not at the start of a line
+  processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
+
+  // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
+  processed = processed.replace(/([^\n])(\s+)([a-eA-E]\)\s)/g, "$1\n$3");
+
+  // Convert markdown headers to our format
+  processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
+
+  return processed;
+}
+
 function parseBlocks(content: string): Block[] {
-  const lines = content.split("\n");
+  const processed = preProcessContent(content);
+  const lines = processed.split("\n");
   const blocks: Block[] = [];
   let currentParagraph: string[] = [];
   let currentAlts: { letter: string; text: string }[] = [];
@@ -98,13 +114,22 @@ function parseBlocks(content: string): Block[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (!trimmed) {
+    if (!trimmed || trimmed === "---") {
       flushAlts();
       flushParagraph();
       continue;
     }
 
-    // Check for header
+    // Check for markdown header
+    const mdMatch = trimmed.match(MD_HEADER_REGEX);
+    if (mdMatch) {
+      flushAlts();
+      flushParagraph();
+      blocks.push({ type: "header", text: mdMatch[1].replace(/:$/, "") });
+      continue;
+    }
+
+    // Check for all-caps header
     const headerMatch = trimmed.match(HEADER_REGEX);
     if (headerMatch) {
       flushAlts();
@@ -145,14 +170,14 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
   const blocks = parseBlocks(content);
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-4", className)}>
       {blocks.map((block, i) => {
         switch (block.type) {
           case "header":
             return (
               <h4
                 key={i}
-                className="text-sm font-bold uppercase tracking-wide text-primary border-b border-primary/20 pb-1"
+                className="text-sm font-bold uppercase tracking-wider text-primary border-b border-primary/20 pb-1.5 mt-2"
               >
                 {block.text}
               </h4>
@@ -162,12 +187,12 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
             return (
               <div
                 key={i}
-                className="flex gap-3 items-start bg-muted/50 rounded-lg p-3 border-l-4 border-primary/40"
+                className="flex gap-3 items-start bg-muted/40 rounded-xl p-4 border-l-4 border-primary/50 shadow-sm"
               >
-                <span className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold">
+                <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold shadow-sm">
                   {block.number}
                 </span>
-                <p className="text-sm text-foreground leading-relaxed flex-1">
+                <p className="text-sm text-foreground leading-relaxed flex-1 pt-1">
                   {parseInlineFormatting(block.text)}
                 </p>
               </div>
@@ -175,11 +200,11 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
 
           case "alternatives":
             return (
-              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4">
+              <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pl-6">
                 {block.items.map((alt, j) => (
                   <div
                     key={j}
-                    className="flex items-start gap-2 rounded-md border border-border/60 bg-background px-3 py-2"
+                    className="flex items-start gap-2.5 rounded-lg border border-border/50 bg-card px-3.5 py-2.5 transition-colors hover:bg-accent/30"
                   >
                     <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-xs font-bold uppercase">
                       {alt.letter}
@@ -194,7 +219,7 @@ export default function AdaptedContentRenderer({ content, className }: Props) {
 
           case "paragraph":
             return (
-              <p key={i} className="text-sm text-foreground leading-relaxed">
+              <p key={i} className="text-sm text-foreground/90 leading-relaxed">
                 {parseInlineFormatting(block.lines.join(" "))}
               </p>
             );
