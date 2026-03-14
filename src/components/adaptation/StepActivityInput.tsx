@@ -197,13 +197,17 @@ export default function StepActivityInput({ value, onChange, onNext, onPrev }: P
 
       {/* Tab Content */}
       {tab === "manual" && (
-        <Textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={10}
-          placeholder="Cole ou digite o texto da atividade aqui..."
-          className="font-mono text-sm"
-        />
+        <div>
+          <label htmlFor="activity-manual" className="sr-only">Texto da atividade</label>
+          <Textarea
+            id="activity-manual"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            rows={10}
+            placeholder="Cole ou digite o texto da atividade aqui..."
+            className="font-mono text-sm"
+          />
+        </div>
       )}
 
       {tab === "banco" && (
