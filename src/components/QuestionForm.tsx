@@ -187,7 +187,12 @@ export default function QuestionForm({
             <Label>Imagem (opcional)</Label>
             {imagePreview ? (
               <div className="mt-1">
-                <img src={imagePreview} alt="Imagem da questão" className="max-h-48 rounded border" />
+                <img
+                  src={imagePreview}
+                  alt="Imagem da questão"
+                  className="max-h-48 rounded border cursor-zoom-in hover:opacity-90 transition-opacity"
+                  onClick={() => setPreviewOpen(true)}
+                />
                 <div className="flex gap-1 mt-1">
                   <Button type="button" size="sm" variant="outline" onClick={() => { setImageUrl(null); setImagePreview(null); }}>
                     <X className="w-3 h-3 mr-1" /> Remover
