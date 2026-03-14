@@ -1,4 +1,4 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ const MAX_NOTES_LENGTH = 1000;
 
 export default function StudentProfile() {
   const { id: classId, alunoId } = useParams<{ id: string; alunoId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
 
@@ -98,7 +99,10 @@ export default function StudentProfile() {
         .eq("id", alunoId!);
       if (error) throw error;
     },
-    onSuccess: () => toast.success("Observações salvas!"),
+    onSuccess: () => {
+      toast.success("Observações salvas!");
+      navigate(`/dashboard/turmas/${classId}`);
+    },
     onError: () => toast.error("Erro ao salvar observações."),
   });
 
