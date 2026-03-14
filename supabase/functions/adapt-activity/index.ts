@@ -319,30 +319,45 @@ serve(async (req) => {
     // Build image context
     let imageContext = "";
     if (question_images && Array.isArray(question_images) && question_images.length > 0) {
-      imageContext = `\n\nIMAGENS DAS QUESTÕES:
-As seguintes questões possuem imagens associadas que são parte fundamental do enunciado.
-Ao adaptar, PRESERVE a referência às imagens e mencione-as nas instruções (ex: "observe a imagem", "analise o gráfico").
-${question_images.map((img: any) => `- Questão "${sanitize(img.question_text, 100)}": possui imagem ilustrativa`).join("\n")}`;
+      imageContext = `\n\nIMAGENS ASSOCIADAS ÀS QUESTÕES:
+As seguintes questões possuem imagens (gráficos, diagramas, figuras) que são PARTE INTEGRAL do enunciado.
+OBRIGATÓRIO ao adaptar:
+- PRESERVE todas as referências às imagens
+- Adicione instruções de leitura visual ("observe no gráfico...", "identifique na figura...")
+- Na versão direcionada, adicione legendas explicativas ou guias de interpretação da imagem
+${question_images.map((img: any) => `- Questão "${sanitize(img.question_text, 100)}": contém imagem pedagógica`).join("\n")}`;
     }
 
-    const userPrompt = `TIPO DE ATIVIDADE: ${sanitizedType}
+    const activityTypeLabel: Record<string, string> = {
+      prova: "PROVA (avaliação formal — manter rigor avaliativo, adaptar formato não conteúdo)",
+      exercicio: "EXERCÍCIO (prática — pode incluir scaffolding mais intenso e dicas)",
+      atividade_casa: "ATIVIDADE DE CASA (sem mediação do professor — instruções autoexplicativas)",
+      trabalho: "TRABALHO (produção — dividir em etapas, fornecer templates e rubricas)",
+    };
+
+    const typeDescription = activityTypeLabel[sanitizedType] || `${sanitizedType} (atividade pedagógica)`;
+
+    const userPrompt = `CONTEXTO DA ADAPTAÇÃO:
+Tipo: ${typeDescription}
 
 ATIVIDADE ORIGINAL:
 ${sanitizedActivity}
 
-BARREIRAS OBSERVÁVEIS DO ALUNO:
+BARREIRAS OBSERVÁVEIS IDENTIFICADAS PELO PROFESSOR:
 ${barriersDescription}
 ${studentContext}${imageContext}
 
-Adapte esta atividade considerando as barreiras listadas. Lembre-se:
-- Foque em remover barreiras pedagógicas, sem fazer diagnóstico clínico
-- Preserve os objetivos de aprendizagem originais
-- Se houver questões com imagens, mantenha referências às imagens e adapte as instruções para que o aluno consiga interpretar as imagens
-- OBRIGATÓRIO: cada questão em LINHA SEPARADA (1. , 2. etc)
-- OBRIGATÓRIO: cada alternativa em LINHA SEPARADA (a) , b) , c) , d) )
-- NUNCA coloque questões ou alternativas na mesma linha`;
+INSTRUÇÕES DE ADAPTAÇÃO:
+1. Analise cada questão e identifique seu nível cognitivo (Bloom)
+2. Para cada barreira listada, aplique as estratégias correspondentes do catálogo
+3. Na VERSÃO UNIVERSAL: aplique melhorias que beneficiem TODA a turma (DUA Princípios 1-3)
+4. Na VERSÃO DIRECIONADA: aplique scaffolding ESPECÍFICO para as barreiras indicadas, mais intenso
+5. PRESERVE o conteúdo conceitual e o nível cognitivo — adapte apenas o FORMATO e o ACESSO
+6. Se houver questões com imagens, adicione suporte para interpretação visual
+7. Cada questão em LINHA SEPARADA (1. , 2.) — cada alternativa em LINHA SEPARADA (a) , b) , c) , d))
+8. NUNCA use asteriscos, markdown ou LaTeX. Texto limpo com notação Unicode escolar.`;
 
-    // Call AI
+    // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-flash";
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
