@@ -495,21 +495,44 @@ export default function QuestionBank() {
                         />
                       </div>
 
-                      {/* Image */}
-                      {q.imageUrl && (
+                      {/* Image after enunciado */}
+                      {q.imageUrl ? (
                         <div className="relative inline-block">
                           <img src={q.imageUrl} alt="Figura da questão" className="max-h-48 rounded border" />
                           {!q.saved && (
-                            <Button
-                              size="icon"
-                              variant="destructive"
-                              className="absolute top-1 right-1 w-6 h-6"
-                              onClick={() => updateExtracted(i, "imageUrl", undefined)}
-                            >
-                              <X className="w-3 h-3" />
-                            </Button>
+                            <div className="flex gap-1 mt-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateExtracted(i, "imageUrl", undefined)}
+                              >
+                                <X className="w-3 h-3 mr-1" /> Remover imagem
+                              </Button>
+                              {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setCropperForQuestion(i)}
+                                >
+                                  <Crop className="w-3 h-3 mr-1" /> Trocar recorte
+                                </Button>
+                              )}
+                            </div>
                           )}
                         </div>
+                      ) : !q.saved && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf")) {
+                              setCropperForQuestion(i);
+                            }
+                          }}
+                          disabled={!uploadFile || !uploadFile.name.toLowerCase().endsWith(".pdf")}
+                        >
+                          <ImageIcon className="w-3 h-3 mr-1" /> Adicionar Imagem
+                        </Button>
                       )}
 
                       {/* Subject / Topic */}
