@@ -50,7 +50,7 @@ const UNICODE_TO_LATEX: Record<string, string> = {
 function unicodeToLatex(formula: string): string {
   let latex = formula;
   for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
-    latex = latex.replaceAll(unicode, tex);
+    latex = latex.split(unicode).join(tex);
   }
   // Wrap units like m/s², km/h etc in \text{}
   latex = latex.replace(
