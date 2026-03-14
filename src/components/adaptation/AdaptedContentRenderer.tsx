@@ -26,7 +26,14 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
 
-  const boldParts = text.split(BOLD_REGEX);
+  // Clean broken bold markers first, then split
+  const cleaned = text.replace(/\*\*/g, (_, offset, str) => {
+    // Count ** occurrences - if odd number, remove the orphan
+    const before = str.slice(0, offset);
+    const count = (before.match(/\*\*/g) || []).length;
+    return count % 2 === 0 ? "**" : "";
+  });
+  const boldParts = cleaned.split(BOLD_REGEX);
   for (let i = 0; i < boldParts.length; i++) {
     if (i % 2 === 1) {
       nodes.push(
