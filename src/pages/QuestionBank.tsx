@@ -434,16 +434,17 @@ export default function QuestionBank() {
 
   // ─── Delete exam upload ───
   const handleDeleteUpload = async (upload: PdfUpload) => {
+    setDeletingId(upload.id);
     try {
-      // Delete file from storage
       await supabase.storage.from("question-pdfs").remove([upload.file_path]);
-      // Delete record
       const { error } = await (supabase.from as any)("pdf_uploads").delete().eq("id", upload.id);
       if (error) throw error;
       toast({ title: "Prova excluída" });
       fetchUploads();
     } catch (e: any) {
       toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
+    } finally {
+      setDeletingId(null);
     }
   };
 
