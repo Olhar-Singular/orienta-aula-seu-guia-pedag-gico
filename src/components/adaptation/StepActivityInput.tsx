@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { Type, Database, FileUp, Crop, Search, Check, Loader2, X, Image as ImageIcon } from "lucide-react";
+import RichTextEditor from "@/components/RichTextEditor";
 import type { SelectedQuestion } from "./AdaptationWizard";
 
 type Props = {
@@ -255,14 +255,10 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       {/* Tab Content */}
       {tab === "manual" && (
         <div>
-          <label htmlFor="activity-manual" className="sr-only">Texto da atividade</label>
-          <Textarea
-            id="activity-manual"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            rows={10}
-            placeholder="Cole ou digite o texto da atividade aqui..."
-            className="font-mono text-sm"
+          <RichTextEditor
+            content={value}
+            onChange={onChange}
+            placeholder="Cole ou digite o texto da atividade aqui... Você também pode colar imagens (Ctrl+V) ou inseri-las pelo botão na barra de ferramentas."
           />
         </div>
       )}
