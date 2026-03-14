@@ -8,7 +8,7 @@ import CreditsBadge from "@/components/CreditsBadge";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/create", label: "Criar Adaptação", icon: PenTool },
+  { path: "/dashboard/adaptar", label: "Adaptar Atividade", icon: Wand2 },
   { path: "/my-adaptations", label: "Minhas Adaptações", icon: FolderOpen },
   { path: "/dashboard/turmas", label: "Turmas", icon: Users },
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },

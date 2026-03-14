@@ -42,6 +42,7 @@ const App = () => (
             <Route path="/auth" element={<Navigate to="/login" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/create" element={<ProtectedRoute><Create /></ProtectedRoute>} />
+            <Route path="/dashboard/adaptar" element={<ProtectedRoute><AdaptWizard /></ProtectedRoute>} />
             <Route path="/my-adaptations" element={<ProtectedRoute><MyAdaptations /></ProtectedRoute>} />
             <Route path="/dashboard/turmas" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
             <Route path="/dashboard/turmas/:id" element={<ProtectedRoute><ClassDetail /></ProtectedRoute>} />
