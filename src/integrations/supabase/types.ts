@@ -694,6 +694,17 @@ export type Database = {
     }
     Functions: {
       get_credits_used: { Args: { p_user_id: string }; Returns: number }
+      get_shared_adaptation: {
+        Args: { p_token: string }
+        Returns: {
+          adaptation_id: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          token: string
+        }[]
+      }
       is_class_owner: {
         Args: { _class_id: string; _user_id: string }
         Returns: boolean
