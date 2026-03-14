@@ -24,6 +24,7 @@ import AdaptWizard from "./pages/AdaptWizard";
 import AdaptationHistory from "./pages/AdaptationHistory";
 import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/dashboard/turmas/:id/relatorio" element={<ProtectedRoute><ClassReport /></ProtectedRoute>} />
             <Route path="/dashboard/historico" element={<ProtectedRoute><AdaptationHistory /></ProtectedRoute>} />
             <Route path="/dashboard/banco-questoes" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
+            <Route path="/dashboard/configuracoes" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />

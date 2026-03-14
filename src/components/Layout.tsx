@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users, BookOpen, Wand2, History } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users, BookOpen, Wand2, History, Settings } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ const navItems = [
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
   { path: "/pricing", label: "Planos", icon: CreditCard },
+  { path: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
