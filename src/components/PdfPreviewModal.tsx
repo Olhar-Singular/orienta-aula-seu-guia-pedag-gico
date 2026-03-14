@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,9 +13,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: File | null;
-  /** When provided, enables crop mode with a callback */
   onCrop?: (dataUrl: string) => void;
-  /** Initial page to show (1-indexed) */
   initialPage?: number;
 };
 
@@ -44,7 +42,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
         if (cancelled) return;
         setPageCount(count);
         const startPage = initialPage && initialPage >= 1 && initialPage <= count ? initialPage : 1;
-        const img = await renderPdfPage(file, startPage, 1.5);
+        const img = await renderPdfPage(file, startPage, 2);
         if (cancelled) return;
         setPageImage(img);
         setCurrentPage(startPage);
@@ -65,7 +63,7 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
     setCropStart(null);
     setCropEnd(null);
     try {
-      const img = await renderPdfPage(file, page, 1.5);
+      const img = await renderPdfPage(file, page, 2);
       setPageImage(img);
       setCurrentPage(page);
     } catch (e) {
@@ -98,25 +96,28 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   };
 
   // ── Crop helpers ──
-  const getRelativeCoords = (e: React.MouseEvent) => {
-    const wrapper = imgWrapperRef.current;
-    if (!wrapper) return { x: 0, y: 0 };
-    const rect = wrapper.getBoundingClientRect();
+  const getRelativeCoords = useCallback((e: React.MouseEvent) => {
+    const img = imgRef.current;
+    if (!img) return { x: 0, y: 0 };
+    const rect = img.getBoundingClientRect();
     return {
       x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
       y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
     };
-  };
+  }, []);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     if (!cropping) return;
-    setCropStart(getRelativeCoords(e));
-    setCropEnd(getRelativeCoords(e));
+    e.preventDefault();
+    const coords = getRelativeCoords(e);
+    setCropStart(coords);
+    setCropEnd(coords);
     setIsDragging(true);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !cropping) return;
+    e.preventDefault();
     setCropEnd(getRelativeCoords(e));
   };
 
@@ -179,14 +180,15 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
           ) : pageImage ? (
-            <div
-              className={`overflow-auto max-h-[60vh] w-full flex justify-center relative ${cropping ? "cursor-crosshair select-none" : ""}`}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            >
-              <div ref={imgWrapperRef} className="relative inline-block">
+            <div className="overflow-auto max-h-[60vh] w-full flex justify-center">
+              <div
+                ref={imgWrapperRef}
+                className={`relative inline-block ${cropping ? "cursor-crosshair select-none" : ""}`}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+              >
                 <img
                   ref={imgRef}
                   src={pageImage}
