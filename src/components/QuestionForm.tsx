@@ -318,5 +318,11 @@ export default function QuestionForm({
         </div>
       </DialogContent>
     </Dialog>
+    <ImagePreviewDialog
+      open={previewOpen}
+      onOpenChange={setPreviewOpen}
+      imageUrl={imagePreview || ""}
+    />
+    </>
   );
 }
