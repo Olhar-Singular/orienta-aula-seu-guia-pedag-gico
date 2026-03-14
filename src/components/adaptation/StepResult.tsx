@@ -31,8 +31,6 @@ type Props = {
 };
 
 type EditableField = "version_universal" | "version_directed";
-type QuestionImageMap = Record<string, string[]>;
-type SectionQuestionImages = Record<EditableField, QuestionImageMap>;
 
 const VISUAL_CUE_REGEX =
   /\b(figura|imagem|gráfico|grafico|diagrama|esquema|mapa|ilustração|ilustracao|tabela)\b/i;
