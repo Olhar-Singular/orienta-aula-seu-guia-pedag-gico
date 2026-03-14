@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import type { WizardData, AdaptationResult } from "./AdaptationWizard";
+import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap } from "./AdaptationWizard";
 import {
   Loader2,
   RefreshCw,
