@@ -124,7 +124,7 @@ export default function Index() {
                 <img
                   src={heroImg}
                   alt="Ilustração de uma sala de aula inclusiva"
-                  className="w-full max-w-md mx-auto rounded-2xl shadow-2xl"
+                  className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                   loading="eager"
                 />
               </motion.div>
