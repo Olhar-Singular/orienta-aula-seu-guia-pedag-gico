@@ -596,7 +596,6 @@ export default function QuestionBank() {
           </div>
         </div>
 
-        {/* Per-question PDF Preview */}
         {/* Per-question PDF Preview with Crop */}
         <PdfPreviewModal
           open={cropperForQuestion !== null}
