@@ -430,6 +430,12 @@ INSTRUÇÕES DE ADAPTAÇÃO:
       }
     }
 
+    // Include question images in the result so they're available in history
+    const resultWithImages = {
+      ...adaptationResult,
+      question_images: Array.isArray(question_images) ? question_images : [],
+    };
+
     // Save to adaptations_history
     const { error: insertError } = await admin.from("adaptations_history").insert({
       teacher_id: user.id,
@@ -438,7 +444,7 @@ INSTRUÇÕES DE ADAPTAÇÃO:
       original_activity: sanitizedActivity,
       activity_type: sanitizedType,
       barriers_used: barriers,
-      adaptation_result: adaptationResult,
+      adaptation_result: resultWithImages,
       model_used: modelName,
       tokens_used: tokensUsed,
     });
