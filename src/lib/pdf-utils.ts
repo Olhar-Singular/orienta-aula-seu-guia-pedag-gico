@@ -3,12 +3,10 @@
  * Extracts text and renders pages as JPEG images.
  */
 import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
+// Set worker source using Vite's ?url import
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export type PdfParseResult = {
   text: string;
