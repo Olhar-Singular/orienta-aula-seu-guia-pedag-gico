@@ -53,6 +53,7 @@ export default function MyAdaptations() {
   const [filterType, setFilterType] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Legacy adaptations (old flow)
   const { data: legacyAdaptations = [] } = useQuery({
