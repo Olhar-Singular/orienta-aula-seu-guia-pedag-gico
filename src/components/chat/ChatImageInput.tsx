@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -57,6 +57,11 @@ async function processImage(file: File): Promise<string | null> {
 export default function ChatImageInput({ imagePreview, onImageChange, disabled }: ChatImageInputProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  useEffect(() => {
+    setIsTouchDevice("ontouchstart" in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,29 +73,34 @@ export default function ChatImageInput({ imagePreview, onImageChange, disabled }
 
   return (
     <div className="flex items-center gap-1">
-      {/* Camera capture (mobile-friendly) */}
-      <input
-        ref={cameraRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFile}
-        disabled={disabled}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-9 w-9 shrink-0"
-        onClick={() => cameraRef.current?.click()}
-        disabled={disabled}
-        title="Tirar foto"
-      >
-        <Camera className="w-4 h-4" />
-      </Button>
+      {/* Camera capture — only on touch/mobile devices */}
+      {isTouchDevice && (
+        <>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFile}
+            disabled={disabled}
+            key="camera"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => cameraRef.current?.click()}
+            disabled={disabled}
+            title="Tirar foto"
+          >
+            <Camera className="w-4 h-4" />
+          </Button>
+        </>
+      )}
 
-      {/* File/gallery upload */}
+      {/* File/gallery upload — always visible */}
       <input
         ref={fileRef}
         type="file"
@@ -98,6 +108,7 @@ export default function ChatImageInput({ imagePreview, onImageChange, disabled }
         className="hidden"
         onChange={handleFile}
         disabled={disabled}
+        key="file"
       />
       <Button
         type="button"
