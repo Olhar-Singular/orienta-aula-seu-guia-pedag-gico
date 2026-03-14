@@ -123,7 +123,7 @@ export default function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
-  const [pdfPreviewForQuestion, setPdfPreviewForQuestion] = useState(false);
+  
 
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
