@@ -2,7 +2,8 @@
  * Integration Test: Login → Simulador de Barreiras → Analisar → Resultado
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, fireEvent, waitFor } from "@testing-library/react";
+import { render, act } from "@testing-library/react";
+import { fireEvent, waitFor } from "@testing-library/dom";
 import {
   MOCK_USER,
   MOCK_PROFILE,

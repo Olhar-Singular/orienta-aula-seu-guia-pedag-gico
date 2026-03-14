@@ -2,7 +2,7 @@
  * Integration Test: Login → Adaptar Atividade → Ver Resultado → Exportar PDF
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, fireEvent, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import {
   MOCK_USER,
   MOCK_PROFILE,

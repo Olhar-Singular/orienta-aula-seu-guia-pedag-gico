@@ -2,7 +2,7 @@
  * Integration Test: Login → Dashboard → Criar Turma → Adicionar Aluno → Definir Barreiras
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, fireEvent, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import {
   MOCK_USER,
   MOCK_PROFILE,
