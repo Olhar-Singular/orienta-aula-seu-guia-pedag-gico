@@ -24,7 +24,7 @@ vi.mock("@/integrations/supabase/client", () =>
   })
 );
 
-// Mock jsPDF to avoid canvas issues
+// Mock jsPDF and html2canvas to avoid canvas issues
 vi.mock("jspdf", () => ({
   default: vi.fn().mockImplementation(() => ({
     internal: { pageSize: { getWidth: () => 210, getHeight: () => 297 } },
@@ -35,9 +35,17 @@ vi.mock("jspdf", () => ({
     line: vi.fn(),
     splitTextToSize: vi.fn(() => ["line1"]),
     addPage: vi.fn(),
+    addImage: vi.fn(),
     save: vi.fn(),
     getStringUnitWidth: vi.fn(() => 10),
   })),
+}));
+vi.mock("html2canvas", () => ({
+  default: vi.fn().mockResolvedValue({
+    toDataURL: () => "data:image/png;base64,mock",
+    height: 1000,
+    width: 700,
+  }),
 }));
 
 import AdaptationWizard from "@/components/adaptation/AdaptationWizard";
