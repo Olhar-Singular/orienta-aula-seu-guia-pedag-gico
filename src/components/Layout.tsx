@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users, BookOpen, Wand2 } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, CreditCard, Users, BookOpen, Wand2, History } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ const navItems = [
   { path: "/dashboard/adaptar", label: "Adaptar Atividade", icon: Wand2 },
   { path: "/my-adaptations", label: "Minhas Adaptações", icon: FolderOpen },
   { path: "/dashboard/turmas", label: "Turmas", icon: Users },
+  { path: "/dashboard/historico", label: "Histórico", icon: History },
   { path: "/dashboard/banco-questoes", label: "Banco de Questões", icon: BookOpen },
   { path: "/chat", label: "Chat IA", icon: MessageCircle },
   { path: "/pricing", label: "Planos", icon: CreditCard },
