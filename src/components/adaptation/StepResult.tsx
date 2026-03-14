@@ -51,10 +51,14 @@ const getDefaultQuestionImageMap = (
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
   const [loading, setLoading] = useState(!data.result);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
-  const [questionImages, setQuestionImages] = useState<SectionQuestionImages>({
-    version_universal: {},
-    version_directed: {},
-  });
+  const questionImages = data.questionImages;
+  const setQuestionImages = (updater: SectionQuestionImages | ((prev: SectionQuestionImages) => SectionQuestionImages)) => {
+    if (typeof updater === "function") {
+      updateData({ questionImages: updater(data.questionImages) });
+    } else {
+      updateData({ questionImages: updater });
+    }
+  };
   const [editingQuestion, setEditingQuestion] = useState<{
     field: EditableField;
     title: string;
