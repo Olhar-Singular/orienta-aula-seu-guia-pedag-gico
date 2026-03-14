@@ -576,7 +576,7 @@ export default function QuestionBank() {
                           onChange={(e) => updateExtracted(i, "text", e.target.value)}
                           rows={3}
                           className="text-sm"
-                          disabled={q.saved}
+                          disabled={q.saved || q.isDuplicate}
                         />
                       </div>
 
