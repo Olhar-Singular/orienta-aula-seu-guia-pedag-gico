@@ -503,7 +503,7 @@ export default function AdaptationEditModal({
               <Textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                rows={4}
+                rows={Math.min(12, Math.max(4, text.split("\n").length + 1))}
                 placeholder="Digite o enunciado da questão..."
               />
             </div>

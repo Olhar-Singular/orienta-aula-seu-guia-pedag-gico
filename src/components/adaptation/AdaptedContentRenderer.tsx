@@ -261,9 +261,11 @@ export default function AdaptedContentRenderer({
                   <span className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                     {block.number}
                   </span>
-                  <p className="text-[13px] text-foreground leading-relaxed flex-1 pt-0.5">
-                    {parseInlineFormatting(block.text)}
-                  </p>
+                  <div className="text-[13px] text-foreground leading-relaxed flex-1 pt-0.5 space-y-1">
+                    {block.text.split("\n").map((line, li) => (
+                      <p key={li}>{parseInlineFormatting(line)}</p>
+                    ))}
+                  </div>
                   {onEditQuestion && question && (
                     <Button
                       type="button"
