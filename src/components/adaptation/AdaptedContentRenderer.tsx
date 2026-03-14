@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Pencil } from "lucide-react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import {
   parseAdaptedQuestions,
   type ParsedAdaptedQuestion,
@@ -18,9 +21,75 @@ type Props = {
   onEditQuestion?: (question: ParsedAdaptedQuestion) => void;
 };
 
-// Detect formula-like patterns: variables, equals signs, operators, units
+/**
+ * Maps common Unicode math symbols to LaTeX equivalents.
+ */
+const UNICODE_TO_LATEX: Record<string, string> = {
+  "Δ": "\\Delta ",
+  "λ": "\\lambda ",
+  "π": "\\pi ",
+  "σ": "\\sigma ",
+  "μ": "\\mu ",
+  "₀": "_0",
+  "₁": "_1",
+  "₂": "_2",
+  "³": "^3",
+  "²": "^2",
+  "·": "\\cdot ",
+  "×": "\\times ",
+  "÷": "\\div ",
+  "≥": "\\geq ",
+  "≤": "\\leq ",
+  "≠": "\\neq ",
+  "≈": "\\approx ",
+  "√": "\\sqrt",
+  "°C": "°\\text{C}",
+  "°F": "°\\text{F}",
+};
+
+function unicodeToLatex(formula: string): string {
+  let latex = formula;
+  for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
+    latex = latex.replaceAll(unicode, tex);
+  }
+  // Wrap units like m/s², km/h etc in \text{}
+  latex = latex.replace(
+    /\b(m\/s²?|cm\/s|km\/h|Hz|kg|Pa|mol|atm)\b/g,
+    "\\text{$1}"
+  );
+  return latex.trim();
+}
+
+/**
+ * Detects formula-like patterns and renders them with KaTeX.
+ * Patterns: equations with =, expressions with Δ/π/λ, values with units.
+ */
 const FORMULA_REGEX =
-  /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|K)\b))/g;
+  /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
+
+function KaTeXInline({ formula }: { formula: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    try {
+      katex.render(unicodeToLatex(formula), ref.current, {
+        throwOnError: false,
+        displayMode: false,
+        strict: false,
+      });
+    } catch {
+      if (ref.current) ref.current.textContent = formula;
+    }
+  }, [formula]);
+
+  return (
+    <span
+      ref={ref}
+      className="inline-block mx-0.5 align-middle"
+    />
+  );
+}
 
 function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
@@ -36,14 +105,8 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   while ((match = formulaRegex.exec(cleaned)) !== null) {
     const before = cleaned.slice(lastIndex, match.index);
     if (before) nodes.push(<span key={key++}>{before}</span>);
-    nodes.push(
-      <code
-        key={key++}
-        className="inline-block bg-primary/10 text-primary font-mono text-[0.92em] px-1.5 py-0.5 rounded-md mx-0.5 font-medium"
-      >
-        {match[1] || match[0].trim()}
-      </code>
-    );
+    const formulaText = (match[1] || match[0]).trim();
+    nodes.push(<KaTeXInline key={key++} formula={formulaText} />);
     lastIndex = match.index + match[0].length;
   }
   const tail = cleaned.slice(lastIndex);

@@ -38,7 +38,7 @@ export function parseAdaptedQuestions(content: string): ParsedAdaptedQuestion[] 
     questions.push({
       ...current,
       endLine,
-      text: textParts.map(stripMarkdownBold).join(" ").trim(),
+      text: textParts.map(stripMarkdownBold).join("\n").trim(),
       options: options.map(stripMarkdownBold).filter(Boolean),
       trailingLines: trailingLines.map(stripMarkdownBold).filter(Boolean),
     });
