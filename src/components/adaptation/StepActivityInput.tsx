@@ -447,10 +447,10 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
 
             <Button
               onClick={confirmBankSelection}
-              disabled={selectedQuestions.size === 0}
+              disabled={checkedIds.size === 0}
               className="w-full shrink-0"
             >
-              Adicionar {selectedQuestions.size} questão(ões)
+              Adicionar {checkedIds.size} questão(ões)
             </Button>
           </div>
         </DialogContent>
