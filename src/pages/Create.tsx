@@ -17,8 +17,6 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { streamAI } from "@/lib/streamAI";
-import { useSubscription } from "@/hooks/useSubscription";
-import CreditGuard from "@/components/CreditGuard";
 
 const STEPS = ["Contexto", "Questionário", "Modo", "Configurações", "Gerar"];
 
