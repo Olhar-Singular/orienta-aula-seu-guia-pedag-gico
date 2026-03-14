@@ -98,8 +98,10 @@ export default function PdfPreviewModal({ open, onOpenChange, file, onCrop, init
   };
 
   // ── Crop helpers ──
-  const getRelativeCoords = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const getRelativeCoords = (e: React.MouseEvent) => {
+    const wrapper = imgWrapperRef.current;
+    if (!wrapper) return { x: 0, y: 0 };
+    const rect = wrapper.getBoundingClientRect();
     return {
       x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
       y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
