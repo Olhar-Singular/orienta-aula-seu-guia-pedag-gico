@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 import StudentDocuments from "@/components/student/StudentDocuments";
+import StudentPeiReport from "@/components/student/StudentPeiReport";
 
 const MAX_NOTES_LENGTH = 1000;
 
@@ -117,6 +118,7 @@ export default function StudentProfile() {
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil & Barreiras</TabsTrigger>
           <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
+          <TabsTrigger value="pei" className="flex-1 sm:flex-none">PEI & Relatório</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-6 mt-4">
@@ -184,6 +186,12 @@ export default function StudentProfile() {
         <TabsContent value="documentos" className="mt-4">
           {alunoId && (
             <StudentDocuments studentId={alunoId} studentName={student?.name || "Aluno"} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="pei" className="mt-4">
+          {alunoId && classId && (
+            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} />
           )}
         </TabsContent>
       </Tabs>
