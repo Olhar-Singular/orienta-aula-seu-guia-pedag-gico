@@ -188,6 +188,12 @@ export default function StudentProfile() {
             <StudentDocuments studentId={alunoId} studentName={student?.name || "Aluno"} />
           )}
         </TabsContent>
+
+        <TabsContent value="pei" className="mt-4">
+          {alunoId && classId && (
+            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} />
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
