@@ -94,7 +94,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-hero text-primary-foreground px-4 py-3 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <img src={logoLightImg} alt="Olhar Singular" className="h-8 w-auto" />
+          <img src={logoEyeImg} alt="Olhar Singular" className="h-8 w-auto" />
+          <span className="text-[10px] font-semibold text-primary-foreground/80 tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
