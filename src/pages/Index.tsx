@@ -42,7 +42,7 @@ const benefits = [
 
 const faq = [
   {
-    q: "O Orienta Aula faz diagnóstico?",
+    q: "O Olhar Singular faz diagnóstico?",
     a: "Não. A ferramenta trabalha exclusivamente com barreiras pedagógicas observáveis, sem qualquer tipo de diagnóstico clínico.",
   },
   {
