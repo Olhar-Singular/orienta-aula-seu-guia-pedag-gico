@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, CheckCircle2, ShieldAlert, Clock, BookOpen, Brain, HeartHandshake, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoIconImg from "@/assets/logo-icon.png";
+import logoEyeImg from "@/assets/logo-eye.png";
 import heroImg from "@/assets/hero-classroom.png";
 
 const painPoints = [

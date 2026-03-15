@@ -4,8 +4,7 @@ import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import logoImg from "@/assets/logo-olhar-singular-sm.png";
-import logoLightImg from "@/assets/logo-olhar-singular-light.png";
+import logoEyeImg from "@/assets/logo-eye.png";
 
 
 const navItems = [
