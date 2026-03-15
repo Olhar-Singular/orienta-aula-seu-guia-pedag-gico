@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import {
   Save,
-  Sparkles,
+  Download,
   Loader2,
   Download,
   FileText,
