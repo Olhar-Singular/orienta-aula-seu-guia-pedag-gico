@@ -626,7 +626,32 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </Card>
           )}
 
-          {/* Barrier chart */}
+          {/* PEI Text Sections */}
+          {peiForm.student_profile && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Perfil do Aluno</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.student_profile}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.curricular_adaptations && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Adaptações Curriculares</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.curricular_adaptations}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.resources_and_support && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Recursos e Apoios</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.resources_and_support}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.pedagogical_strategies && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Estratégias Pedagógicas</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.pedagogical_strategies}</p></CardContent>
+            </Card>
+          )}
+
           {topBarriers.length > 0 && (
             <Card className="border-border">
               <CardHeader className="pb-2">
