@@ -69,9 +69,10 @@ type Props = {
   studentId: string;
   studentName: string;
   classId: string;
+  onSaved?: () => void;
 };
 
-export default function StudentPeiReport({ studentId, studentName, classId }: Props) {
+export default function StudentPeiReport({ studentId, studentName, classId, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const reportRef = useRef<HTMLDivElement>(null);
