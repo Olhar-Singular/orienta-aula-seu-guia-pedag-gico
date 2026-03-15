@@ -685,6 +685,62 @@ export type Database = {
           },
         ]
       }
+      student_pei: {
+        Row: {
+          additional_notes: string | null
+          created_at: string | null
+          curricular_adaptations: string | null
+          generated_by_ai: boolean | null
+          goals: Json | null
+          id: string
+          pedagogical_strategies: string | null
+          resources_and_support: string | null
+          review_schedule: string | null
+          student_id: string
+          student_profile: string | null
+          teacher_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          created_at?: string | null
+          curricular_adaptations?: string | null
+          generated_by_ai?: boolean | null
+          goals?: Json | null
+          id?: string
+          pedagogical_strategies?: string | null
+          resources_and_support?: string | null
+          review_schedule?: string | null
+          student_id: string
+          student_profile?: string | null
+          teacher_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          created_at?: string | null
+          curricular_adaptations?: string | null
+          generated_by_ai?: boolean | null
+          goals?: Json | null
+          id?: string
+          pedagogical_strategies?: string | null
+          resources_and_support?: string | null
+          review_schedule?: string | null
+          student_id?: string
+          student_profile?: string | null
+          teacher_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_pei_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "class_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_subscriptions: {
         Row: {
           created_at: string
