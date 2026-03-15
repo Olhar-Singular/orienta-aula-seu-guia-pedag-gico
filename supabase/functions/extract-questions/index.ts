@@ -116,12 +116,32 @@ serve(async (req) => {
       window_start: newWindow,
     });
 
-    // Parse request body — always JSON with pre-parsed text + images from client
-    const body = await req.json();
-    let pdfText: string = body.pdfText || "";
-    let pdfFileName: string = body.pdfFileName || "";
-    let pageImages: string[] = body.pageImages || [];
-    const singleFile: File | null = null;
+    // Parse request body — supports JSON or FormData
+    let pdfText = "";
+    let pdfFileName = "";
+    let pageImages: string[] = [];
+
+    const contentType = req.headers.get("content-type") || "";
+
+    if (contentType.includes("multipart/form-data")) {
+      // FormData path: read uploaded file and convert to base64 data URL
+      const formData = await req.formData();
+      const file = formData.get("file") as File | null;
+      if (file) {
+        pdfFileName = file.name || "upload";
+        const buf = await file.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        // Convert to base64 data URL for vision model
+        const base64 = btoa(String.fromCharCode(...bytes));
+        const mimeType = file.type || "image/png";
+        pageImages = [`data:${mimeType};base64,${base64}`];
+      }
+    } else {
+      const body = await req.json();
+      pdfText = body.pdfText || "";
+      pdfFileName = body.pdfFileName || "";
+      pageImages = body.pageImages || [];
+    }
 
     // Build messages for AI
     const messages: any[] = [{ role: "system", content: OCR_SYSTEM_PROMPT }];
