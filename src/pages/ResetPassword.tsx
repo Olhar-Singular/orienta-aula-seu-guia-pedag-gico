@@ -55,7 +55,7 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md text-center space-y-4">
-          <img src={logoImg} alt="Orienta Aula" className="h-10 w-auto mx-auto" />
+          <img src={logoImg} alt="Olhar Singular" className="h-10 w-auto mx-auto" />
           <Card className="shadow-card-hover">
             <CardContent className="p-6 space-y-4">
               <p className="text-sm text-muted-foreground">
