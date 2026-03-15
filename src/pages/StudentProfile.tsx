@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
+import StudentDocuments from "@/components/student/StudentDocuments";
 
 const MAX_NOTES_LENGTH = 1000;
 
@@ -60,13 +62,8 @@ export default function StudentProfile() {
       if (error) throw error;
     },
     onMutate: async ({ barrierKey, dimension, isActive }) => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["student-barriers", alunoId] });
-
-      // Snapshot previous value
       const previous = queryClient.getQueryData(["student-barriers", alunoId]);
-
-      // Optimistically update
       queryClient.setQueryData(["student-barriers", alunoId], (old: any[] | undefined) => {
         if (!old) return old;
         const exists = old.find((b) => b.barrier_key === barrierKey);
@@ -75,11 +72,9 @@ export default function StudentProfile() {
         }
         return [...old, { student_id: alunoId, barrier_key: barrierKey, dimension, is_active: isActive, id: `temp-${barrierKey}` }];
       });
-
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      // Rollback on error
       if (context?.previous) {
         queryClient.setQueryData(["student-barriers", alunoId], context.previous);
       }
@@ -101,84 +96,97 @@ export default function StudentProfile() {
     },
     onSuccess: () => {
       toast.success("Observações salvas!");
-      navigate(`/dashboard/turmas/${classId}`);
+      queryClient.invalidateQueries({ queryKey: ["student", alunoId] });
     },
     onError: () => toast.error("Erro ao salvar observações."),
   });
 
   return (
-    <>
-      <div className="space-y-6">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <Link to={`/dashboard/turmas/${classId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
-            <ArrowLeft className="w-4 h-4" /> Voltar para turma
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">{student?.name || "Aluno"}</h1>
-          {student?.registration_code && (
-            <p className="text-muted-foreground text-sm">Matrícula: {student.registration_code}</p>
+    <div className="space-y-6">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <Link to={`/dashboard/turmas/${classId}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+          <ArrowLeft className="w-4 h-4" /> Voltar para turma
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">{student?.name || "Aluno"}</h1>
+        {student?.registration_code && (
+          <p className="text-muted-foreground text-sm">Matrícula: {student.registration_code}</p>
+        )}
+      </motion.div>
+
+      <Tabs defaultValue="perfil" className="w-full">
+        <TabsList className="w-full sm:w-auto">
+          <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil & Barreiras</TabsTrigger>
+          <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="perfil" className="space-y-6 mt-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="border-border">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Observações gerais</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="relative">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
+                    placeholder="Anotações sobre o aluno..."
+                    rows={3}
+                    maxLength={MAX_NOTES_LENGTH}
+                  />
+                  <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground">
+                    {notes.length}/{MAX_NOTES_LENGTH}
+                  </span>
+                </div>
+                <Button size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending}>
+                  <Save className="w-4 h-4 mr-2" /> Salvar
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Barreiras Observáveis</h2>
+            <div className="space-y-4">
+              {BARRIER_DIMENSIONS.map((dim) => (
+                <Card key={dim.key} className="border-border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">{dim.label}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {dim.barriers.map((barrier) => {
+                      const checked = activeBarrierKeys.has(barrier.key);
+                      return (
+                        <label key={barrier.key} className="flex items-start gap-3 cursor-pointer group">
+                          <Checkbox
+                            checked={checked}
+                            onCheckedChange={(val) =>
+                              toggleBarrier.mutate({
+                                barrierKey: barrier.key,
+                                dimension: dim.key,
+                                isActive: !!val,
+                              })
+                            }
+                          />
+                          <span className="text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
+                            {barrier.label}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        </TabsContent>
+
+        <TabsContent value="documentos" className="mt-4">
+          {alunoId && (
+            <StudentDocuments studentId={alunoId} studentName={student?.name || "Aluno"} />
           )}
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Observações gerais</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="relative">
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
-                  placeholder="Anotações sobre o aluno..."
-                  rows={3}
-                  maxLength={MAX_NOTES_LENGTH}
-                />
-                <span className="absolute bottom-2 right-3 text-[10px] text-muted-foreground">
-                  {notes.length}/{MAX_NOTES_LENGTH}
-                </span>
-              </div>
-              <Button size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending}>
-                <Save className="w-4 h-4 mr-2" /> Salvar
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Barreiras Observáveis</h2>
-          <div className="space-y-4">
-            {BARRIER_DIMENSIONS.map((dim) => (
-              <Card key={dim.key} className="border-border">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">{dim.label}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {dim.barriers.map((barrier) => {
-                    const checked = activeBarrierKeys.has(barrier.key);
-                    return (
-                      <label key={barrier.key} className="flex items-start gap-3 cursor-pointer group">
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={(val) =>
-                            toggleBarrier.mutate({
-                              barrierKey: barrier.key,
-                              dimension: dim.key,
-                              isActive: !!val,
-                            })
-                          }
-                        />
-                        <span className="text-sm text-foreground group-hover:text-primary transition-colors leading-tight">
-                          {barrier.label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </motion.div>
-      </div>
-    </>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
