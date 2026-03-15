@@ -98,6 +98,7 @@ export default function StudentProfile() {
     onSuccess: () => {
       toast.success("Observações salvas!");
       queryClient.invalidateQueries({ queryKey: ["student", alunoId] });
+      navigate(`/dashboard/turmas/${classId}`);
     },
     onError: () => toast.error("Erro ao salvar observações."),
   });
