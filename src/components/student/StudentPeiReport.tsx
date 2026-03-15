@@ -470,6 +470,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.curricular_adaptations}
                   onChange={(e) => setPeiForm((p) => ({ ...p, curricular_adaptations: e.target.value }))}
                   placeholder="Modificações no conteúdo, forma de ensinar ou avaliar…"
