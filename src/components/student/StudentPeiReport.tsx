@@ -16,9 +16,8 @@ import {
 } from "@/components/ui/accordion";
 import {
   Save,
-  Sparkles,
-  Loader2,
   Download,
+  Loader2,
   FileText,
   BarChart3,
   TrendingUp,
@@ -69,9 +68,10 @@ type Props = {
   studentId: string;
   studentName: string;
   classId: string;
+  onSaved?: () => void;
 };
 
-export default function StudentPeiReport({ studentId, studentName, classId }: Props) {
+export default function StudentPeiReport({ studentId, studentName, classId, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const reportRef = useRef<HTMLDivElement>(null);
@@ -86,7 +86,7 @@ export default function StudentPeiReport({ studentId, studentName, classId }: Pr
     review_schedule: "",
     additional_notes: "",
   });
-  const [aiLoading, setAiLoading] = useState(false);
+  
 
   // Fetch PEI
   const { data: pei, isLoading: peiLoading } = useQuery({
@@ -172,83 +172,12 @@ export default function StudentPeiReport({ studentId, studentName, classId }: Pr
     onSuccess: () => {
       toast.success("PEI salvo!");
       queryClient.invalidateQueries({ queryKey: ["student-pei", studentId] });
+      onSaved?.();
     },
     onError: () => toast.error("Erro ao salvar PEI."),
   });
 
-  const generatePeiWithAI = async () => {
-    setAiLoading(true);
-    try {
-      const activeBarriers = (barriers || []).filter((b) => b.is_active);
-      const barrierLabels = activeBarriers.map((b) => barrierLabel(b.barrier_key));
-      const dimensions = [...new Set(activeBarriers.map((b) => {
-        const dim = BARRIER_DIMENSIONS.find((d) => d.key === b.dimension);
-        return dim?.label || b.dimension;
-      }))];
 
-      const adaptationCount = (history || []).length;
-      const recentStrategies = new Set<string>();
-      (history || []).slice(-5).forEach((h) => {
-        const r = h.adaptation_result as any;
-        if (r?.strategies_applied) {
-          (r.strategies_applied as string[]).forEach((s) => recentStrategies.add(s));
-        }
-      });
-
-      const prompt = `Você é ISA, especialista em educação inclusiva. Gere um PEI (Plano Educacional Individualizado) completo para o aluno "${studentName}" com base nos seguintes dados:
-
-BARREIRAS IDENTIFICADAS (${activeBarriers.length}):
-${barrierLabels.map((b) => `- ${b}`).join("\n") || "Nenhuma barreira registrada."}
-
-DIMENSÕES AFETADAS: ${dimensions.join(", ") || "Nenhuma"}
-
-OBSERVAÇÕES DO PROFESSOR:
-${student?.notes || "Sem observações registradas."}
-
-HISTÓRICO: ${adaptationCount} adaptação(ões) realizada(s).
-ESTRATÉGIAS RECENTES UTILIZADAS: ${[...recentStrategies].join(", ") || "Nenhuma"}
-
-Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
-{
-  "student_profile": "Descrição do perfil do aluno com habilidades, dificuldades e estilo de aprendizagem",
-  "goals": [
-    {"id": "1", "area": "Área (ex: Comunicação)", "description": "Meta específica e mensurável", "deadline": "Prazo (ex: Final do 1º semestre)", "status": "pendente"},
-    {"id": "2", "area": "Área", "description": "Descrição", "deadline": "Prazo", "status": "pendente"}
-  ],
-  "curricular_adaptations": "Adaptações curriculares recomendadas",
-  "resources_and_support": "Recursos, profissionais e tecnologias assistivas recomendados",
-  "pedagogical_strategies": "Estratégias pedagógicas específicas",
-  "review_schedule": "Cronograma de revisão e acompanhamento"
-}`;
-
-      const response = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: prompt }] },
-      });
-
-      if (response.error) throw response.error;
-
-      const text = response.data?.reply || response.data?.content || "";
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Resposta inválida da IA");
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      setPeiForm({
-        student_profile: parsed.student_profile || "",
-        goals: Array.isArray(parsed.goals) ? parsed.goals : [],
-        curricular_adaptations: parsed.curricular_adaptations || "",
-        resources_and_support: parsed.resources_and_support || "",
-        pedagogical_strategies: parsed.pedagogical_strategies || "",
-        review_schedule: parsed.review_schedule || "",
-        additional_notes: peiForm.additional_notes,
-      });
-      toast.success("PEI gerado pela ISA! Revise e salve.");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao gerar PEI com IA.");
-    }
-    setAiLoading(false);
-  };
 
   const addGoal = () => {
     setPeiForm((prev) => ({
@@ -380,16 +309,6 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={generatePeiWithAI}
-              disabled={aiLoading}
-              className="gap-1.5"
-            >
-              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {aiLoading ? "Gerando…" : "Gerar com ISA"}
-            </Button>
             <Button size="sm" onClick={() => savePei.mutate()} disabled={savePei.isPending} className="gap-1.5">
               <Save className="w-4 h-4" /> Salvar PEI
             </Button>
@@ -404,7 +323,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </CardContent>
           </Card>
         ) : (
-          <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-2">
+          <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-3">
             {/* Profile */}
             <AccordionItem value="profile" className="border border-border rounded-lg px-4">
               <AccordionTrigger className="text-sm font-semibold">
@@ -412,6 +331,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.student_profile}
                   onChange={(e) => setPeiForm((p) => ({ ...p, student_profile: e.target.value }))}
                   placeholder="Descreva habilidades, dificuldades, interesses e estilo de aprendizagem do aluno…"
@@ -477,6 +397,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.curricular_adaptations}
                   onChange={(e) => setPeiForm((p) => ({ ...p, curricular_adaptations: e.target.value }))}
                   placeholder="Modificações no conteúdo, forma de ensinar ou avaliar…"
@@ -492,6 +413,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.resources_and_support}
                   onChange={(e) => setPeiForm((p) => ({ ...p, resources_and_support: e.target.value }))}
                   placeholder="Profissionais, tecnologias assistivas, participação da família…"
@@ -507,6 +429,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.pedagogical_strategies}
                   onChange={(e) => setPeiForm((p) => ({ ...p, pedagogical_strategies: e.target.value }))}
                   placeholder="Rotinas visuais, pausas programadas, ensino multissensorial…"
@@ -522,6 +445,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.review_schedule}
                   onChange={(e) => setPeiForm((p) => ({ ...p, review_schedule: e.target.value }))}
                   placeholder="Como e quando o plano será avaliado e atualizado…"
@@ -539,6 +463,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
           </CardHeader>
           <CardContent>
             <Textarea
+              className="border-border focus-visible:ring-muted-foreground/30"
               value={peiForm.additional_notes}
               onChange={(e) => setPeiForm((p) => ({ ...p, additional_notes: e.target.value }))}
               placeholder="Anotações extras do professor sobre o PEI…"
@@ -559,11 +484,11 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               Relatório para Pais
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Visão consolidada do acompanhamento do aluno — compartilhe com a família.
+              Relatório completo com PEI, barreiras, evolução e atividades — compartilhe com a família.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportReportPdf} className="gap-1.5">
-            <Download className="w-4 h-4" /> Exportar PDF
+          <Button size="sm" onClick={handleExportReportPdf} className="gap-1.5">
+            <Download className="w-4 h-4" /> Baixar Relatório Completo (PDF)
           </Button>
         </div>
 
@@ -628,7 +553,32 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </Card>
           )}
 
-          {/* Barrier chart */}
+          {/* PEI Text Sections */}
+          {peiForm.student_profile && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Perfil do Aluno</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.student_profile}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.curricular_adaptations && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Adaptações Curriculares</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.curricular_adaptations}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.resources_and_support && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Recursos e Apoios</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.resources_and_support}</p></CardContent>
+            </Card>
+          )}
+          {peiForm.pedagogical_strategies && (
+            <Card className="border-border">
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Estratégias Pedagógicas</CardTitle></CardHeader>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.pedagogical_strategies}</p></CardContent>
+            </Card>
+          )}
+
           {topBarriers.length > 0 && (
             <Card className="border-border">
               <CardHeader className="pb-2">

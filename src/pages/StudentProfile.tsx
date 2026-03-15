@@ -98,6 +98,7 @@ export default function StudentProfile() {
     onSuccess: () => {
       toast.success("Observações salvas!");
       queryClient.invalidateQueries({ queryKey: ["student", alunoId] });
+      navigate(`/dashboard/turmas/${classId}`);
     },
     onError: () => toast.error("Erro ao salvar observações."),
   });
@@ -130,6 +131,7 @@ export default function StudentProfile() {
               <CardContent className="space-y-3">
                 <div className="relative">
                   <Textarea
+                    className="border-border focus-visible:ring-muted-foreground/30"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
                     placeholder="Anotações sobre o aluno..."
@@ -191,7 +193,7 @@ export default function StudentProfile() {
 
         <TabsContent value="pei" className="mt-4">
           {alunoId && classId && (
-            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} />
+            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} onSaved={() => navigate(`/dashboard/turmas/${classId}`)} />
           )}
         </TabsContent>
       </Tabs>
