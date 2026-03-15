@@ -576,35 +576,6 @@ export default function AdaptationEditModal({
               )}
             </div>
 
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/30 space-y-2">
-              <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Gerar imagem com IA
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={imagePrompt}
-                  onChange={(e) => setImagePrompt(e.target.value)}
-                  placeholder="Ex: Gráfico de onda senoidal com amplitude 10cm"
-                  className="text-sm"
-                  maxLength={500}
-                  onKeyDown={(e) => e.key === "Enter" && !generatingImage && generateImage()}
-                />
-                <Button
-                  size="sm"
-                  onClick={generateImage}
-                  disabled={generatingImage || !imagePrompt.trim()}
-                  className="shrink-0"
-                >
-                  {generatingImage ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <ImageIcon className="w-4 h-4 mr-1" /> Gerar
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
