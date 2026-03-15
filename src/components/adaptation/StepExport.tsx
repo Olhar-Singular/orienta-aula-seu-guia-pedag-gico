@@ -200,38 +200,6 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-md transition-all" onClick={handleCopy}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              <Copy className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="font-medium text-foreground">Copiar Texto</p>
-              <p className="text-sm text-muted-foreground">Copiar adaptação para a área de transferência</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="cursor-pointer hover:shadow-md transition-all sm:col-span-2" onClick={!shareUrl ? handleShare : undefined}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="p-3 rounded-lg bg-accent/10 text-accent">
-              {sharing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Share2 className="w-6 h-6" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-foreground">Compartilhar Link</p>
-              <p className="text-sm text-muted-foreground">Link público que expira em 7 dias</p>
-              {shareUrl && (
-                <div className="flex items-center gap-2 mt-2">
-                  <Input value={shareUrl} readOnly className="text-xs font-mono h-8" />
-                  <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); copyShareUrl(); }} className="shrink-0 gap-1">
-                    {copied ? <Check className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
-                    {copied ? "Copiado" : "Copiar"}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="flex justify-between">
