@@ -382,16 +382,6 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </p>
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={generatePeiWithAI}
-              disabled={aiLoading}
-              className="gap-1.5"
-            >
-              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {aiLoading ? "Gerando…" : "Gerar com ISA"}
-            </Button>
             <Button size="sm" onClick={() => savePei.mutate()} disabled={savePei.isPending} className="gap-1.5">
               <Save className="w-4 h-4" /> Salvar PEI
             </Button>
