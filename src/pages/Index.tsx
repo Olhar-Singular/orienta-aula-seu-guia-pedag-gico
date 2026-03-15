@@ -233,7 +233,7 @@ export default function Index() {
             </div>
             <div className="bg-card rounded-xl p-8 border border-border shadow-card">
               <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-                <p className="font-semibold text-foreground text-base">⚠️ O Orienta Aula NÃO:</p>
+                <p className="font-semibold text-foreground text-base">⚠️ O Olhar Singular NÃO:</p>
                 <ul className="space-y-2" role="list">
                   <li>• Realiza diagnóstico de qualquer tipo</li>
                   <li>• Interpreta laudos clínicos</li>
