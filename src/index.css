@@ -111,19 +111,19 @@
 
 @layer utilities {
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(174 62% 34%), hsl(174 45% 28%));
+    background: linear-gradient(135deg, hsl(195 35% 38%), hsl(195 30% 28%));
   }
 
   .gradient-accent {
-    background: linear-gradient(135deg, hsl(35 92% 55%), hsl(25 90% 50%));
+    background: linear-gradient(135deg, hsl(40 55% 50%), hsl(35 50% 45%));
   }
 
   .gradient-subtle {
-    background: linear-gradient(180deg, hsl(40 25% 97%), hsl(174 20% 95%));
+    background: linear-gradient(180deg, hsl(40 20% 96%), hsl(195 15% 94%));
   }
 
   .text-gradient-hero {
-    background: linear-gradient(135deg, hsl(174 62% 34%), hsl(174 62% 24%));
+    background: linear-gradient(135deg, hsl(195 35% 38%), hsl(195 35% 28%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
