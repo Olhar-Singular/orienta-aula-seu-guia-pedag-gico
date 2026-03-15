@@ -396,7 +396,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
             </CardContent>
           </Card>
         ) : (
-          <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-2">
+          <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-3">
             {/* Profile */}
             <AccordionItem value="profile" className="border border-border rounded-lg px-4">
               <AccordionTrigger className="text-sm font-semibold">
