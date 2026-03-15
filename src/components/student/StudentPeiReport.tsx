@@ -557,11 +557,11 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               Relatório para Pais
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Visão consolidada do acompanhamento do aluno — compartilhe com a família.
+              Relatório completo com PEI, barreiras, evolução e atividades — compartilhe com a família.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExportReportPdf} className="gap-1.5">
-            <Download className="w-4 h-4" /> Exportar PDF
+          <Button size="sm" onClick={handleExportReportPdf} className="gap-1.5">
+            <Download className="w-4 h-4" /> Baixar Relatório Completo (PDF)
           </Button>
         </div>
 
