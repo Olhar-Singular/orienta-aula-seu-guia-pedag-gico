@@ -167,7 +167,7 @@ function buildSections(data: ExportData): string[] {
   sections.push(`
     <div style="${BASE_STYLE}">
       <div style="margin-top:8px;padding-top:10px;border-top:1px solid #eee;font-size:10px;color:#999;font-style:italic;">
-        Gerado por Orienta Aula — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
+        Gerado por Olhar Singular — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
       </div>
     </div>
   `);

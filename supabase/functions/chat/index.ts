@@ -24,7 +24,7 @@ REGRAS:
 Você pode:
 - Sugerir estratégias de adaptação
 - Ajudar a pensar em atividades
-- Esclarecer dúvidas sobre o uso do Orienta Aula
+- Esclarecer dúvidas sobre o uso do Olhar Singular
 - Dar exemplos práticos de adaptação
 - Analisar imagens de atividades, provas, cadernos e materiais didáticos
 
