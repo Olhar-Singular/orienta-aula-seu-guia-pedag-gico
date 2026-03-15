@@ -304,7 +304,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Olhar Singular" className="h-8 w-auto" loading="lazy" />
+              <img src={logoLightImg} alt="Olhar Singular" className="h-10 w-auto" loading="lazy" />
               <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
