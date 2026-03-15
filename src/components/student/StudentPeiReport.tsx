@@ -177,79 +177,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     onError: () => toast.error("Erro ao salvar PEI."),
   });
 
-  const generatePeiWithAI = async () => {
-    setAiLoading(true);
-    try {
-      const activeBarriers = (barriers || []).filter((b) => b.is_active);
-      const barrierLabels = activeBarriers.map((b) => barrierLabel(b.barrier_key));
-      const dimensions = [...new Set(activeBarriers.map((b) => {
-        const dim = BARRIER_DIMENSIONS.find((d) => d.key === b.dimension);
-        return dim?.label || b.dimension;
-      }))];
 
-      const adaptationCount = (history || []).length;
-      const recentStrategies = new Set<string>();
-      (history || []).slice(-5).forEach((h) => {
-        const r = h.adaptation_result as any;
-        if (r?.strategies_applied) {
-          (r.strategies_applied as string[]).forEach((s) => recentStrategies.add(s));
-        }
-      });
-
-      const prompt = `Você é ISA, especialista em educação inclusiva. Gere um PEI (Plano Educacional Individualizado) completo para o aluno "${studentName}" com base nos seguintes dados:
-
-BARREIRAS IDENTIFICADAS (${activeBarriers.length}):
-${barrierLabels.map((b) => `- ${b}`).join("\n") || "Nenhuma barreira registrada."}
-
-DIMENSÕES AFETADAS: ${dimensions.join(", ") || "Nenhuma"}
-
-OBSERVAÇÕES DO PROFESSOR:
-${student?.notes || "Sem observações registradas."}
-
-HISTÓRICO: ${adaptationCount} adaptação(ões) realizada(s).
-ESTRATÉGIAS RECENTES UTILIZADAS: ${[...recentStrategies].join(", ") || "Nenhuma"}
-
-Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
-{
-  "student_profile": "Descrição do perfil do aluno com habilidades, dificuldades e estilo de aprendizagem",
-  "goals": [
-    {"id": "1", "area": "Área (ex: Comunicação)", "description": "Meta específica e mensurável", "deadline": "Prazo (ex: Final do 1º semestre)", "status": "pendente"},
-    {"id": "2", "area": "Área", "description": "Descrição", "deadline": "Prazo", "status": "pendente"}
-  ],
-  "curricular_adaptations": "Adaptações curriculares recomendadas",
-  "resources_and_support": "Recursos, profissionais e tecnologias assistivas recomendados",
-  "pedagogical_strategies": "Estratégias pedagógicas específicas",
-  "review_schedule": "Cronograma de revisão e acompanhamento"
-}`;
-
-      const response = await supabase.functions.invoke("chat", {
-        body: { messages: [{ role: "user", content: prompt }] },
-      });
-
-      if (response.error) throw response.error;
-
-      const text = response.data?.reply || response.data?.content || "";
-      // Extract JSON from response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("Resposta inválida da IA");
-
-      const parsed = JSON.parse(jsonMatch[0]);
-      setPeiForm({
-        student_profile: parsed.student_profile || "",
-        goals: Array.isArray(parsed.goals) ? parsed.goals : [],
-        curricular_adaptations: parsed.curricular_adaptations || "",
-        resources_and_support: parsed.resources_and_support || "",
-        pedagogical_strategies: parsed.pedagogical_strategies || "",
-        review_schedule: parsed.review_schedule || "",
-        additional_notes: peiForm.additional_notes,
-      });
-      toast.success("PEI gerado pela ISA! Revise e salve.");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao gerar PEI com IA.");
-    }
-    setAiLoading(false);
-  };
 
   const addGoal = () => {
     setPeiForm((prev) => ({
