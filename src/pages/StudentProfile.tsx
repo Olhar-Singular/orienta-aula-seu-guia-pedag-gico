@@ -131,6 +131,7 @@ export default function StudentProfile() {
               <CardContent className="space-y-3">
                 <div className="relative">
                   <Textarea
+                    className="border-border focus-visible:ring-muted-foreground/30"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, MAX_NOTES_LENGTH))}
                     placeholder="Anotações sobre o aluno..."
