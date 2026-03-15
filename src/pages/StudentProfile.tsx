@@ -118,6 +118,7 @@ export default function StudentProfile() {
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil & Barreiras</TabsTrigger>
           <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
+          <TabsTrigger value="pei" className="flex-1 sm:flex-none">PEI & Relatório</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-6 mt-4">
