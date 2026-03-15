@@ -171,7 +171,7 @@ export default function SharedAdaptation() {
         )}
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          Gerado por Orienta Aula — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
+          Gerado por Olhar Singular — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </main>
     </div>
