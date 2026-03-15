@@ -4,8 +4,7 @@ import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import logoImg from "@/assets/logo-olhar-singular-sm.png";
-import logoLightImg from "@/assets/logo-olhar-singular-light.png";
+import logoEyeImg from "@/assets/logo-eye.png";
 
 
 const navItems = [
@@ -51,8 +50,9 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 gradient-hero text-primary-foreground shrink-0 sticky top-0 h-screen overflow-y-auto" role="navigation" aria-label="Menu principal">
         <div className="p-3 flex justify-center">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <img src={logoLightImg} alt="Olhar Singular - Ir para o Dashboard" className="h-16 w-auto" />
+          <Link to="/dashboard" className="flex flex-col items-center gap-1">
+            <img src={logoEyeImg} alt="Olhar Singular" className="h-14 w-auto" />
+            <span className="text-[10px] font-semibold text-primary-foreground/80 tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1" aria-label="Navegação do dashboard">
@@ -94,7 +94,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 gradient-hero text-primary-foreground px-4 py-3 flex items-center justify-between">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <img src={logoLightImg} alt="Olhar Singular" className="h-8 w-auto" />
+          <img src={logoEyeImg} alt="Olhar Singular" className="h-8 w-auto" />
+          <span className="text-[10px] font-semibold text-primary-foreground/80 tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
