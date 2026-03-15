@@ -67,7 +67,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src={logoIconImg} alt="Olhar Singular" className="h-10 w-auto" loading="eager" />
-            <span className="text-sm font-bold text-foreground tracking-wide uppercase">Olhar Singular</span>
+            <span className="text-xs font-semibold text-primary tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
           </Link>
           <nav className="hidden sm:flex items-center gap-6" aria-label="Navegação principal">
             <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como funciona</a>
