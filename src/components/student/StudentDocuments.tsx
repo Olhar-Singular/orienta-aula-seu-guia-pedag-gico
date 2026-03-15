@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Upload,
   FileText,
@@ -16,6 +17,11 @@ import {
   BookOpen,
   ClipboardList,
   Briefcase,
+  Target,
+  Copy,
+  Printer,
+  Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   Select,
@@ -24,6 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { BARRIER_DIMENSIONS } from "@/lib/barriers";
+import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRenderer";
+import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
+import { exportToPdf } from "@/lib/exportPdf";
 
 const CATEGORIES = [
   { key: "prova", label: "Provas", icon: FileSpreadsheet },
@@ -37,12 +47,27 @@ const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
   CATEGORIES.map((c) => [c.key, c.label])
 );
 
+const ACTIVITY_TYPES: Record<string, string> = {
+  prova: "Prova",
+  exercicio: "Exercício",
+  atividade_casa: "Atividade de Casa",
+  trabalho: "Trabalho",
+};
+
 const ACTIVITY_TYPE_TO_CATEGORY: Record<string, string> = {
   prova: "prova",
   exercicio: "exercicio",
   atividade_casa: "atividade_casa",
   trabalho: "trabalho",
 };
+
+function barrierLabel(key: string): string {
+  for (const dim of BARRIER_DIMENSIONS) {
+    const b = dim.barriers.find((b) => b.key === key);
+    if (b) return b.label;
+  }
+  return key;
+}
 
 type Props = {
   studentId: string;
@@ -54,6 +79,8 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadCategory, setUploadCategory] = useState("outros");
   const [filter, setFilter] = useState<string>("all");
+  const [viewAdaptation, setViewAdaptation] = useState<any | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Fetch adaptations linked to this student
   const { data: adaptations } = useQuery({
@@ -61,7 +88,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("adaptations_history")
-        .select("id, activity_type, original_activity, adaptation_result, created_at")
+        .select("id, activity_type, original_activity, adaptation_result, barriers_used, created_at")
         .eq("student_id", studentId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -92,10 +119,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
         .upload(path, file);
       if (storageError) throw storageError;
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       const { error: dbError } = await supabase.from("student_files").insert({
         student_id: studentId,
         teacher_id: user!.id,
@@ -138,24 +162,17 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
   };
 
   const downloadFile = async (filePath: string, fileName: string) => {
-    const { data, error } = await supabase.storage
-      .from("activity-files")
-      .download(filePath);
-    if (error || !data) {
-      toast.error("Erro ao baixar arquivo.");
-      return;
-    }
+    const { data, error } = await supabase.storage.from("activity-files").download(filePath);
+    if (error || !data) { toast.error("Erro ao baixar arquivo."); return; }
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
+    a.href = url; a.download = fileName; a.click();
     URL.revokeObjectURL(url);
   };
 
   // Merge adaptations + uploads into a unified list
   type DocItem =
-    | { type: "adaptation"; id: string; category: string; label: string; date: string; preview: string }
+    | { type: "adaptation"; id: string; category: string; label: string; date: string; preview: string; raw: any }
     | { type: "file"; id: string; category: string; label: string; date: string; filePath: string; fileSize: number | null };
 
   const allDocs: DocItem[] = [];
@@ -171,6 +188,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
       preview: typeof a.adaptation_result === "object" && a.adaptation_result !== null
         ? ((a.adaptation_result as any).version_universal || "").slice(0, 100)
         : "",
+      raw: a,
     });
   });
 
@@ -187,17 +205,156 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
   });
 
   allDocs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
   const filtered = filter === "all" ? allDocs : allDocs.filter((d) => d.category === filter);
 
   const formatDate = (d: string) =>
     d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
-
   const formatSize = (bytes: number | null) => {
     if (!bytes) return "";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // Detail dialog helpers
+  const renderAdaptationDetail = () => {
+    if (!viewAdaptation) return null;
+    const result = viewAdaptation.adaptation_result as any;
+    const barriers = Array.isArray(viewAdaptation.barriers_used) ? viewAdaptation.barriers_used : [];
+
+    const savedImages: string[] = Array.isArray(result?.question_images)
+      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
+      : [];
+
+    const buildImageMap = (content: string) => {
+      if (savedImages.length === 0) return {};
+      const questions = parseAdaptedQuestions(content || "");
+      if (questions.length === 0) return {};
+      const lastQ = questions[questions.length - 1];
+      return { [lastQ.number]: savedImages };
+    };
+
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-2 flex-wrap">
+          <Badge>{ACTIVITY_TYPES[viewAdaptation.activity_type || ""] || "Atividade"}</Badge>
+          <Badge variant="outline">{new Date(viewAdaptation.created_at).toLocaleDateString("pt-BR")}</Badge>
+          <Badge variant="secondary">{studentName}</Badge>
+        </div>
+
+        <div>
+          <h4 className="text-sm font-semibold text-foreground mb-1">Atividade Original</h4>
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted rounded-lg p-3">
+            {viewAdaptation.original_activity}
+          </p>
+        </div>
+
+        {barriers.length > 0 && (
+          <div>
+            <h4 className="text-sm font-semibold text-foreground mb-1">Barreiras</h4>
+            <div className="flex flex-wrap gap-1">
+              {barriers.map((b: any, i: number) => (
+                <Badge key={i} variant="outline" className="text-xs">
+                  {barrierLabel(b.barrier_key || b)}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result && (
+          <>
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+              </h4>
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <AdaptedContentRenderer content={result.version_universal || ""} questionImages={buildImageMap(result.version_universal)} />
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+              </h4>
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <AdaptedContentRenderer content={result.version_directed || ""} questionImages={buildImageMap(result.version_directed)} />
+              </div>
+            </div>
+
+            {savedImages.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
+                  <ImageIcon className="w-4 h-4 text-primary" /> Imagens da Atividade
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {savedImages.map((url: string, i: number) => (
+                    <img key={i} src={url} alt={`Imagem ${i + 1}`} className="max-h-40 rounded-lg border border-border object-contain" crossOrigin="anonymous" />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-1">Justificativa Pedagógica</h4>
+              <p className="text-sm text-muted-foreground">{result.pedagogical_justification}</p>
+            </div>
+            {result.strategies_applied && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1">Estratégias</h4>
+                <div className="flex flex-wrap gap-1">
+                  {(result.strategies_applied as string[]).map((s: string, i: number) => (
+                    <Badge key={i} variant="secondary" className="text-xs">{s}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.implementation_tips && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-1">Dicas de Implementação</h4>
+                <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+                  {(result.implementation_tips as string[]).map((tip: string, i: number) => (
+                    <li key={i}>{tip}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 pt-4 border-t">
+              <Button variant="outline" size="sm" onClick={() => {
+                const text = `Versão Universal:\n${result.version_universal || ""}\n\nVersão Direcionada:\n${result.version_directed || ""}\n\nJustificativa:\n${result.pedagogical_justification || ""}`;
+                navigator.clipboard.writeText(text);
+                toast.success("Conteúdo copiado!");
+              }}>
+                <Copy className="w-4 h-4 mr-1" /> Copiar
+              </Button>
+              <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
+                setExportingPdf(true);
+                try {
+                  await exportToPdf({
+                    studentName,
+                    activityType: viewAdaptation.activity_type || undefined,
+                    date: new Date(viewAdaptation.created_at).toLocaleDateString("pt-BR"),
+                    versionUniversal: result.version_universal || "",
+                    versionDirected: result.version_directed || "",
+                    strategiesApplied: result.strategies_applied || [],
+                    pedagogicalJustification: result.pedagogical_justification || "",
+                    implementationTips: result.implementation_tips || [],
+                    images: savedImages,
+                  });
+                  toast.success("PDF exportado!");
+                } catch {
+                  toast.error("Erro ao gerar PDF");
+                }
+                setExportingPdf(false);
+              }}>
+                {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
+                {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -217,43 +374,23 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((c) => (
-                  <SelectItem key={c.key} value={c.key}>
-                    {c.label}
-                  </SelectItem>
+                  <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadFile.isPending}
-            >
+            <Button variant="outline" size="sm" className="gap-2" onClick={() => fileInputRef.current?.click()} disabled={uploadFile.isPending}>
               <Upload className="w-4 h-4" />
               {uploadFile.isPending ? "Enviando…" : "Escolher arquivo"}
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
-              onChange={handleFileChange}
-            />
+            <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" onChange={handleFileChange} />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            PDF, DOC, DOCX ou imagens (máx. 10MB)
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">PDF, DOC, DOCX ou imagens (máx. 10MB)</p>
         </CardContent>
       </Card>
 
       {/* Filter */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Button
-          variant={filter === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilter("all")}
-        >
+        <Button variant={filter === "all" ? "default" : "outline"} size="sm" onClick={() => setFilter("all")}>
           Todos ({allDocs.length})
         </Button>
         {CATEGORIES.map((c) => {
@@ -261,13 +398,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
           if (count === 0) return null;
           const Icon = c.icon;
           return (
-            <Button
-              key={c.key}
-              variant={filter === c.key ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(c.key)}
-              className="gap-1.5"
-            >
+            <Button key={c.key} variant={filter === c.key ? "default" : "outline"} size="sm" onClick={() => setFilter(c.key)} className="gap-1.5">
               <Icon className="w-3.5 h-3.5" />
               {c.label} ({count})
             </Button>
@@ -280,12 +411,8 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
         <Card className="border-border">
           <CardContent className="py-10 text-center">
             <FolderOpen className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground text-sm">
-              Nenhum documento encontrado para {studentName}.
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Adaptações vinculadas e arquivos enviados aparecerão aqui.
-            </p>
+            <p className="text-muted-foreground text-sm">Nenhum documento encontrado para {studentName}.</p>
+            <p className="text-xs text-muted-foreground mt-1">Adaptações vinculadas e arquivos enviados aparecerão aqui.</p>
           </CardContent>
         </Card>
       ) : (
@@ -321,33 +448,15 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {doc.type === "adaptation" ? (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      title="Ver adaptação"
-                      onClick={() => window.open(`/dashboard/minhas-adaptacoes`, "_self")}
-                    >
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver detalhes" onClick={() => setViewAdaptation(doc.raw)}>
                       <Eye className="w-4 h-4" />
                     </Button>
                   ) : (
                     <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        title="Baixar"
-                        onClick={() => downloadFile(doc.filePath, doc.label)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Baixar" onClick={() => downloadFile(doc.filePath, doc.label)}>
                         <Download className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        title="Excluir"
-                        onClick={() => deleteFile.mutate({ id: doc.id, filePath: doc.filePath })}
-                      >
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" onClick={() => deleteFile.mutate({ id: doc.id, filePath: doc.filePath })}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
@@ -358,6 +467,16 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
           ))}
         </div>
       )}
+
+      {/* Adaptation Detail Dialog */}
+      <Dialog open={!!viewAdaptation} onOpenChange={() => setViewAdaptation(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Adaptação</DialogTitle>
+          </DialogHeader>
+          {renderAdaptationDetail()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
