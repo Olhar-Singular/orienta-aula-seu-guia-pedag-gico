@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import logoImg from "@/assets/logo-orienta-aula-eye.png";
+import logoImg from "@/assets/logo-olhar-singular-sm.png";
 
 export default function Login() {
   const navigate = useNavigate();
