@@ -161,45 +161,53 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">Exportar e Salvar</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Card className="cursor-pointer hover:shadow-md transition-all" onClick={handleSaveHistory}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className={`p-3 rounded-lg ${saved ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-              {saved ? <Check className="w-6 h-6" /> : <Save className="w-6 h-6" />}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card
+          className="cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-primary/20"
+          onClick={handleSaveHistory}
+        >
+          <CardContent className="flex flex-col items-center text-center gap-3 p-6">
+            <div className={`p-4 rounded-xl transition-colors duration-300 ${saved ? "bg-primary text-primary-foreground shadow-md" : "bg-primary/10 text-primary group-hover:bg-primary/20"}`}>
+              {saved ? <Check className="w-7 h-7" /> : <Save className="w-7 h-7" />}
             </div>
             <div>
-              <p className="font-medium text-foreground">
-                {saving ? "Salvando..." : saved ? "Salvo no Histórico" : "Salvar no Histórico"}
+              <p className="font-semibold text-foreground text-base">
+                {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar no Histórico"}
               </p>
-              <p className="text-sm text-muted-foreground">Acesse depois em "Minhas Adaptações"</p>
+              <p className="text-xs text-muted-foreground mt-1">Acesse depois em "Minhas Adaptações"</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`cursor-pointer hover:shadow-md transition-all ${exportingPdf ? "opacity-70 pointer-events-none" : ""}`} onClick={handleExportPdf}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              {exportingPdf ? <Loader2 className="w-6 h-6 animate-spin" /> : <FileText className="w-6 h-6" />}
+        <Card
+          className={`cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-destructive/20 ${exportingPdf ? "opacity-70 pointer-events-none" : ""}`}
+          onClick={handleExportPdf}
+        >
+          <CardContent className="flex flex-col items-center text-center gap-3 p-6">
+            <div className="p-4 rounded-xl bg-destructive/10 text-destructive group-hover:bg-destructive/20 transition-colors duration-300">
+              {exportingPdf ? <Loader2 className="w-7 h-7 animate-spin" /> : <FileText className="w-7 h-7" />}
             </div>
             <div>
-              <p className="font-medium text-foreground">{exportingPdf ? "Gerando PDF..." : "Exportar como PDF"}</p>
-              <p className="text-sm text-muted-foreground">Com cabeçalho e rodapé formatados</p>
+              <p className="font-semibold text-foreground text-base">{exportingPdf ? "Gerando..." : "Exportar PDF"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Com cabeçalho e rodapé formatados</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`cursor-pointer hover:shadow-md transition-all ${exportingDocx ? "opacity-70 pointer-events-none" : ""}`} onClick={handleExportDocx}>
-          <CardContent className="flex items-center gap-4 p-5">
-            <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              {exportingDocx ? <Loader2 className="w-6 h-6 animate-spin" /> : <FileDown className="w-6 h-6" />}
+        <Card
+          className={`cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-blue-500/20 ${exportingDocx ? "opacity-70 pointer-events-none" : ""}`}
+          onClick={handleExportDocx}
+        >
+          <CardContent className="flex flex-col items-center text-center gap-3 p-6">
+            <div className="p-4 rounded-xl bg-blue-500/10 text-blue-600 group-hover:bg-blue-500/20 transition-colors duration-300">
+              {exportingDocx ? <Loader2 className="w-7 h-7 animate-spin" /> : <FileDown className="w-7 h-7" />}
             </div>
             <div>
-              <p className="font-medium text-foreground">{exportingDocx ? "Gerando Word..." : "Exportar como Word"}</p>
-              <p className="text-sm text-muted-foreground">Arquivo .docx editável com imagens</p>
+              <p className="font-semibold text-foreground text-base">{exportingDocx ? "Gerando..." : "Exportar Word"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Arquivo .docx editável com imagens</p>
             </div>
           </CardContent>
         </Card>
-
       </div>
 
       <div className="flex justify-between">
