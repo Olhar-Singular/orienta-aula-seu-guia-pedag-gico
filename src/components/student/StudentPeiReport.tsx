@@ -334,6 +334,10 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </p>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={generateWithISA} disabled={isGenerating} className="gap-1.5">
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              Gerar com ISA
+            </Button>
             <Button size="sm" onClick={() => savePei.mutate()} disabled={savePei.isPending} className="gap-1.5">
               <Save className="w-4 h-4" /> Salvar PEI
             </Button>
