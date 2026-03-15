@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 import StudentDocuments from "@/components/student/StudentDocuments";
+import StudentPeiReport from "@/components/student/StudentPeiReport";
 
 const MAX_NOTES_LENGTH = 1000;
 
