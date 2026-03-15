@@ -30,6 +30,7 @@ import {
   Calendar,
   Plus,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
@@ -75,6 +76,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // PEI form state
   const [peiForm, setPeiForm] = useState({
