@@ -63,7 +63,7 @@ export default function ClassDetail() {
       setAddOpen(false);
       setStudentName("");
       setStudentCode("");
-      navigate("/dashboard/turmas");
+      
     },
     onError: () => toast.error("Erro ao adicionar aluno."),
   });
