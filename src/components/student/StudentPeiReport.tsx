@@ -536,6 +536,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
           </CardHeader>
           <CardContent>
             <Textarea
+              className="border-border focus-visible:ring-muted-foreground/30"
               value={peiForm.additional_notes}
               onChange={(e) => setPeiForm((p) => ({ ...p, additional_notes: e.target.value }))}
               placeholder="Anotações extras do professor sobre o PEI…"
