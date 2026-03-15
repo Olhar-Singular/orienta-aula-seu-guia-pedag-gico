@@ -173,6 +173,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     onSuccess: () => {
       toast.success("PEI salvo!");
       queryClient.invalidateQueries({ queryKey: ["student-pei", studentId] });
+      onSaved?.();
     },
     onError: () => toast.error("Erro ao salvar PEI."),
   });
