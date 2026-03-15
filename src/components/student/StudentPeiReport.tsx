@@ -518,6 +518,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.review_schedule}
                   onChange={(e) => setPeiForm((p) => ({ ...p, review_schedule: e.target.value }))}
                   placeholder="Como e quando o plano será avaliado e atualizado…"
