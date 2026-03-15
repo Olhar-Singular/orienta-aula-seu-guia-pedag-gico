@@ -30,6 +30,7 @@ import {
   Calendar,
   Plus,
   Trash2,
+  Wand2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
@@ -75,6 +76,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // PEI form state
   const [peiForm, setPeiForm] = useState({
@@ -177,8 +179,31 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     onError: () => toast.error("Erro ao salvar PEI."),
   });
 
+  const generateWithISA = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-pei", {
+        body: { student_id: studentId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-
+      setPeiForm((prev) => ({
+        ...prev,
+        student_profile: data.student_profile || prev.student_profile,
+        goals: Array.isArray(data.goals) ? data.goals : prev.goals,
+        curricular_adaptations: data.curricular_adaptations || prev.curricular_adaptations,
+        resources_and_support: data.resources_and_support || prev.resources_and_support,
+        pedagogical_strategies: data.pedagogical_strategies || prev.pedagogical_strategies,
+        review_schedule: data.review_schedule || prev.review_schedule,
+      }));
+      toast.success("PEI gerado pela ISA! Revise e salve.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar PEI com ISA.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   const addGoal = () => {
     setPeiForm((prev) => ({
       ...prev,
@@ -309,6 +334,10 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </p>
           </div>
           <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={generateWithISA} disabled={isGenerating} className="gap-1.5">
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              Gerar com ISA
+            </Button>
             <Button size="sm" onClick={() => savePei.mutate()} disabled={savePei.isPending} className="gap-1.5">
               <Save className="w-4 h-4" /> Salvar PEI
             </Button>

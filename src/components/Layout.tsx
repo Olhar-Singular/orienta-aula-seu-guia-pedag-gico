@@ -48,7 +48,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       </a>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-64 gradient-hero text-primary-foreground shrink-0" role="navigation" aria-label="Menu principal">
+      <aside className="hidden lg:flex flex-col w-64 gradient-hero text-primary-foreground shrink-0 sticky top-0 h-screen overflow-y-auto" role="navigation" aria-label="Menu principal">
         <div className="p-3 flex justify-center">
           <Link to="/dashboard" className="flex items-center gap-2">
             <img src={logoImg} alt="Orienta Aula - Ir para o Dashboard" className="h-14 w-auto" />
