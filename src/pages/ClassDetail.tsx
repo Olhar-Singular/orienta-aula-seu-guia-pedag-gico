@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Plus, ArrowLeft, Upload, Trash2, User } from "lucide-react";
+import { Plus, ArrowLeft, Upload, Trash2, User, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -124,6 +124,11 @@ export default function ClassDetail() {
             </div>
             <div className="flex gap-2">
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleCsvImport} />
+              <a href="/modelo-lista-alunos.csv" download className="inline-flex">
+                <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5">
+                  <Download className="w-4 h-4" /> Baixar Modelo
+                </Button>
+              </a>
               <Button variant="outline" onClick={() => fileRef.current?.click()}>
                 <Upload className="w-4 h-4 mr-2" /> Importar Lista
               </Button>
