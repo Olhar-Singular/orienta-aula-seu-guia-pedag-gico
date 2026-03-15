@@ -404,6 +404,7 @@ Gere o PEI no seguinte formato JSON (sem markdown, apenas JSON puro):
               </AccordionTrigger>
               <AccordionContent>
                 <Textarea
+                  className="border-border focus-visible:ring-muted-foreground/30"
                   value={peiForm.student_profile}
                   onChange={(e) => setPeiForm((p) => ({ ...p, student_profile: e.target.value }))}
                   placeholder="Descreva habilidades, dificuldades, interesses e estilo de aprendizagem do aluno…"
