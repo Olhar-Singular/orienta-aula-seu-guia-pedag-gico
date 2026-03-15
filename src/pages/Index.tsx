@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, CheckCircle2, ShieldAlert, Clock, BookOpen, Brain, HeartHandshake, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoEyeImg from "@/assets/logo-eye.png";
-import logoFooterImg from "@/assets/logo-olho-singular-footer-transparent.png";
+import logoFooterImg from "@/assets/logo-eye-only.png";
 import heroImg from "@/assets/hero-classroom.png";
 
 const painPoints = [
@@ -305,7 +305,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src={logoFooterImg} alt="Olhar Singular" className="h-14 w-auto" loading="lazy" />
+              <img src={logoFooterImg} alt="Olhar Singular" className="h-16 w-auto" loading="lazy" />
               <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
