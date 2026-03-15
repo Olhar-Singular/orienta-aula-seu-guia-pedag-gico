@@ -99,7 +99,7 @@ export async function exportToDocx(data: DocxExportData) {
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 children: [
-                  new TextRun({ text: "Gerado por Orienta Aula — Ferramenta pedagógica. Não realiza diagnóstico.", italics: true, size: 16, color: "999999" }),
+                  new TextRun({ text: "Gerado por Olhar Singular — Ferramenta pedagógica. Não realiza diagnóstico.", italics: true, size: 16, color: "999999" }),
                 ],
               }),
             ],
