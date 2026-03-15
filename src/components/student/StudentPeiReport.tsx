@@ -204,8 +204,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
       setIsGenerating(false);
     }
   };
-
-
+  const addGoal = () => {
     setPeiForm((prev) => ({
       ...prev,
       goals: [
