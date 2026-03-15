@@ -2,8 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, CheckCircle2, ShieldAlert, Clock, BookOpen, Brain, HeartHandshake, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImg from "@/assets/logo-olhar-singular-white.png";
-import logoEyeImg from "@/assets/logo-eye-only.png";
+import logoIconImg from "@/assets/logo-icon.png";
 import heroImg from "@/assets/hero-classroom.png";
 
 const painPoints = [
@@ -67,7 +66,8 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logoImg} alt="Olhar Singular" className="h-12 w-auto" loading="eager" />
+            <img src={logoIconImg} alt="Olhar Singular" className="h-10 w-auto" loading="eager" />
+            <span className="text-sm font-bold text-foreground tracking-wide uppercase">Olhar Singular</span>
           </Link>
           <nav className="hidden sm:flex items-center gap-6" aria-label="Navegação principal">
             <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como funciona</a>
@@ -304,7 +304,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src={logoEyeImg} alt="Olhar Singular" className="h-10 w-auto" loading="lazy" />
+              <img src={logoIconImg} alt="Olhar Singular" className="h-10 w-auto" loading="lazy" />
               <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
