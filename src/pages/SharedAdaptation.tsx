@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import logoImg from "@/assets/logo-orienta-aula-eye.png";
+import logoImg from "@/assets/logo-olhar-singular-sm.png";
 
 type SharedData = {
   expires_at: string;
@@ -87,7 +87,7 @@ export default function SharedAdaptation() {
       {/* Public header */}
       <header className="border-b border-border px-6 py-4 flex items-center justify-between">
         <Link to="/">
-          <img src={logoImg} alt="Orienta Aula" className="h-8 w-auto" />
+          <img src={logoImg} alt="Olhar Singular" className="h-8 w-auto" />
         </Link>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Clock className="w-3.5 h-3.5" />
@@ -171,7 +171,7 @@ export default function SharedAdaptation() {
         )}
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          Gerado por Orienta Aula — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
+          Gerado por Olhar Singular — Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.
         </p>
       </main>
     </div>

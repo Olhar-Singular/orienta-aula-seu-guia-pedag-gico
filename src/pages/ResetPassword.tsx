@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import logoImg from "@/assets/logo-orienta-aula-eye.png";
+import logoImg from "@/assets/logo-olhar-singular-sm.png";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md text-center space-y-4">
-          <img src={logoImg} alt="Orienta Aula" className="h-10 w-auto mx-auto" />
+          <img src={logoImg} alt="Olhar Singular" className="h-10 w-auto mx-auto" />
           <Card className="shadow-card-hover">
             <CardContent className="p-6 space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -75,7 +75,7 @@ export default function ResetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center gap-2 justify-center mb-8">
-          <img src={logoImg} alt="Orienta Aula" className="h-10 w-auto" />
+          <img src={logoImg} alt="Olhar Singular" className="h-10 w-auto" />
         </Link>
 
         <Card className="shadow-card-hover">

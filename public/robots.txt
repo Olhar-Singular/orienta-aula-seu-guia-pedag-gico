@@ -19,4 +19,4 @@ Disallow: /create
 Disallow: /my-adaptations
 Disallow: /pricing
 
-Sitemap: https://orientaaula.com.br/sitemap.xml
+Sitemap: https://olharsingular.com.br/sitemap.xml

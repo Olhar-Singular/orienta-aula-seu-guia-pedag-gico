@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `Você é o assistente pedagógico do Orienta Aula — um chat de apoio para professores, pedagogos e terapeutas.
+const SYSTEM_PROMPT = `Você é o assistente pedagógico do Olhar Singular — um chat de apoio para professores, pedagogos e terapeutas.
 
 REGRAS:
 - Você NÃO realiza diagnóstico.
@@ -24,7 +24,7 @@ REGRAS:
 Você pode:
 - Sugerir estratégias de adaptação
 - Ajudar a pensar em atividades
-- Esclarecer dúvidas sobre o uso do Orienta Aula
+- Esclarecer dúvidas sobre o uso do Olhar Singular
 - Dar exemplos práticos de adaptação
 - Analisar imagens de atividades, provas, cadernos e materiais didáticos
 

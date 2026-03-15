@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, CheckCircle2, ShieldAlert, Clock, BookOpen, Brain, HeartHandshake, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import logoImg from "@/assets/logo-orienta-aula-eye.png";
+import logoImg from "@/assets/logo-olhar-singular-sm.png";
 import heroImg from "@/assets/hero-classroom.png";
 
 const painPoints = [
@@ -42,7 +42,7 @@ const benefits = [
 
 const faq = [
   {
-    q: "O Orienta Aula faz diagnóstico?",
+    q: "O Olhar Singular faz diagnóstico?",
     a: "Não. A ferramenta trabalha exclusivamente com barreiras pedagógicas observáveis, sem qualquer tipo de diagnóstico clínico.",
   },
   {
@@ -66,7 +66,7 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logoImg} alt="Orienta Aula" className="h-9 w-auto" loading="eager" />
+            <img src={logoImg} alt="Olhar Singular" className="h-9 w-auto" loading="eager" />
           </Link>
           <nav className="hidden sm:flex items-center gap-6" aria-label="Navegação principal">
             <a href="#como-funciona" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Como funciona</a>
@@ -233,7 +233,7 @@ export default function Index() {
             </div>
             <div className="bg-card rounded-xl p-8 border border-border shadow-card">
               <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-                <p className="font-semibold text-foreground text-base">⚠️ O Orienta Aula NÃO:</p>
+                <p className="font-semibold text-foreground text-base">⚠️ O Olhar Singular NÃO:</p>
                 <ul className="space-y-2" role="list">
                   <li>• Realiza diagnóstico de qualquer tipo</li>
                   <li>• Interpreta laudos clínicos</li>
@@ -303,8 +303,8 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src={logoImg} alt="Orienta Aula" className="h-8 w-auto" loading="lazy" />
-              <span className="text-sm text-primary-foreground/60">© 2026 Orienta Aula</span>
+              <img src={logoImg} alt="Olhar Singular" className="h-8 w-auto" loading="lazy" />
+              <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
               <Link to="/login" className="hover:text-primary-foreground transition-colors">Entrar</Link>

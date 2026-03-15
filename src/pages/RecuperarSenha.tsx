@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import logoImg from "@/assets/logo-orienta-aula-eye.png";
+import logoImg from "@/assets/logo-olhar-singular-sm.png";
 import { ArrowLeft } from "lucide-react";
 
 export default function RecuperarSenha() {
@@ -38,7 +38,7 @@ export default function RecuperarSenha() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center gap-2 justify-center mb-8">
-          <img src={logoImg} alt="Orienta Aula" className="h-10 w-auto" />
+          <img src={logoImg} alt="Olhar Singular" className="h-10 w-auto" />
         </Link>
 
         <Card className="shadow-card-hover">

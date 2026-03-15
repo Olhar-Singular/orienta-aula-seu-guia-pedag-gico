@@ -38,7 +38,7 @@ const quickChips = [
 const WELCOME_MSG: Message = {
   role: "assistant",
   content:
-    "Olá! Sou o assistente pedagógico do Orienta Aula. Posso ajudar com estratégias de adaptação, dúvidas sobre como usar a ferramenta e sugestões práticas para sala de aula.\n\n📷 Você pode enviar fotos de atividades, provas ou cadernos para eu analisar!\n\n⚠️ Ferramenta pedagógica. Não diagnostica. Você decide.",
+    "Olá! Sou o assistente pedagógico do Olhar Singular. Posso ajudar com estratégias de adaptação, dúvidas sobre como usar a ferramenta e sugestões práticas para sala de aula.\n\n📷 Você pode enviar fotos de atividades, provas ou cadernos para eu analisar!\n\n⚠️ Ferramenta pedagógica. Não diagnostica. Você decide.",
 };
 
 export default function Chat() {
