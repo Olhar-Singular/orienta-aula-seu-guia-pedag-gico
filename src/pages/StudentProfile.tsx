@@ -193,7 +193,7 @@ export default function StudentProfile() {
 
         <TabsContent value="pei" className="mt-4">
           {alunoId && classId && (
-            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} />
+            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} onSaved={() => navigate(`/dashboard/turmas/${classId}`)} />
           )}
         </TabsContent>
       </Tabs>
