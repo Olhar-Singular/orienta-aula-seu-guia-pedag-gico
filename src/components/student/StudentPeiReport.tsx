@@ -179,9 +179,33 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     onError: () => toast.error("Erro ao salvar PEI."),
   });
 
+  const generateWithISA = async () => {
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-pei", {
+        body: { student_id: studentId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setPeiForm((prev) => ({
+        ...prev,
+        student_profile: data.student_profile || prev.student_profile,
+        goals: Array.isArray(data.goals) ? data.goals : prev.goals,
+        curricular_adaptations: data.curricular_adaptations || prev.curricular_adaptations,
+        resources_and_support: data.resources_and_support || prev.resources_and_support,
+        pedagogical_strategies: data.pedagogical_strategies || prev.pedagogical_strategies,
+        review_schedule: data.review_schedule || prev.review_schedule,
+      }));
+      toast.success("PEI gerado pela ISA! Revise e salve.");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao gerar PEI com ISA.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
 
-  const addGoal = () => {
     setPeiForm((prev) => ({
       ...prev,
       goals: [
