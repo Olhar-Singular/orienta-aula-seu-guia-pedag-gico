@@ -87,7 +87,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     review_schedule: "",
     additional_notes: "",
   });
-  const [aiLoading, setAiLoading] = useState(false);
+  
 
   // Fetch PEI
   const { data: pei, isLoading: peiLoading } = useQuery({
