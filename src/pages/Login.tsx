@@ -43,9 +43,6 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <Link to="/" className="flex items-center gap-2 justify-center mb-8">
-          <img src={logoImg} alt="Olhar Singular" className="h-10 w-auto" />
-        </Link>
 
         <Card className="shadow-card-hover">
           <CardHeader className="text-center">
