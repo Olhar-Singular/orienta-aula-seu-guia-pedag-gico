@@ -394,7 +394,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
                         <select
                           value={goal.status}
                           onChange={(e) => updateGoal(goal.id, "status", e.target.value)}
-                          className="text-xs border border-border rounded-md px-2 bg-background text-foreground"
+                          className="h-10 text-xs border border-border rounded-md px-2 bg-background text-foreground focus:outline-none focus:ring-0 focus:border-ring/40"
                         >
                           <option value="pendente">Pendente</option>
                           <option value="em_progresso">Em Progresso</option>
