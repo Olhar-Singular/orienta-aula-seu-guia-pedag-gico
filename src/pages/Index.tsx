@@ -102,7 +102,7 @@ export default function Index() {
                   Adaptação pedagógica segura para educação inclusiva
                 </h1>
                 <p className="text-lg text-primary-foreground/80 leading-relaxed mb-8 max-w-lg">
-                  Um aplicativo prático para transformar dificuldades observadas em sala de aula em estratégias de ensino adequadas.
+                  Uma plataforma prática para transformar dificuldades observadas em sala de aula em estratégias de ensino adequadas.
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link to="/cadastro">
