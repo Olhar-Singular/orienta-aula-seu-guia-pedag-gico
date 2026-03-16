@@ -71,7 +71,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                     : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"
                 }`}
               >
-                <item.icon className="w-4 h-4" aria-hidden="true" />
+                <item.icon className="w-5 h-5" aria-hidden="true" />
                 {item.label}
               </Link>
             );
