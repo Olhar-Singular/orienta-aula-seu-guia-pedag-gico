@@ -94,7 +94,7 @@ export default function RichTextEditor({ content, onChange, placeholder }: Props
       handlePaste: (_view, event) => {
         const items = event.clipboardData?.items;
         if (!items) return false;
-        for (const item of Array.from(items)) {
+        for (const item of Array.from(items) as DataTransferItem[]) {
           if (item.type.startsWith("image/")) {
             event.preventDefault();
             const file = item.getAsFile();
