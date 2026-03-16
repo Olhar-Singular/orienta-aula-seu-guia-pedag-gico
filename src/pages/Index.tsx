@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, CheckCircle2, ShieldAlert, Clock, BookOpen, Brain, HeartHandshake, AlertTriangle, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logoEyeImg from "@/assets/logo-eye.png";
-import logoFooterImg from "@/assets/logo-olho-singular-footer.png";
+import logoTransparentImg from "@/assets/logo-olho-transparent.png";
 import heroImg from "@/assets/hero-classroom.png";
 
 const painPoints = [
