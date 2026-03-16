@@ -51,7 +51,8 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
       <aside className="hidden lg:flex flex-col w-64 gradient-hero text-primary-foreground shrink-0 sticky top-0 h-screen overflow-y-auto" role="navigation" aria-label="Menu principal">
         <div className="p-3 flex justify-center">
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src={logoLightImg} alt="Olhar Singular - Ir para o Dashboard" className="h-16 w-auto" />
+            <img src={logoTransparentImg} alt="Olhar Singular - Ir para o Dashboard" className="h-12 w-auto" />
+            <span className="text-xs font-semibold text-primary-foreground tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1" aria-label="Navegação do dashboard">
