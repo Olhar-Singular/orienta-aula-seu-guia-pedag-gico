@@ -193,14 +193,23 @@ export default function Dashboard() {
                   <span className="text-sm text-muted-foreground">Top Barreiras</span>
                 </div>
                 {topBarriers.length > 0 ? (
-                  <ul className="space-y-1" data-testid="metric-barriers">
-                    {topBarriers.slice(0, 3).map(b => (
-                      <li key={b.key} className="text-xs text-foreground truncate flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
-                        {barrierLabel(b.key)} <span className="text-muted-foreground">({b.count})</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <TooltipProvider delayDuration={200}>
+                    <ul className="space-y-1" data-testid="metric-barriers">
+                      {topBarriers.slice(0, 3).map(b => (
+                        <Tooltip key={b.key}>
+                          <TooltipTrigger asChild>
+                            <li className="text-xs text-foreground truncate flex items-center gap-1.5 cursor-default">
+                              <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0" />
+                              {barrierLabel(b.key)} <span className="text-muted-foreground">({b.count})</span>
+                            </li>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p>{barrierLabel(b.key)} — {b.count} aluno(s)</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </ul>
+                  </TooltipProvider>
                 ) : (
                   <p className="text-xs text-muted-foreground">Nenhuma barreira cadastrada</p>
                 )}
