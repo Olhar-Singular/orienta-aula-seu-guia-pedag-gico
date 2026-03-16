@@ -52,7 +52,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         <div className="p-3 flex justify-center">
           <Link to="/dashboard" className="flex items-center gap-2">
             <img src={logoTransparentImg} alt="Olhar Singular - Ir para o Dashboard" className="h-12 w-auto" />
-            <span className="text-xs font-semibold text-primary-foreground tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
+            <span className="text-[0.6rem] font-semibold text-primary-foreground tracking-widest uppercase leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1" aria-label="Navegação do dashboard">
@@ -65,13 +65,13 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 key={item.path}
                 to={item.path}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"
                 }`}
               >
-                <item.icon className="w-4 h-4" aria-hidden="true" />
+                <item.icon className="w-5 h-5" aria-hidden="true" />
                 {item.label}
               </Link>
             );
