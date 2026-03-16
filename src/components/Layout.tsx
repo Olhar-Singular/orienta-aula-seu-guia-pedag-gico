@@ -65,7 +65,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
                 key={item.path}
                 to={item.path}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"
