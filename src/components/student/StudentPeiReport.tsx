@@ -370,7 +370,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Goals */}
-            <AccordionItem value="goals" className="border border-border rounded-lg px-4">
+            <AccordionItem value="goals" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Metas e Objetivos ({peiForm.goals.length})</span>
               </AccordionTrigger>
