@@ -354,7 +354,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
         ) : (
           <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-3">
             {/* Profile */}
-            <AccordionItem value="profile" className="border border-border rounded-lg px-4">
+            <AccordionItem value="profile" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><User className="w-4 h-4 text-primary" /> Perfil do Aluno</span>
               </AccordionTrigger>
@@ -370,7 +370,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Goals */}
-            <AccordionItem value="goals" className="border border-border rounded-lg px-4">
+            <AccordionItem value="goals" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> Metas e Objetivos ({peiForm.goals.length})</span>
               </AccordionTrigger>
@@ -420,7 +420,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Curricular Adaptations */}
-            <AccordionItem value="adaptations" className="border border-border rounded-lg px-4">
+            <AccordionItem value="adaptations" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" /> Adaptações Curriculares</span>
               </AccordionTrigger>
@@ -436,7 +436,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Resources */}
-            <AccordionItem value="resources" className="border border-border rounded-lg px-4">
+            <AccordionItem value="resources" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Heart className="w-4 h-4 text-primary" /> Recursos e Apoios</span>
               </AccordionTrigger>
@@ -452,7 +452,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Strategies */}
-            <AccordionItem value="strategies" className="border border-border rounded-lg px-4">
+            <AccordionItem value="strategies" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Lightbulb className="w-4 h-4 text-primary" /> Estratégias Pedagógicas</span>
               </AccordionTrigger>
@@ -468,7 +468,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Review */}
-            <AccordionItem value="review" className="border border-border rounded-lg px-4">
+            <AccordionItem value="review" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-primary" /> Acompanhamento e Revisão</span>
               </AccordionTrigger>
