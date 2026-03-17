@@ -354,7 +354,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
         ) : (
           <Accordion type="multiple" defaultValue={["profile", "goals", "adaptations", "resources", "strategies", "review"]} className="space-y-3">
             {/* Profile */}
-            <AccordionItem value="profile" className="border border-border rounded-lg px-4">
+            <AccordionItem value="profile" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><User className="w-4 h-4 text-primary" /> Perfil do Aluno</span>
               </AccordionTrigger>
