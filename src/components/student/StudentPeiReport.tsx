@@ -452,7 +452,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Strategies */}
-            <AccordionItem value="strategies" className="border border-border rounded-lg px-4">
+            <AccordionItem value="strategies" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><Lightbulb className="w-4 h-4 text-primary" /> Estratégias Pedagógicas</span>
               </AccordionTrigger>
