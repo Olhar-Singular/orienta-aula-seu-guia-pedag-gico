@@ -420,7 +420,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
             </AccordionItem>
 
             {/* Curricular Adaptations */}
-            <AccordionItem value="adaptations" className="border border-border rounded-lg px-4">
+            <AccordionItem value="adaptations" className="border border-border rounded-lg px-4 bg-card shadow-sm">
               <AccordionTrigger className="text-sm font-semibold">
                 <span className="flex items-center gap-2"><BookOpen className="w-4 h-4 text-primary" /> Adaptações Curriculares</span>
               </AccordionTrigger>
