@@ -710,7 +710,7 @@ export default function MyAdaptations() {
                         strategiesApplied: result?.strategies_applied || [],
                         pedagogicalJustification: result?.pedagogical_justification || "",
                         implementationTips: result?.implementation_tips || [],
-                        images: savedImages,
+                        imagesUniversal: savedImages,
                       });
                       toast.success("PDF exportado!");
                     } catch {
