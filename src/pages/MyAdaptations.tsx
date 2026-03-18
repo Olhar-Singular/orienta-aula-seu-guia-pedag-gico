@@ -58,6 +58,7 @@ export default function MyAdaptations() {
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<{
     field: "version_universal" | "version_directed";
     title: string;
