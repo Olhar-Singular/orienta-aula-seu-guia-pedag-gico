@@ -31,7 +31,6 @@ import {
   Crop,
   X,
   Search,
-  Type,
   Image as ImageIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
