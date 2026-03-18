@@ -8,11 +8,17 @@ const corsHeaders = {
 };
 
 const DIMENSIONS = [
-  "processamento",
-  "atencao",
-  "ritmo",
-  "engajamento",
-  "expressao",
+  "tea",
+  "tdah",
+  "tod",
+  "sindrome_down",
+  "altas_habilidades",
+  "dislexia",
+  "discalculia",
+  "disgrafia",
+  "tourette",
+  "dispraxia",
+  "toc",
 ];
 
 serve(async (req) => {
