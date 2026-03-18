@@ -175,6 +175,7 @@ export default function ImageCropperModal({
           source: "image_crop",
           image_url: publicUrl,
           created_by: user.id,
+          school_id: schoolId,
         }));
 
         const { error } = await (supabase.from as any)("question_bank").insert(rows);

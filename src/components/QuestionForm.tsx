@@ -150,6 +150,7 @@ export default function QuestionForm({
           .eq("id", question.id));
       } else {
         payload.created_by = user!.id;
+        payload.school_id = schoolId;
         ({ error } = await (supabase.from as any)("question_bank").insert(payload));
       }
 

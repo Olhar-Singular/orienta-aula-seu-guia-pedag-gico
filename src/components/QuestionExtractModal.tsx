@@ -138,6 +138,7 @@ export default function QuestionExtractModal({
       source: sourceType,
       source_file_name: sourceFileName,
       created_by: user.id,
+      school_id: schoolId,
     }));
 
     const { error } = await (supabase.from as any)("question_bank").insert(rows);
