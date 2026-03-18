@@ -17,9 +17,15 @@ type Props = {
 
 export default function FilePreviewModal({ open, onOpenChange, file, mode }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const styleContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  const clearDocxContainers = () => {
+    if (containerRef.current) containerRef.current.innerHTML = "";
+    if (styleContainerRef.current) styleContainerRef.current.innerHTML = "";
+  };
 
   // Cleanup PDF blob URL
   useEffect(() => {
@@ -43,51 +49,89 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
       };
     }
 
-    if (mode === "docx") {
-      const renderDocx = async () => {
-        setLoading(true);
-        setError(null);
+    if (mode !== "docx") return;
 
-        if (containerRef.current) containerRef.current.innerHTML = "";
+    const renderDocx = async () => {
+      setLoading(true);
+      setError(null);
+      clearDocxContainers();
 
-        try {
-          const mammoth = await import("mammoth");
-          const arrayBuffer = await file.arrayBuffer();
+      const renderFallbackHtml = async () => {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
 
-          if (cancelled || !containerRef.current) return;
+        if (cancelled || !containerRef.current) return;
 
-          const result = await mammoth.convertToHtml(
-            { arrayBuffer },
-            {
-              convertImage: mammoth.images.imgElement((image: any) => {
-                return image.read("base64").then((imageBuffer: string) => ({
-                  src: `data:${image.contentType};base64,${imageBuffer}`,
-                }));
-              }),
-            }
-          );
-
-          if (cancelled || !containerRef.current) return;
-
-          containerRef.current.innerHTML = result.value;
-        } catch (err) {
-          console.error("Erro ao renderizar DOCX:", err);
-          if (!cancelled) {
-            setError("Não foi possível renderizar este arquivo. Tente baixar para conferir o conteúdo.");
+        const result = await mammoth.convertToHtml(
+          { arrayBuffer },
+          {
+            convertImage: mammoth.images.imgElement((image: any) => {
+              return image.read("base64").then((imageBuffer: string) => ({
+                src: `data:${image.contentType};base64,${imageBuffer}`,
+              }));
+            }),
           }
-        } finally {
-          if (!cancelled) setLoading(false);
+        );
+
+        if (cancelled || !containerRef.current) return;
+
+        containerRef.current.innerHTML = result.value;
+      };
+
+      try {
+        const docxPreview = await import("docx-preview");
+        const renderAsync = (docxPreview as any).renderAsync ?? (docxPreview as any).default?.renderAsync;
+
+        if (typeof renderAsync !== "function") {
+          throw new Error("Renderizador DOCX indisponível");
         }
-      };
 
-      void renderDocx();
+        const arrayBuffer = await file.arrayBuffer();
 
-      return () => {
-        cancelled = true;
-        if (containerRef.current) containerRef.current.innerHTML = "";
-        setError(null);
-      };
-    }
+        if (cancelled || !containerRef.current || !styleContainerRef.current) return;
+
+        await renderAsync(arrayBuffer, containerRef.current, styleContainerRef.current, {
+          className: "docx",
+          inWrapper: true,
+          breakPages: true,
+          ignoreWidth: false,
+          ignoreHeight: false,
+          ignoreFonts: false,
+          ignoreLastRenderedPageBreak: false,
+          useBase64URL: true,
+        });
+
+        if (cancelled || !containerRef.current) return;
+
+        const docxRoot = containerRef.current.querySelector(".docx") as HTMLElement | null;
+        const textLength = docxRoot?.textContent?.replace(/\s+/g, "").length ?? 0;
+        const hasVisualElements = !!docxRoot?.querySelector("img, table, svg, canvas, object, li, p");
+
+        if (textLength < 20 && !hasVisualElements) {
+          await renderFallbackHtml();
+        }
+      } catch (primaryError) {
+        try {
+          await renderFallbackHtml();
+        } catch (fallbackError) {
+          console.error("Erro ao renderizar DOCX:", primaryError);
+          console.error("Fallback de DOCX falhou:", fallbackError);
+          if (!cancelled) {
+            setError("Não foi possível renderizar este arquivo Word. Tente baixar para conferir o conteúdo original.");
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    void renderDocx();
+
+    return () => {
+      cancelled = true;
+      clearDocxContainers();
+      setError(null);
+    };
   }, [open, file, mode]);
 
   const handleClose = (isOpen: boolean) => {
@@ -96,7 +140,7 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
         URL.revokeObjectURL(pdfUrl);
         setPdfUrl(null);
       }
-      if (containerRef.current) containerRef.current.innerHTML = "";
+      clearDocxContainers();
       setError(null);
     }
     onOpenChange(isOpen);
@@ -119,8 +163,9 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
           <DialogTitle className="truncate">{file?.name || "Visualização do Documento"}</DialogTitle>
         </DialogHeader>
 
+        <div ref={styleContainerRef} className="hidden" />
+
         <div className="relative overflow-auto max-h-[75vh] rounded-md border bg-muted/30">
-          {/* PDF: embed nativo */}
           {mode === "pdf" && pdfUrl && (
             <embed
               src={`${pdfUrl}#toolbar=1&navpanes=0`}
@@ -130,7 +175,6 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
             />
           )}
 
-          {/* DOCX: mammoth HTML */}
           {mode === "docx" && (
             <>
               {loading && (
@@ -147,7 +191,7 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
               ) : (
                 <div
                   ref={containerRef}
-                  className="p-6 prose prose-sm max-w-none dark:prose-invert [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted"
+                  className="p-6 prose prose-sm max-w-none dark:prose-invert [&_.docx-wrapper]:bg-transparent [&_.docx-wrapper]:p-0 [&_.docx]:mx-auto [&_.docx]:shadow-sm [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted"
                 />
               )}
             </>
@@ -163,3 +207,4 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
     </Dialog>
   );
 }
+
