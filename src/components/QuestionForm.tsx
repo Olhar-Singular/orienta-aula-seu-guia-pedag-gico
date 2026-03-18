@@ -43,6 +43,7 @@ export default function QuestionForm({
   onSaved,
 }: QuestionFormProps) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
