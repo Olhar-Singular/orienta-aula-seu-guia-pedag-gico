@@ -197,6 +197,7 @@ export default function QuestionForm({
               rows={4}
               placeholder="Digite o enunciado da questão..."
             />
+            <MathPreview text={text} />
           </div>
 
           {/* Image */}
