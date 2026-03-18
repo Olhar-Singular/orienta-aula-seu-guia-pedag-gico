@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -27,6 +27,11 @@ import {
   ChevronRight,
   ZoomIn,
   ZoomOut,
+  Upload,
+  Crop,
+  X,
+  ImageIcon,
+  Search,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +42,8 @@ import { extractDocxText } from "@/lib/docx-utils";
 import { detectFileType } from "@/lib/fileValidation";
 import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
+import PdfPreviewModal from "@/components/PdfPreviewModal";
+import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import "katex/dist/katex.min.css";
 
 const subjects = [
@@ -52,6 +59,8 @@ type ManualQuestion = {
   correct_answer: number;
   resolution: string;
   difficulty: string;
+  imageUrl: string | null;
+  isObjective: boolean;
   saved: boolean;
   saving: boolean;
 };
@@ -64,6 +73,8 @@ const emptyQuestion = (): ManualQuestion => ({
   correct_answer: -1,
   resolution: "",
   difficulty: "medio",
+  imageUrl: null,
+  isObjective: true,
   saved: false,
   saving: false,
 });
@@ -100,6 +111,10 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   const [questions, setQuestions] = useState<ManualQuestion[]>([emptyQuestion()]);
   const [activeQ, setActiveQ] = useState(0);
   const [savingAll, setSavingAll] = useState(false);
+
+  // Cropper / preview
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
 
   // Load document
   useEffect(() => {
@@ -144,9 +159,32 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   };
 
   const removeQuestion = (index: number) => {
-    if (questions.length <= 1) return;
+    if (questions.length <= 1) {
+      // Reset the only question instead of removing
+      setQuestions([emptyQuestion()]);
+      setActiveQ(0);
+      return;
+    }
     setQuestions(prev => prev.filter((_, i) => i !== index));
     setActiveQ(prev => Math.min(prev, questions.length - 2));
+  };
+
+  const handleImageUpload = (index: number) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/png,image/jpeg,image/webp,image/gif";
+    input.onchange = (ev) => {
+      const f = (ev.target as HTMLInputElement).files?.[0];
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) {
+        toast({ title: "Imagem muito grande", description: "Máximo 5 MB.", variant: "destructive" });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => updateQuestion(index, "imageUrl", reader.result as string);
+      reader.readAsDataURL(f);
+    };
+    input.click();
   };
 
   const handleSaveOne = async (index: number) => {
@@ -159,8 +197,24 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
 
     updateQuestion(index, "saving", true);
     try {
-      const hasOptions = q.options.some(o => o.trim());
+      const hasOptions = q.isObjective && q.options.some(o => o.trim());
       const source = fileType === "pdf" ? "pdf_extract" : "docx_extract";
+
+      // Upload image if present
+      let imageUrl: string | null = q.imageUrl;
+      if (imageUrl && imageUrl.startsWith("data:")) {
+        const blob = dataUrlToBlob(imageUrl);
+        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
+        const { error: upErr } = await supabase.storage
+          .from("question-images")
+          .upload(fileName, blob, { contentType: "image/png" });
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage.from("question-images").getPublicUrl(fileName);
+          imageUrl = publicUrl;
+        } else {
+          imageUrl = null;
+        }
+      }
 
       const row = {
         text: q.text,
@@ -172,6 +226,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
         difficulty: q.difficulty,
         source,
         source_file_name: file.name,
+        image_url: imageUrl,
         created_by: user.id,
         school_id: schoolId,
       };
@@ -295,17 +350,29 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
 
             {/* Question tabs */}
             <div className="flex items-center gap-1 px-3 py-2 border-b overflow-x-auto">
-              {questions.map((q, i) => (
-                <Button
-                  key={i}
-                  size="sm"
-                  variant={activeQ === i ? "default" : "outline"}
-                  className={`shrink-0 text-xs h-7 ${q.saved ? "border-green-500" : ""}`}
-                  onClick={() => setActiveQ(i)}
-                >
-                  Q{i + 1}
-                  {q.saved && <CheckCircle2 className="w-3 h-3 ml-1 text-green-300" />}
-                </Button>
+              {questions.map((qItem, i) => (
+                <div key={i} className="flex items-center shrink-0">
+                  <Button
+                    size="sm"
+                    variant={activeQ === i ? "default" : "outline"}
+                    className={`text-xs h-7 rounded-r-none ${qItem.saved ? "border-green-500" : ""}`}
+                    onClick={() => setActiveQ(i)}
+                  >
+                    Q{i + 1}
+                    {qItem.saved && <CheckCircle2 className="w-3 h-3 ml-1 text-green-300" />}
+                  </Button>
+                  {!qItem.saved && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 w-6 px-0 rounded-l-none border-l-0 text-destructive hover:bg-destructive/10"
+                      onClick={(e) => { e.stopPropagation(); removeQuestion(i); }}
+                      aria-label={`Remover questão ${i + 1}`}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -313,9 +380,23 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
             <div className="flex-1 overflow-auto p-4 space-y-4">
               {q && (
                 <>
-                  {q.saved && (
-                    <Badge className="bg-green-600 text-white">✓ Salva</Badge>
-                  )}
+                  {/* Status + type toggle row */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    {q.saved && (
+                      <Badge className="bg-green-600 text-white">✓ Salva</Badge>
+                    )}
+                    {!q.saved && (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={q.isObjective}
+                          onCheckedChange={v => updateQuestion(activeQ, "isObjective", v)}
+                        />
+                        <Label className="text-xs text-muted-foreground cursor-pointer">
+                          {q.isObjective ? "Objetiva" : "Dissertativa"}
+                        </Label>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Text */}
                   <div>
@@ -330,6 +411,51 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                     />
                     <MathPreview text={q.text} />
                   </div>
+
+                  {/* Image section */}
+                  {q.imageUrl ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Imagem anexada</Label>
+                      <div
+                        className="relative inline-block cursor-zoom-in group"
+                        onClick={() => setPreviewImageUrl(q.imageUrl)}
+                      >
+                        <img src={q.imageUrl} alt="Imagem da questão" className="max-h-40 rounded border" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors rounded">
+                          <Search className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                        </div>
+                      </div>
+                      {!q.saved && (
+                        <div className="flex gap-1 flex-wrap">
+                          <Button size="sm" variant="outline" onClick={() => updateQuestion(activeQ, "imageUrl", null)}>
+                            <X className="w-3 h-3 mr-1" /> Remover
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleImageUpload(activeQ)}>
+                            <Upload className="w-3 h-3 mr-1" /> Trocar
+                          </Button>
+                          {fileType === "pdf" && (
+                            <Button size="sm" variant="outline" onClick={() => setCropperOpen(true)}>
+                              <Crop className="w-3 h-3 mr-1" /> Recortar do PDF
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : !q.saved && (
+                    <div>
+                      <Label className="text-xs">Imagem</Label>
+                      <div className="flex gap-1 flex-wrap mt-1">
+                        <Button size="sm" variant="outline" onClick={() => handleImageUpload(activeQ)}>
+                          <Upload className="w-3 h-3 mr-1" /> Upload Imagem
+                        </Button>
+                        {fileType === "pdf" && (
+                          <Button size="sm" variant="outline" onClick={() => setCropperOpen(true)}>
+                            <Crop className="w-3 h-3 mr-1" /> Recortar do PDF
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Subject + Topic */}
                   <div className="grid grid-cols-2 gap-3">
@@ -354,35 +480,37 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                     </div>
                   </div>
 
-                  {/* Options */}
-                  <div>
-                    <Label className="text-xs">Alternativas (deixe em branco para questão dissertativa)</Label>
-                    <div className="space-y-2 mt-1">
-                      {q.options.map((opt, j) => (
-                        <div key={j} className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant={q.correct_answer === j ? "default" : "outline"}
-                            className="w-8 h-7 text-xs shrink-0"
-                            onClick={() => !q.saved && updateQuestion(activeQ, "correct_answer", q.correct_answer === j ? -1 : j)}
-                            disabled={q.saved}
-                          >
-                            {String.fromCharCode(65 + j)}
-                          </Button>
-                          <Input
-                            value={opt}
-                            onChange={e => updateOption(activeQ, j, e.target.value)}
-                            className="h-7 text-sm"
-                            placeholder={`Alternativa ${String.fromCharCode(65 + j)}`}
-                            disabled={q.saved}
-                          />
-                        </div>
-                      ))}
+                  {/* Options (only for objective) */}
+                  {q.isObjective && (
+                    <div>
+                      <Label className="text-xs">Alternativas</Label>
+                      <div className="space-y-2 mt-1">
+                        {q.options.map((opt, j) => (
+                          <div key={j} className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant={q.correct_answer === j ? "default" : "outline"}
+                              className="w-8 h-7 text-xs shrink-0"
+                              onClick={() => !q.saved && updateQuestion(activeQ, "correct_answer", q.correct_answer === j ? -1 : j)}
+                              disabled={q.saved}
+                            >
+                              {String.fromCharCode(65 + j)}
+                            </Button>
+                            <Input
+                              value={opt}
+                              onChange={e => updateOption(activeQ, j, e.target.value)}
+                              className="h-7 text-sm"
+                              placeholder={`Alternativa ${String.fromCharCode(65 + j)}`}
+                              disabled={q.saved}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      {q.options.some(o => o.trim()) && q.correct_answer < 0 && (
+                        <p className="text-xs text-destructive mt-1">Clique na letra correta para definir o gabarito</p>
+                      )}
                     </div>
-                    {q.options.some(o => o.trim()) && q.correct_answer < 0 && (
-                      <p className="text-xs text-destructive mt-1">Clique na letra correta para definir o gabarito</p>
-                    )}
-                  </div>
+                  )}
 
                   {/* Resolution */}
                   <div>
@@ -411,17 +539,17 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-2 border-t">
                     {!q.saved && (
-                      <Button onClick={() => handleSaveOne(activeQ)} disabled={q.saving || !q.text.trim()}>
-                        {q.saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                        Salvar questão
-                      </Button>
-                    )}
-                    {questions.length > 1 && !q.saved && (
-                      <Button variant="ghost" size="sm" onClick={() => removeQuestion(activeQ)}>
-                        <Trash2 className="w-4 h-4 mr-1 text-destructive" /> Remover
-                      </Button>
+                      <>
+                        <Button onClick={() => handleSaveOne(activeQ)} disabled={q.saving || !q.text.trim()}>
+                          {q.saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                          Salvar questão
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => removeQuestion(activeQ)} className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4 mr-1" /> Remover
+                        </Button>
+                      </>
                     )}
                   </div>
                 </>
@@ -430,6 +558,25 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      {/* PDF Cropper modal */}
+      <PdfPreviewModal
+        open={cropperOpen}
+        onOpenChange={setCropperOpen}
+        file={file}
+        onCrop={(dataUrl) => {
+          updateQuestion(activeQ, "imageUrl", dataUrl);
+          setCropperOpen(false);
+        }}
+      />
+
+      {/* Image preview dialog */}
+      <ImagePreviewDialog
+        open={!!previewImageUrl}
+        onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+        imageUrl={previewImageUrl}
+        title="Prévia da imagem da questão"
+      />
     </div>
   );
 }
