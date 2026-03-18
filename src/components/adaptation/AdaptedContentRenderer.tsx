@@ -96,7 +96,7 @@ function KaTeXInline({ formula }: { formula: string }) {
   return (
     <span
       ref={ref}
-      className="inline-flex mx-0.5 align-middle whitespace-nowrap"
+      className="inline-flex mx-0.5 align-middle whitespace-nowrap text-[115%]"
     />
   );
 }
