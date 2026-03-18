@@ -1058,10 +1058,12 @@ export default function QuestionBank() {
           if (!open) {
             setPreviewMode(null);
             setPreviewUploadFile(null);
+            setPreviewStoragePath(null);
           }
         }}
         file={previewUploadFile}
         mode={previewMode}
+        storagePath={previewStoragePath}
       />
       <ImagePreviewDialog
         open={!!previewImageUrl}
