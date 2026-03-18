@@ -142,15 +142,8 @@ type Block =
 function preProcessContent(content: string): string {
   let processed = content;
 
-  // Split concatenated fraction equations: "23/24 = ?/48 7/8 = ?/48" → separate lines
-  // Matches patterns like "number/number = number/number" followed by another fraction
-  processed = processed.replace(
-    /((?:\?|\d+)\/(?:\?|\d+)\s*=\s*(?:\?|\d+)(?:\/(?:\?|\d+))?)\s+(?=(?:\?|\d+)\/(?:\?|\d+)\s*=)/g,
-    "$1\n"
-  );
-
   // Insert newline before numbered questions that appear mid-text (e.g., "... text 1. Question")
-  // But not at the start of a line
+  // But not at the start of a line and not for fractions like 11/12
   processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
 
   // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
