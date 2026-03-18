@@ -147,6 +147,10 @@ export default function QuestionBank() {
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewUploadFile, setPreviewUploadFile] = useState<File | null>(null);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
+  const [previewDocxHtml, setPreviewDocxHtml] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
