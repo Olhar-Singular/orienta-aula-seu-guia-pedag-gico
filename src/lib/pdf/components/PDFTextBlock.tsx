@@ -198,7 +198,8 @@ type Props = {
  * detects titles, questions, alternatives, steps, bullets, formulas, etc.
  */
 export default function PDFTextBlock({ text }: Props) {
-  const elements = parseActivityText(text);
+  const safeText = normalizeMathText(text);
+  const elements = parseActivityText(safeText);
 
   return <View>{elements.map((el, i) => renderElement(el, i))}</View>;
 }
