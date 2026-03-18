@@ -76,6 +76,42 @@ type Props = {
   onSave: (payload: AdaptationQuestionEditPayload) => void;
 };
 
+function MathPreview({ text }: { text: string }) {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const hasFractions = useMemo(() => /\d+\s*\/\s*\d+|\\frac\{/.test(text), [text]);
+
+  useEffect(() => {
+    if (!previewRef.current || !hasFractions) return;
+    const lines = text.split("\n");
+    const html = lines.map((line) => {
+      let processed = line.replace(
+        /\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
+        (_m: string, num: string, den: string) => {
+          try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+          catch { return `${num}/${den}`; }
+        }
+      );
+      processed = processed.replace(
+        /(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z/])/g,
+        (m: string, num: string, den: string) => {
+          try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+          catch { return m; }
+        }
+      );
+      return `<div>${processed || "&nbsp;"}</div>`;
+    }).join("");
+    previewRef.current.innerHTML = html;
+  }, [text, hasFractions]);
+
+  if (!hasFractions) return null;
+  return (
+    <div className="mt-2 rounded-md border border-border/60 bg-muted/30 p-3">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Preview</p>
+      <div ref={previewRef} className="text-sm text-foreground leading-relaxed space-y-0.5" />
+    </div>
+  );
+}
+
 export default function AdaptationEditModal({
   open,
   onOpenChange,
