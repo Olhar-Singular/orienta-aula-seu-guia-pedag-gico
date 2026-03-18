@@ -205,7 +205,7 @@ export default function QuestionBank() {
   // ─── File upload handler ───
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "Arquivo muito grande", description: "Máximo 10 MB.", variant: "destructive" });
@@ -218,7 +218,31 @@ export default function QuestionBank() {
       toast({ title: "Formato inválido", description: "Apenas PDF e DOCX.", variant: "destructive" });
       return;
     }
+
+    // Check for duplicate exam name
+    const existingExam = pdfUploads.find((u) => u.file_name === file.name);
+    if (existingExam) {
+      toast({ title: "Prova já enviada", description: `O arquivo "${file.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
+      return;
+    }
+
     setUploadFile(file);
+
+    // Upload to storage + register in history immediately
+    try {
+      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${Date.now()}_${safeName}`;
+      await supabase.storage.from("question-pdfs").upload(filePath, file);
+      await (supabase.from as any)("pdf_uploads").insert({
+        user_id: user.id,
+        file_name: file.name,
+        file_path: filePath,
+      });
+      fetchUploads();
+      toast({ title: "Arquivo enviado!", description: "Clique em 'Extrair com IA' para extrair as questões." });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
