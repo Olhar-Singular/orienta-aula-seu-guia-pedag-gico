@@ -1034,6 +1034,23 @@ export default function QuestionBank() {
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
+      <PdfPreviewModal
+        open={previewMode === "pdf"}
+        onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewUploadFile(null); } }}
+        file={previewUploadFile}
+      />
+      {/* Docx Preview Dialog */}
+      <Dialog open={previewMode === "docx"} onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewDocxHtml(""); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Visualização do Documento</DialogTitle>
+          </DialogHeader>
+          <div
+            className="prose prose-sm max-w-none dark:prose-invert text-foreground"
+            dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
+          />
+        </DialogContent>
+      </Dialog>
       <ImagePreviewDialog
         open={!!previewImageUrl}
         onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
