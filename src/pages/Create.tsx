@@ -61,6 +61,7 @@ export default function Create() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   
   const [step, setStep] = useState(0);
   const [context, setContext] = useState({
