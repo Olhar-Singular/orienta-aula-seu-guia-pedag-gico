@@ -721,6 +721,32 @@ export default function MyAdaptations() {
                     {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
                     {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
                   </Button>
+                  <Button variant="outline" size="sm" disabled={exportingDocx} onClick={async () => {
+                    setExportingDocx(true);
+                    const savedImages: string[] = Array.isArray(result?.question_images)
+                      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
+                      : [];
+                    try {
+                      await exportToDocx({
+                        studentName: viewItem.student_name || undefined,
+                        activityType: viewItem.raw.activity_type || undefined,
+                        date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
+                        versionUniversal: result?.version_universal || "",
+                        versionDirected: result?.version_directed || "",
+                        strategiesApplied: result?.strategies_applied || [],
+                        pedagogicalJustification: result?.pedagogical_justification || "",
+                        implementationTips: result?.implementation_tips || [],
+                        images: savedImages,
+                      });
+                      toast.success("Word exportado!");
+                    } catch {
+                      toast.error("Erro ao gerar Word");
+                    }
+                    setExportingDocx(false);
+                  }}>
+                    {exportingDocx ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
+                    {exportingDocx ? "Gerando Word..." : "Exportar Word"}
+                  </Button>
                 </div>
               </div>
             );
