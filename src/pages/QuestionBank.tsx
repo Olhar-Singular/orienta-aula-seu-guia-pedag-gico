@@ -39,6 +39,7 @@ import {
   Search,
   FileText,
   ListChecks,
+  SplitSquareHorizontal,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import "katex/dist/katex.min.css";
@@ -48,6 +49,7 @@ import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import ManualQuestionEditor from "@/components/ManualQuestionEditor";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText } from "@/lib/docx-utils";
