@@ -266,12 +266,13 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                     {dimBarriers.map((b) => (
                       <label
                         key={b.barrier_key}
-                        className="flex items-start gap-3 cursor-pointer group"
+                        className={`flex items-start gap-3 group ${barriersLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                       >
                         <Checkbox
                           checked={b.is_active}
                           onCheckedChange={() => toggleBarrier(b.barrier_key)}
                           className="mt-0.5"
+                          disabled={barriersLocked}
                         />
                         <span className={`text-sm ${b.is_active ? "text-foreground" : "text-muted-foreground"} group-hover:text-foreground transition-colors`}>
                           {b.label}
