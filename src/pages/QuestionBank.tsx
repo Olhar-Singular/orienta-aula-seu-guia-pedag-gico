@@ -5,6 +5,7 @@ import { useUserSchool } from "@/hooks/useUserSchool";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -92,6 +93,8 @@ type PdfUpload = {
   uploaded_at: string;
 };
 
+type PreviewMode = "pdf" | "docx" | null;
+
 const subjects = [
   "Física", "Matemática", "Química", "Biologia", "Português",
   "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
@@ -145,6 +148,10 @@ export default function QuestionBank() {
   const [cropperForQuestion, setCropperForQuestion] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewUploadFile, setPreviewUploadFile] = useState<File | null>(null);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
+  const [previewDocxHtml, setPreviewDocxHtml] = useState<string>("");
+  const [loadingPreview, setLoadingPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -199,7 +206,7 @@ export default function QuestionBank() {
   // ─── File upload handler ───
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "Arquivo muito grande", description: "Máximo 10 MB.", variant: "destructive" });
@@ -212,7 +219,31 @@ export default function QuestionBank() {
       toast({ title: "Formato inválido", description: "Apenas PDF e DOCX.", variant: "destructive" });
       return;
     }
+
+    // Check for duplicate exam name
+    const existingExam = pdfUploads.find((u) => u.file_name === file.name);
+    if (existingExam) {
+      toast({ title: "Prova já enviada", description: `O arquivo "${file.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
+      return;
+    }
+
     setUploadFile(file);
+
+    // Upload to storage + register in history immediately
+    try {
+      const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const filePath = `${user.id}/${Date.now()}_${safeName}`;
+      await supabase.storage.from("question-pdfs").upload(filePath, file);
+      await (supabase.from as any)("pdf_uploads").insert({
+        user_id: user.id,
+        file_name: file.name,
+        file_path: filePath,
+      });
+      fetchUploads();
+      toast({ title: "Arquivo enviado!", description: "Clique em 'Extrair com IA' para extrair as questões." });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -249,29 +280,7 @@ export default function QuestionBank() {
         pdfText = await extractDocxText(uploadFile);
       }
 
-      // Upload original to storage
-      const safeName = uploadFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${user.id}/${Date.now()}_${safeName}`;
-
-      // Check for duplicate exam name
-      const existingExam = pdfUploads.find((u) => u.file_name === uploadFile.name);
-      if (existingExam) {
-        toast({ title: "Prova já enviada", description: `O arquivo "${uploadFile.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
-        setExtracting(false);
-        return;
-      }
-
-      await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
-
-      // Register in pdf_uploads
-      await (supabase.from as any)("pdf_uploads").insert({
-        user_id: user.id,
-        file_name: uploadFile.name,
-        file_path: filePath,
-      });
-      fetchUploads();
-
-      // Call edge function
+      // File already uploaded to storage in handleFileSelect
       const session = await supabase.auth.getSession();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-questions`,
@@ -464,6 +473,36 @@ export default function QuestionBank() {
       toast({ title: "Arquivo carregado", description: "Clique em 'Extrair com IA' para reextrair as questões." });
     } catch (e: any) {
       toast({ title: "Erro ao carregar arquivo", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // ─── Preview file from history ───
+  const handlePreviewUpload = async (upload: PdfUpload) => {
+    setLoadingPreview(true);
+    try {
+      const { data: fileData, error } = await supabase.storage.from("question-pdfs").download(upload.file_path);
+      if (error || !fileData) throw new Error("Não foi possível baixar o arquivo");
+
+      const isDocx = upload.file_name.toLowerCase().endsWith(".docx");
+      const mimeType = isDocx
+        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : "application/pdf";
+      const file = new File([fileData], upload.file_name, { type: mimeType });
+
+      if (isDocx) {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.default.convertToHtml({ arrayBuffer });
+        setPreviewDocxHtml(result.value);
+        setPreviewMode("docx");
+      } else {
+        setPreviewUploadFile(file);
+        setPreviewMode("pdf");
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingPreview(false);
     }
   };
 
@@ -860,6 +899,9 @@ export default function QuestionBank() {
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
+                          <Button size="icon" variant="ghost" onClick={() => handlePreviewUpload(p)} disabled={loadingPreview} aria-label="Visualizar arquivo">
+                            {loadingPreview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                          </Button>
                           <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
                             <FileUp className="w-4 h-4 mr-1" /> Extrair
                           </Button>
@@ -993,6 +1035,23 @@ export default function QuestionBank() {
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
+      <PdfPreviewModal
+        open={previewMode === "pdf"}
+        onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewUploadFile(null); } }}
+        file={previewUploadFile}
+      />
+      {/* Docx Preview Dialog */}
+      <Dialog open={previewMode === "docx"} onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewDocxHtml(""); } }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Visualização do Documento</DialogTitle>
+          </DialogHeader>
+          <div
+            className="prose prose-sm max-w-none dark:prose-invert text-foreground"
+            dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
+          />
+        </DialogContent>
+      </Dialog>
       <ImagePreviewDialog
         open={!!previewImageUrl}
         onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
