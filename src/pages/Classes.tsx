@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 export default function Classes() {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
