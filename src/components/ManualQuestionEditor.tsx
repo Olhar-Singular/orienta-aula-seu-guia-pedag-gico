@@ -30,6 +30,12 @@ import {
   Upload,
   Crop,
   X,
+  Search,
+  Type,
+  Image as ImageIcon,
+  Upload,
+  Crop,
+  X,
   ImageIcon,
   Search,
 } from "lucide-react";
