@@ -5,7 +5,6 @@ import { useUserSchool } from "@/hooks/useUserSchool";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +44,7 @@ import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
+import DocxPreviewModal from "@/components/DocxPreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
