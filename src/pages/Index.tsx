@@ -34,7 +34,7 @@ const howItWorks = [
 
 const benefits = [
   "Primeiro uso em menos de 5 minutos",
-  "Rigor conceitual em Matemática e Ciências",
+  
   "Respeita a autonomia do profissional",
   "Linguagem pedagógica, nunca clínica",
   "Exportação em PDF e Word",
