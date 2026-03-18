@@ -26,7 +26,7 @@ const LATEX_FRAC_RE = /\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/;
 // Match plain fractions like 7/8, 42/48, ?/48
 const PLAIN_FRAC_RE = /(^|[\s=,(;+\-])(\?|\d+)\s*\/\s*(\?|\d+)(?=[\s=,);.\-+:]|$)/;
 
-type LineChild = TextRun | Math;
+type LineChild = TextRun | DocxMath;
 
 /**
  * Parse a line of text and return an array of TextRun and Math elements,
