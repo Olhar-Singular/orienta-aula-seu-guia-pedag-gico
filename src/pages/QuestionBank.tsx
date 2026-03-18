@@ -41,7 +41,6 @@ import {
   ListChecks,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import katex from "katex";
 import "katex/dist/katex.min.css";
 import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import QuestionForm from "@/components/QuestionForm";
