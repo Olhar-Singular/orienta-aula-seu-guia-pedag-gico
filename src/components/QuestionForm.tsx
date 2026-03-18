@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +23,19 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, X, Upload, Loader2, Search } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
+import "katex/dist/katex.min.css";
+
+function MathPreview({ text }: { text: string }) {
+  const html = useMemo(() => renderMathToHtml(text), [text]);
+  if (!text || !hasMathContent(text)) return null;
+  return (
+    <div className="mt-1 p-2 rounded border border-border/50 bg-muted/30">
+      <p className="text-[10px] text-muted-foreground mb-1">Prévia matemática</p>
+      <div className="text-sm leading-relaxed [&_.katex]:text-[115%]" dangerouslySetInnerHTML={{ __html: html }} />
+    </div>
+  );
+}
 
 const subjects = [
   "Física", "Matemática", "Química", "Biologia", "Português",
