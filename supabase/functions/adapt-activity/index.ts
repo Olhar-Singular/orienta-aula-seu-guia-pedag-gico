@@ -230,12 +230,10 @@ REGRAS DE FORMATAÇÃO
 2. Cada alternativa em NOVA LINHA: a) , b) , c) , d)
 3. Fórmulas em LINHA ISOLADA com espaçamento
 4. Notação escolar Unicode para variáveis: v₀, v², Δv
-5. FRAÇÕES em LaTeX inline: \frac{a}{b}; em equações, use \frac{23}{24} = \frac{?}{48}
+5. FRAÇÕES em LaTeX inline: \\frac{a}{b}; em equações, use \\frac{23}{24} = \\frac{?}{48}
 6. Cada equação/frase com frações em LINHA SEPARADA (nunca concatenar várias frações na mesma linha)
 7. Preserve fórmulas, símbolos e unidades integralmente
-8. NUNCA use asteriscos (**) ou markdown. Texto limpo.
-...
-8. NUNCA use asteriscos ou markdown. Para frações, use LaTeX inline (ex: \frac{a}{b}).`;
+8. NUNCA use asteriscos (**) ou markdown. Para frações, use LaTeX inline (ex: \\frac{a}{b}). Texto limpo.`;
 
     // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-flash";
