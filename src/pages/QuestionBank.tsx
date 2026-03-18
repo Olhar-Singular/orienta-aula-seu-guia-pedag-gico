@@ -197,6 +197,7 @@ export default function QuestionBank() {
   const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewStoragePath, setPreviewStoragePath] = useState<string | null>(null);
+  const [showManualEdit, setShowManualEdit] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
