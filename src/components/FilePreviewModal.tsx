@@ -25,7 +25,10 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
   const styleContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfPageImage, setPdfPageImage] = useState<string | null>(null);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+  const [pdfPageCount, setPdfPageCount] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [wmfWarning, setWmfWarning] = useState(false);
   const [officeViewerUrl, setOfficeViewerUrl] = useState<string | null>(null);
   const [useOfficeViewer, setUseOfficeViewer] = useState(false);
