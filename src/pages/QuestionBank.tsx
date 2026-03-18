@@ -325,7 +325,9 @@ export default function QuestionBank() {
         images = result.pageImages;
         setPageImages(images);
       } else if (type === "docx") {
-        pdfText = await extractDocxText(uploadFile);
+        const docxResult = await extractDocxWithImages(uploadFile);
+        pdfText = docxResult.text;
+        images = docxResult.images;
       }
 
       // File already uploaded to storage in handleFileSelect
