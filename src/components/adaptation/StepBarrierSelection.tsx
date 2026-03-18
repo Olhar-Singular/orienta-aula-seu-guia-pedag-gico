@@ -253,6 +253,21 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                 Editar barreiras
               </Button>
             )}
+            {isEditingBarriers && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateData({ barriers: originalBarriers });
+                  setBarriersLocked(true);
+                  setIsEditingBarriers(false);
+                }}
+                className="gap-1.5 text-xs text-destructive hover:text-destructive"
+              >
+                <X className="w-3.5 h-3.5" />
+                Cancelar edição
+              </Button>
+            )}
           </div>
 
           {BARRIER_DIMENSIONS.map((dim) => {
