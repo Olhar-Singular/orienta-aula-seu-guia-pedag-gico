@@ -52,11 +52,6 @@ function unicodeToLatex(formula: string): string {
   for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
     latex = latex.split(unicode).join(tex);
   }
-  // Convert fractions like 23/24 to \frac{23}{24}, including ?/48
-  latex = latex.replace(
-    /(\?|\d+)\s*\/\s*(\?|\d+)/g,
-    "\\frac{$1}{$2}"
-  );
   // Wrap units like m/s², km/h etc in \text{}
   latex = latex.replace(
     /\b(m\/s²?|cm\/s|km\/h|Hz|kg|Pa|mol|atm)\b/g,
@@ -67,10 +62,11 @@ function unicodeToLatex(formula: string): string {
 
 /**
  * Detects formula-like patterns and renders them with KaTeX.
- * Patterns: equations with =, expressions with Δ/π/λ, values with units, fractions.
+ * Patterns: equations with =, expressions with Δ/π/λ, values with units.
+ * Does NOT match simple fractions like 23/24 — those stay as plain text.
  */
 const FORMULA_REGEX =
-  /(?:^|\s)((?:(?:\?|\d+)\/(?:\?|\d+)\s*=\s*(?:\?|\d+)(?:\/(?:\?|\d+))?)|(?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
+  /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
 
 function KaTeXInline({ formula }: { formula: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -146,16 +142,8 @@ type Block =
 function preProcessContent(content: string): string {
   let processed = content;
 
-  // Split concatenated fraction equations: "23/24 = ?/48 7/8 = ?/48" → separate lines
-  // Matches patterns like "number/number = number/number" followed by another fraction
-  processed = processed.replace(
-    /((?:\?|\d+)\/(?:\?|\d+)\s*=\s*(?:\?|\d+)(?:\/(?:\?|\d+))?)\s+(?=(?:\?|\d+)\/(?:\?|\d+)\s*=)/g,
-    "$1\n"
-  );
-
-  // Insert newline before numbered questions that appear mid-text (e.g., "... text 1. Question")
-  // But not at the start of a line
-  processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
+  // Insert newline before numbered questions mid-text, but NOT after / (fractions like 11/8)
+  processed = processed.replace(/([^\n\/])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
 
   // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
   processed = processed.replace(/([^\n])(\s+)([a-zA-Z]\)\s)/g, "$1\n$3");
