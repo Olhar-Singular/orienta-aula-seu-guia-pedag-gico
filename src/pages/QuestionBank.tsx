@@ -704,14 +704,22 @@ export default function QuestionBank() {
                       {/* Enunciado */}
                       <div>
                         <Label className="text-xs">Enunciado</Label>
-                        <Textarea
-                          value={q.text}
-                          onChange={(e) => updateExtracted(i, "text", e.target.value)}
-                          rows={3}
-                          className="text-sm"
-                          disabled={q.saved || q.isDuplicate}
-                        />
-                        <MathPreview text={q.text} />
+                        {q.editing ? (
+                          <>
+                            <Textarea
+                              value={q.text}
+                              onChange={(e) => updateExtracted(i, "text", e.target.value)}
+                              rows={3}
+                              className="text-sm"
+                            />
+                            <MathPreview text={q.text} />
+                          </>
+                        ) : (
+                          <div className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[3rem]">
+                            <MathPreview text={q.text} />
+                            {!/\\frac|\/|\^/.test(q.text) && <span>{q.text}</span>}
+                          </div>
+                        )}
                       </div>
 
                       {/* Image after enunciado */}
