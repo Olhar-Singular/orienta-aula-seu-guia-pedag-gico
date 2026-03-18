@@ -579,6 +579,57 @@ export default function AdaptationEditModal({
                 </div>
               )}
             </div>
+/**
+ * Renders a live preview of the text with fractions rendered via KaTeX.
+ * Detects patterns like 23/24, \frac{a}{b} and renders them as math.
+ */
+function MathPreview({ text }: { text: string }) {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const hasFractions = useMemo(() => /\d+\s*\/\s*\d+|\\frac\{/.test(text), [text]);
+
+  useEffect(() => {
+    if (!previewRef.current || !hasFractions) return;
+
+    const lines = text.split("\n");
+    const html = lines.map((line) => {
+      // Replace \frac{a}{b} with KaTeX
+      let processed = line.replace(
+        /\\frac\{([^{}]+)\}\{([^{}]+)\}/g,
+        (_, num, den) => {
+          try {
+            return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false });
+          } catch { return `${num}/${den}`; }
+        }
+      );
+      // Replace plain fractions like 23/24 (but not dates or paths)
+      processed = processed.replace(
+        /(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z\/])/g,
+        (match, num, den) => {
+          try {
+            return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false });
+          } catch { return match; }
+        }
+      );
+      return `<div>${processed || "&nbsp;"}</div>`;
+    }).join("");
+
+    previewRef.current.innerHTML = html;
+  }, [text, hasFractions]);
+
+  if (!hasFractions) return null;
+
+  return (
+    <div className="mt-2 rounded-md border border-border/60 bg-muted/30 p-3">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+        Preview
+      </p>
+      <div
+        ref={previewRef}
+        className="text-sm text-foreground leading-relaxed space-y-0.5"
+      />
+    </div>
+  );
+}
 
 
             <div className="grid grid-cols-3 gap-4">
