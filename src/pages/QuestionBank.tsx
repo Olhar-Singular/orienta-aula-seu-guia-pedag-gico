@@ -204,6 +204,8 @@ export default function QuestionBank() {
   // ─── File upload handler ───
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset input value so the same file can be re-selected after removal
+    if (e.target) e.target.value = "";
     if (!file || !user) return;
 
     if (file.size > 10 * 1024 * 1024) {
