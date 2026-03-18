@@ -125,10 +125,11 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   return nodes;
 }
 
-// Detect alternative lines like: a) ..., b) ..., A) ..., B) ...
-const ALT_LINE_REGEX = /^([a-zA-Z])\)\s*(.+)/;
-// Detect numbered question/item lines like: 1. ..., 2. ..., **1. ...
-const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*(.+)/;
+// Detect alternative lines: only a-e (standard exam answers), must start at line beginning
+const ALT_LINE_REGEX = /^([a-eA-E])\)\s+(.+)/;
+// Detect numbered question/item lines: must start with number + "." + space + text starting with a letter/word
+// Avoids matching bare numbers or math like "= 42/48"
+const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*([A-Za-zÀ-ú"(].+)/;
 // Detect section-like headers (all caps or ending with :)
 const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
 // Detect markdown headers ## ...
@@ -151,11 +152,19 @@ type Block =
 function preProcessContent(content: string): string {
   let processed = content;
 
-  // Insert newline before numbered questions mid-text, but NOT after / (fractions like 11/8)
-  processed = processed.replace(/([^\n\/])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
+  // Insert newline before numbered questions mid-text (e.g., "... text 1. Question")
+  // but NOT after math operators/context (/, x, *, +, -, =, (, digits)
+  processed = processed.replace(
+    /([^\n\/x*+\-=()\d])(\s+)(\*{0,2}\d+\.\s+[A-Za-zÀ-ú])/g,
+    "$1\n$3"
+  );
 
-  // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
-  processed = processed.replace(/([^\n])(\s+)([a-zA-Z]\)\s)/g, "$1\n$3");
+  // Insert newline before alternatives mid-text, only for a-e (standard answers)
+  // and NOT when preceded by math operators like x, *, (, digits
+  processed = processed.replace(
+    /([^\n\/x*+\-=()\d])(\s+)([a-eA-E]\)\s+[A-Za-zÀ-ú])/g,
+    "$1\n$3"
+  );
 
   // Convert markdown headers to our format
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");

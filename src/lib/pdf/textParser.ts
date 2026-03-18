@@ -29,10 +29,12 @@ export type ParsedElement = {
 
 const TITLE_RE = /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇÜ\s\-–—]+$/;
 
+// Question number must be followed by text starting with a letter (not math symbols)
 const QUESTION_NUMBER_RE =
-  /^(?:quest[ãa]o\s*)?(\d{1,3})[\.\)\:\-]?\s*(.*)/i;
+  /^(?:quest[ãa]o\s*)?(\d{1,3})[\.\)\:\-]\s+([A-Za-zÀ-ú"(].*)/i;
 
-const ALTERNATIVE_RE = /^[\(\[]?([a-zA-Z])[\)\]\.\:]\s*(.*)/;
+// Alternatives: only a-e (standard exam answers), require space + text after
+const ALTERNATIVE_RE = /^[\(\[]?([a-eA-E])[\)\]\.\:]\s+(.*)/;
 
 const STEP_RE =
   /^(?:(?:PRIMEIRO|SEGUNDO|TERCEIRO|QUARTO|QUINTO|SEXTO|SÉTIMO|OITAVO|NONO|DÉCIMO|\d+[ºª]?)\s*(?:PASSO|ETAPA)|(?:PASSO|ETAPA)\s*\d+)\s*[\:\-]?\s*/i;
@@ -175,16 +177,13 @@ export function parseActivityText(text: string): ParsedElement[] {
     // 5. Alternative (a), b), etc.)
     const altMatch = trimmed.match(ALTERNATIVE_RE);
     if (altMatch) {
-      // Only treat as alternative if letter is a-e (or A-E) to be conservative
       const letter = altMatch[1].toLowerCase();
-      if (letter >= "a" && letter <= "j") {
-        elements.push({
-          type: "alternative",
-          content: trimmed,
-          metadata: { number: letter },
-        });
-        continue;
-      }
+      elements.push({
+        type: "alternative",
+        content: trimmed,
+        metadata: { number: letter },
+      });
+      continue;
     }
 
     // 6. Question number: "1.", "2)", "Questão 3:", etc.
