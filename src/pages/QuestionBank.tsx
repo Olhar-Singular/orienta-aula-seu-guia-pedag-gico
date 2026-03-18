@@ -1055,7 +1055,7 @@ export default function QuestionBank() {
             <DialogTitle>Visualização do Documento</DialogTitle>
           </DialogHeader>
           <div
-            className="prose prose-sm max-w-none dark:prose-invert text-foreground"
+            className="prose prose-sm max-w-none dark:prose-invert text-foreground [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md"
             dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
           />
         </DialogContent>
