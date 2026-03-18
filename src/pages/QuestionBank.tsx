@@ -87,6 +87,7 @@ type ExtractedQuestion = {
   saving?: boolean;
   savedId?: string;
   difficulty?: string;
+  editing?: boolean;
 };
 
 type PdfUpload = {
@@ -156,6 +157,34 @@ function MathPreview({ text }: { text: string }) {
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
+  );
+}
+
+/** Renders text as read-only with inline KaTeX for math content */
+function ReadOnlyMathText({ text }: { text: string }) {
+  const html = useMemo(() => {
+    if (!text) return "";
+    return text
+      .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => {
+        try { return katex.renderToString(`\\frac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return `${num}/${den}`; }
+      })
+      .replace(/(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z/])/g, (m, num, den) => {
+        try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return m; }
+      })
+      .replace(/(\d+)\s*\^\s*\{?(-?\d+)\}?/g, (_m, base, exp) => {
+        try { return katex.renderToString(`${base}^{${exp}}`, { throwOnError: false }); }
+        catch { return `${base}^${exp}`; }
+      })
+      .replace(/\n/g, "<br/>");
+  }, [text]);
+
+  return (
+    <div
+      className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[3rem] leading-relaxed [&_.katex]:text-[115%]"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 
@@ -664,15 +693,17 @@ export default function QuestionBank() {
                           {q.imageUrl && <Badge variant="outline"><ImageIcon className="w-3 h-3 mr-1" />Imagem</Badge>}
                         </div>
                         <div className="flex items-center gap-1">
-                          {/* Edit in modal button - always visible */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditExtractedInModal(i)}
-                            title="Editar no modal completo"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          {/* Toggle inline edit mode */}
+                          {!q.saved && (
+                            <Button
+                              size="sm"
+                              variant={q.editing ? "default" : "ghost"}
+                              onClick={() => updateExtracted(i, "editing", !q.editing)}
+                              title={q.editing ? "Fechar edição" : "Editar questão"}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          )}
                           {!q.saved && !q.isDuplicate && (
                             <Button
                               size="sm"
@@ -701,14 +732,19 @@ export default function QuestionBank() {
                       {/* Enunciado */}
                       <div>
                         <Label className="text-xs">Enunciado</Label>
-                        <Textarea
-                          value={q.text}
-                          onChange={(e) => updateExtracted(i, "text", e.target.value)}
-                          rows={3}
-                          className="text-sm"
-                          disabled={q.saved || q.isDuplicate}
-                        />
-                        <MathPreview text={q.text} />
+                        {q.editing ? (
+                          <>
+                            <Textarea
+                              value={q.text}
+                              onChange={(e) => updateExtracted(i, "text", e.target.value)}
+                              rows={3}
+                              className="text-sm"
+                            />
+                            <MathPreview text={q.text} />
+                          </>
+                        ) : (
+                          <ReadOnlyMathText text={q.text} />
+                        )}
                       </div>
 
                       {/* Image after enunciado */}
@@ -723,22 +759,20 @@ export default function QuestionBank() {
                               <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
                             </div>
                           </div>
-                          <div className="flex gap-1 flex-wrap">
-                            {!q.saved && !q.isDuplicate && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
-                                  <X className="w-3 h-3 mr-1" /> Remover imagem
+                          {q.editing && (
+                            <div className="flex gap-1 flex-wrap">
+                              <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
+                                <X className="w-3 h-3 mr-1" /> Remover imagem
+                              </Button>
+                              {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                                <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
+                                  <Crop className="w-3 h-3 mr-1" /> Trocar recorte
                                 </Button>
-                                {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                                  <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
-                                    <Crop className="w-3 h-3 mr-1" /> Trocar recorte
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ) : !q.saved && !q.isDuplicate && (
+                      ) : q.editing && (
                         <div className="flex gap-1">
                           {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
                             <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
@@ -775,21 +809,28 @@ export default function QuestionBank() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div>
                           <Label className="text-xs">Matéria</Label>
-                          <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)} disabled={q.saved}>
-                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                          {q.editing ? (
+                            <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)}>
+                              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <p className="text-sm p-1 text-muted-foreground">{q.subject}</p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs">Tópico</Label>
-                          <Input
-                            value={q.topic || ""}
-                            onChange={(e) => updateExtracted(i, "topic", e.target.value)}
-                            className="h-8 text-sm"
-                            disabled={q.saved}
-                          />
+                          {q.editing ? (
+                            <Input
+                              value={q.topic || ""}
+                              onChange={(e) => updateExtracted(i, "topic", e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          ) : (
+                            <p className="text-sm p-1 text-muted-foreground">{q.topic || "—"}</p>
+                          )}
                         </div>
                       </div>
 
@@ -804,8 +845,8 @@ export default function QuestionBank() {
                                   size="sm"
                                   variant={q.correct_answer === j ? "default" : "outline"}
                                   className="w-8 h-7 text-xs shrink-0"
-                                  onClick={() => !q.saved && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
-                                  disabled={q.saved}
+                                  onClick={() => q.editing && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
+                                  disabled={!q.editing}
                                 >
                                   {String.fromCharCode(65 + j)}
                                 </Button>
@@ -815,7 +856,7 @@ export default function QuestionBank() {
                               </div>
                             ))}
                           </div>
-                          {!q.saved && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
+                          {q.editing && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
                             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
                             </p>
@@ -826,14 +867,23 @@ export default function QuestionBank() {
                       {/* Resolution */}
                       <div>
                         <Label className="text-xs">Resolução</Label>
-                        <Textarea
-                          value={q.resolution || ""}
-                          onChange={(e) => updateExtracted(i, "resolution", e.target.value)}
-                          rows={2}
-                          className="text-sm"
-                          placeholder="Explicação da resposta..."
-                          disabled={q.saved}
-                        />
+                        {q.editing ? (
+                          <Textarea
+                            value={q.resolution || ""}
+                            onChange={(e) => updateExtracted(i, "resolution", e.target.value)}
+                            rows={2}
+                            className="text-sm"
+                            placeholder="Explicação da resposta..."
+                          />
+                        ) : (
+                          q.resolution ? (
+                            <ReadOnlyMathText text={q.resolution} />
+                          ) : (
+                            <p className="text-sm p-2 rounded border border-border/50 bg-muted/30 min-h-[2rem] text-muted-foreground italic">
+                              Sem resolução
+                            </p>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
