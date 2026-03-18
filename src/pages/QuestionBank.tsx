@@ -543,6 +543,28 @@ export default function QuestionBank() {
     throw new Error("Formato não suportado para visualização");
   };
 
+  /** Opens QuestionForm modal to edit an extracted question */
+  const handleEditExtractedInModal = (index: number) => {
+    const eq = extractedQuestions[index];
+    if (!eq) return;
+
+    // Build a Question-like object for QuestionForm
+    const questionObj: any = {
+      id: eq.savedId || undefined,
+      text: eq.text,
+      subject: eq.subject,
+      topic: eq.topic || null,
+      difficulty: eq.difficulty || "medio",
+      options: eq.options || null,
+      correct_answer: eq.correct_answer ?? null,
+      resolution: eq.resolution || null,
+      image_url: eq.imageUrl || null,
+    };
+
+    setEditingQuestion(questionObj);
+    setShowForm(true);
+  };
+
   // ─── Preview file from history ───
   const handlePreviewUpload = async (upload: PdfUpload) => {
     setLoadingPreview(true);
