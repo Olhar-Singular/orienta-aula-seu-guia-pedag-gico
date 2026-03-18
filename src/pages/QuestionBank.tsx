@@ -1048,24 +1048,26 @@ export default function QuestionBank() {
 
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
-      <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
       <PdfPreviewModal
         open={previewMode === "pdf"}
-        onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewUploadFile(null); } }}
-        file={previewUploadFile}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewMode(null);
+            setPreviewUploadFile(null);
+          }
+        }}
+        file={previewMode === "pdf" ? previewUploadFile : null}
       />
-      {/* Docx Preview Dialog */}
-      <Dialog open={previewMode === "docx"} onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewDocxHtml(""); } }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Visualização do Documento</DialogTitle>
-          </DialogHeader>
-          <div
-            className="prose prose-sm max-w-none dark:prose-invert text-foreground [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md"
-            dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
-          />
-        </DialogContent>
-      </Dialog>
+      <DocxPreviewModal
+        open={previewMode === "docx"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewMode(null);
+            setPreviewUploadFile(null);
+          }
+        }}
+        file={previewMode === "docx" ? previewUploadFile : null}
+      />
       <ImagePreviewDialog
         open={!!previewImageUrl}
         onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
