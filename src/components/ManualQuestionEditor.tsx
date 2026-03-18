@@ -128,20 +128,6 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
         if (type === "pdf") {
           const result = await parsePdf(file);
           setPageImages(result.pageImages);
-          // Build per-page text array aligned with pageImages
-          const texts: string[] = [];
-          const pageRegex = /--- Página (\d+) ---/g;
-          let match: RegExpExecArray | null;
-          const markers: { page: number; index: number }[] = [];
-          while ((match = pageRegex.exec(result.text)) !== null) {
-            markers.push({ page: parseInt(match[1], 10), index: match.index + match[0].length });
-          }
-          for (let m = 0; m < markers.length; m++) {
-            const start = markers[m].index;
-            const end = m + 1 < markers.length ? result.text.lastIndexOf("---", markers[m + 1].index) : result.text.length;
-            texts.push(result.text.substring(start, end).trim());
-          }
-          setPageTexts(texts);
         } else if (type === "docx") {
           const text = await extractDocxText(file);
           setDocxText(text);
