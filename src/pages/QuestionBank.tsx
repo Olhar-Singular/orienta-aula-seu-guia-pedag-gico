@@ -88,7 +88,17 @@ type ExtractedQuestion = {
   savedId?: string;
   difficulty?: string;
   editing?: boolean;
+  /** Fingerprint at time of duplicate detection */
+  originalFingerprint?: string;
 };
+
+/** Generates a simple fingerprint from question content for dedup comparison */
+function questionFingerprint(q: { text: string; options?: string[]; correct_answer?: number }): string {
+  const norm = normalizeTextForDedup(q.text);
+  const opts = q.options ? q.options.map(o => normalizeTextForDedup(o)).join("|") : "";
+  const ans = q.correct_answer != null ? String(q.correct_answer) : "";
+  return `${norm}::${opts}::${ans}`;
+}
 
 type PdfUpload = {
   id: string;
