@@ -297,17 +297,34 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col bg-muted/30">
             <div className="flex items-center justify-between px-3 py-2 border-b bg-background">
-              <span className="text-sm font-medium text-foreground">Documento Original</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">Documento Original</span>
+                {fileType === "pdf" && pageImages.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant={showTextView ? "default" : "outline"}
+                    className="h-6 text-xs px-2"
+                    onClick={() => setShowTextView(v => !v)}
+                  >
+                    <Type className="w-3 h-3 mr-1" />
+                    {showTextView ? "Imagem" : "Texto"}
+                  </Button>
+                )}
+              </div>
               {fileType === "pdf" && pageImages.length > 0 && (
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.max(50, z - 25))}>
-                    <ZoomOut className="w-3.5 h-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.min(200, z + 25))}>
-                    <ZoomIn className="w-3.5 h-3.5" />
-                  </Button>
-                  <span className="text-xs text-muted-foreground mx-2">|</span>
+                  {!showTextView && (
+                    <>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.max(50, z - 25))}>
+                        <ZoomOut className="w-3.5 h-3.5" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.min(300, z + 25))}>
+                        <ZoomIn className="w-3.5 h-3.5" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground mx-1">|</span>
+                    </>
+                  )}
                   <Button size="icon" variant="ghost" className="h-7 w-7" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </Button>
@@ -325,15 +342,21 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   <span className="ml-2 text-sm text-muted-foreground">Processando documento...</span>
                 </div>
               ) : fileType === "pdf" && pageImages.length > 0 ? (
-                <img
-                  src={pageImages[currentPage]}
-                  alt={`Página ${currentPage + 1}`}
-                  className="mx-auto rounded shadow-sm select-text"
-                  style={{ width: `${zoom}%`, maxWidth: "none" }}
-                  draggable={false}
-                />
+                showTextView ? (
+                  <div className="bg-background rounded p-4 text-sm whitespace-pre-wrap leading-relaxed text-foreground select-text cursor-text">
+                    {pageTexts[currentPage] || "Nenhum texto extraído desta página."}
+                  </div>
+                ) : (
+                  <img
+                    src={pageImages[currentPage]}
+                    alt={`Página ${currentPage + 1}`}
+                    className="mx-auto rounded shadow-sm"
+                    style={{ width: `${zoom}%`, maxWidth: "none" }}
+                    draggable={false}
+                  />
+                )
               ) : fileType === "docx" && docxText ? (
-                <div className="bg-background rounded p-4 text-sm whitespace-pre-wrap leading-relaxed text-foreground select-text">
+                <div className="bg-background rounded p-4 text-sm whitespace-pre-wrap leading-relaxed text-foreground select-text cursor-text">
                   {docxText}
                 </div>
               ) : (
