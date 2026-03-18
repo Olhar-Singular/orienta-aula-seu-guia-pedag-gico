@@ -92,6 +92,8 @@ type PdfUpload = {
   uploaded_at: string;
 };
 
+type PreviewMode = "pdf" | "docx" | null;
+
 const subjects = [
   "Física", "Matemática", "Química", "Biologia", "Português",
   "História", "Geografia", "Inglês", "Ciências", "Arte", "Ed. Física", "Geral",
