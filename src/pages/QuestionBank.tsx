@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
@@ -41,6 +41,8 @@ import {
   ListChecks,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
@@ -83,6 +85,8 @@ type ExtractedQuestion = {
   isDuplicate?: boolean;
   saved?: boolean;
   saving?: boolean;
+  savedId?: string;
+  difficulty?: string;
 };
 
 type PdfUpload = {
@@ -112,6 +116,48 @@ const sourceLabels: Record<string, string> = {
   docx_extract: "Word",
   image_crop: "Imagem",
 };
+
+/** Renders text with LaTeX fractions and formulas via KaTeX */
+function MathPreview({ text }: { text: string }) {
+  const html = useMemo(() => {
+    if (!text) return "";
+    let result = text
+      // Render explicit LaTeX fractions
+      .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => {
+        try { return katex.renderToString(`\\frac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return `${num}/${den}`; }
+      })
+      // Render plain fractions like 3/4
+      .replace(/(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z/])/g, (m, num, den) => {
+        try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return m; }
+      })
+      // Render superscripts like 10^5 or 10^{-2}
+      .replace(/(\d+)\s*\^\s*\{?(-?\d+)\}?/g, (_m, base, exp) => {
+        try { return katex.renderToString(`${base}^{${exp}}`, { throwOnError: false }); }
+        catch { return `${base}^${exp}`; }
+      })
+      // Newlines to <br>
+      .replace(/\n/g, "<br/>");
+    return result;
+  }, [text]);
+
+  if (!text) return null;
+
+  // Check if there's any math content worth rendering
+  const hasMath = /\\frac|\/|\^/.test(text);
+  if (!hasMath) return null;
+
+  return (
+    <div className="mt-1 p-2 rounded border border-border/50 bg-muted/30">
+      <p className="text-[10px] text-muted-foreground mb-1">Prévia matemática</p>
+      <div
+        className="text-sm leading-relaxed [&_.katex]:text-[115%]"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
 
 export default function QuestionBank() {
   const { user } = useAuth();
@@ -410,11 +456,12 @@ export default function QuestionBank() {
         school_id: schoolId,
       };
 
-      const { error } = await (supabase.from as any)("question_bank").insert([row]);
+      const { data: inserted, error } = await (supabase.from as any)("question_bank").insert([row]).select("id");
       if (error) throw error;
 
       updateExtracted(index, "saved", true);
       updateExtracted(index, "saving", false);
+      if (inserted?.[0]?.id) updateExtracted(index, "savedId", inserted[0].id);
       toast({ title: `Questão ${index + 1} salva com sucesso!` });
       fetchQuestions();
     } catch (e: any) {
@@ -494,6 +541,28 @@ export default function QuestionBank() {
     }
 
     throw new Error("Formato não suportado para visualização");
+  };
+
+  /** Opens QuestionForm modal to edit an extracted question */
+  const handleEditExtractedInModal = (index: number) => {
+    const eq = extractedQuestions[index];
+    if (!eq) return;
+
+    // Build a Question-like object for QuestionForm
+    const questionObj: any = {
+      id: eq.savedId || undefined,
+      text: eq.text,
+      subject: eq.subject,
+      topic: eq.topic || null,
+      difficulty: eq.difficulty || "medio",
+      options: eq.options || null,
+      correct_answer: eq.correct_answer ?? null,
+      resolution: eq.resolution || null,
+      image_url: eq.imageUrl || null,
+    };
+
+    setEditingQuestion(questionObj);
+    setShowForm(true);
   };
 
   // ─── Preview file from history ───
@@ -594,37 +663,39 @@ export default function QuestionBank() {
                           {q.isDuplicate && !q.saved && <Badge variant="destructive">Duplicada</Badge>}
                           {q.imageUrl && <Badge variant="outline"><ImageIcon className="w-3 h-3 mr-1" />Imagem</Badge>}
                         </div>
-                        {!q.saved && !q.isDuplicate && (
+                        <div className="flex items-center gap-1">
+                          {/* Edit in modal button - always visible */}
                           <Button
                             size="sm"
-                            onClick={() => handleSaveOne(i)}
-                            disabled={q.saving || !q.text.trim()}
+                            variant="ghost"
+                            onClick={() => handleEditExtractedInModal(i)}
+                            title="Editar no modal completo"
                           >
-                            {q.saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
-                            Salvar
+                            <Pencil className="w-3 h-3" />
                           </Button>
-                        )}
-                        {q.isDuplicate && !q.saved && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              updateExtracted(i, "isDuplicate", false);
-                              updateExtracted(i, "selected", true);
-                            }}
-                          >
-                            <Pencil className="w-3 h-3 mr-1" /> Editar
-                          </Button>
-                        )}
-                        {q.saved && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateExtracted(i, "saved", false)}
-                          >
-                            <Pencil className="w-3 h-3 mr-1" /> Editar
-                          </Button>
-                        )}
+                          {!q.saved && !q.isDuplicate && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSaveOne(i)}
+                              disabled={q.saving || !q.text.trim()}
+                            >
+                              {q.saving ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              Salvar
+                            </Button>
+                          )}
+                          {q.isDuplicate && !q.saved && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                updateExtracted(i, "isDuplicate", false);
+                                updateExtracted(i, "selected", true);
+                              }}
+                            >
+                              Forçar inclusão
+                            </Button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Enunciado */}
@@ -637,6 +708,7 @@ export default function QuestionBank() {
                           className="text-sm"
                           disabled={q.saved || q.isDuplicate}
                         />
+                        <MathPreview text={q.text} />
                       </div>
 
                       {/* Image after enunciado */}
@@ -1050,7 +1122,7 @@ export default function QuestionBank() {
         </Tabs>
       </div>
 
-      <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
+      <QuestionForm open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingQuestion(null); }} question={editingQuestion} onSaved={() => { fetchQuestions(); /* Mark as saved in extracted list if applicable */ if (editingQuestion) { const idx = extractedQuestions.findIndex(eq => eq.savedId === editingQuestion.id || (eq.text === editingQuestion.text && !eq.savedId)); if (idx >= 0) { updateExtracted(idx, "saved", true); } } }} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <FilePreviewModal
         open={previewMode !== null}
