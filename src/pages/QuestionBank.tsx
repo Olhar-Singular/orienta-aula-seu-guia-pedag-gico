@@ -475,6 +475,36 @@ export default function QuestionBank() {
     }
   };
 
+  // ─── Preview file from history ───
+  const handlePreviewUpload = async (upload: PdfUpload) => {
+    setLoadingPreview(true);
+    try {
+      const { data: fileData, error } = await supabase.storage.from("question-pdfs").download(upload.file_path);
+      if (error || !fileData) throw new Error("Não foi possível baixar o arquivo");
+
+      const isDocx = upload.file_name.toLowerCase().endsWith(".docx");
+      const mimeType = isDocx
+        ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        : "application/pdf";
+      const file = new File([fileData], upload.file_name, { type: mimeType });
+
+      if (isDocx) {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.default.convertToHtml({ arrayBuffer });
+        setPreviewDocxHtml(result.value);
+        setPreviewMode("docx");
+      } else {
+        setPreviewUploadFile(file);
+        setPreviewMode("pdf");
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
   const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
     setExtractedQuestions((prev) => prev.map((q, idx) => idx === i ? { ...q, [field]: value } : q));
   };
