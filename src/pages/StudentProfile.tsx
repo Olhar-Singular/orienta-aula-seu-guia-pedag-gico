@@ -128,7 +128,7 @@ export default function StudentProfile() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Observações gerais</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent>
                 <div className="relative">
                   <Textarea
                     className="border-border focus-visible:ring-muted-foreground/30"
@@ -142,15 +142,13 @@ export default function StudentProfile() {
                     {notes.length}/{MAX_NOTES_LENGTH}
                   </span>
                 </div>
-                <Button size="sm" onClick={() => saveNotes.mutate()} disabled={saveNotes.isPending}>
-                  <Save className="w-4 h-4 mr-2" /> Salvar
-                </Button>
               </CardContent>
             </Card>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <h2 className="text-lg font-semibold text-foreground mb-4">Barreiras Observáveis</h2>
+            <p className="text-xs text-muted-foreground -mt-3 mb-4">As barreiras são salvas automaticamente ao marcar/desmarcar.</p>
             <div className="space-y-4">
               {BARRIER_DIMENSIONS.map((dim) => (
                 <Card key={dim.key} className="border-border">
@@ -182,6 +180,22 @@ export default function StudentProfile() {
                 </Card>
               ))}
             </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="sticky bottom-4 z-10 flex justify-end"
+          >
+            <Button
+              onClick={() => saveNotes.mutate()}
+              disabled={saveNotes.isPending}
+              className="shadow-lg"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Salvar perfil do aluno
+            </Button>
           </motion.div>
         </TabsContent>
 
