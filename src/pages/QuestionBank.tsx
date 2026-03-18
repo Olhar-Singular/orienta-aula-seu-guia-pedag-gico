@@ -87,6 +87,7 @@ type ExtractedQuestion = {
   saving?: boolean;
   savedId?: string;
   difficulty?: string;
+  editing?: boolean;
 };
 
 type PdfUpload = {
