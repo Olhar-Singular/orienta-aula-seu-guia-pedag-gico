@@ -177,16 +177,13 @@ export function parseActivityText(text: string): ParsedElement[] {
     // 5. Alternative (a), b), etc.)
     const altMatch = trimmed.match(ALTERNATIVE_RE);
     if (altMatch) {
-      // Only treat as alternative if letter is a-e (or A-E) to be conservative
       const letter = altMatch[1].toLowerCase();
-      if (letter >= "a" && letter <= "j") {
-        elements.push({
-          type: "alternative",
-          content: trimmed,
-          metadata: { number: letter },
-        });
-        continue;
-      }
+      elements.push({
+        type: "alternative",
+        content: trimmed,
+        metadata: { number: letter },
+      });
+      continue;
     }
 
     // 6. Question number: "1.", "2)", "Questão 3:", etc.
