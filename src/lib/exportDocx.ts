@@ -11,7 +11,8 @@ export type DocxExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  images?: string[];
+  imagesUniversal?: string[];
+  imagesDirected?: string[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
