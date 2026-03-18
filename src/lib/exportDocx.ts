@@ -219,11 +219,12 @@ export async function exportToDocx(data: DocxExportData) {
           // Universal
           new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionUniversal),
+          ...universalImageParagraphs,
           new Paragraph({ text: "" }),
           // Directed
           new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionDirected),
-          ...imageParagraphs,
+          ...directedImageParagraphs,
           new Paragraph({ text: "" }),
           // Strategies
           new Paragraph({ text: "Estratégias Aplicadas", heading: HeadingLevel.HEADING_2 }),

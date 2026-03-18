@@ -67,7 +67,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
-        images: imageUrls,
+        imagesUniversal,
+        imagesDirected,
       });
       toast({ title: "PDF exportado!" });
     } catch {
@@ -89,7 +90,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
-        images: imageUrls,
+        imagesUniversal,
+        imagesDirected,
       });
       toast({ title: "Arquivo Word exportado!" });
     } catch {

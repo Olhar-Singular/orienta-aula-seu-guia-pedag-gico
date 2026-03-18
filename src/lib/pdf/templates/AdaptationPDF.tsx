@@ -57,17 +57,18 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
       {/* Universal Version */}
       <PDFSection title="Versão Universal (Design Universal para Aprendizagem)">
         <PDFTextBlock text={props.versionUniversal} />
+        {props.imagesUniversal && props.imagesUniversal.length > 0 && (
+          <PDFImage urls={props.imagesUniversal} />
+        )}
       </PDFSection>
 
       {/* Directed Version */}
       <PDFSection title="Versão Direcionada">
         <PDFTextBlock text={props.versionDirected} />
+        {props.imagesDirected && props.imagesDirected.length > 0 && (
+          <PDFImage urls={props.imagesDirected} />
+        )}
       </PDFSection>
-
-      {/* Images (once only) */}
-      {props.images && props.images.length > 0 && (
-        <PDFImage urls={props.images} />
-      )}
 
       {/* Strategies */}
       {props.strategiesApplied.length > 0 && (
