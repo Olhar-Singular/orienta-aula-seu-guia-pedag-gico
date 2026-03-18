@@ -134,7 +134,6 @@ export default function QuestionBank() {
   // Modal states
   const [showForm, setShowForm] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Upload + extraction state
@@ -150,7 +149,6 @@ export default function QuestionBank() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewUploadFile, setPreviewUploadFile] = useState<File | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
-  const [previewDocxHtml, setPreviewDocxHtml] = useState<string>("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
