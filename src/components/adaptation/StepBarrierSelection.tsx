@@ -359,7 +359,11 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setBarriersLocked(false)}>
+            <AlertDialogAction onClick={() => {
+              setOriginalBarriers([...data.barriers]);
+              setBarriersLocked(false);
+              setIsEditingBarriers(true);
+            }}>
               Sim, editar barreiras
             </AlertDialogAction>
           </AlertDialogFooter>
