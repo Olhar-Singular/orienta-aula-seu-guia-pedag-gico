@@ -876,9 +876,13 @@ export default function QuestionBank() {
                             placeholder="Explicação da resposta..."
                           />
                         ) : (
-                          <p className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[2rem]">
-                            {q.resolution || <span className="text-muted-foreground italic">Sem resolução</span>}
-                          </p>
+                          q.resolution ? (
+                            <ReadOnlyMathText text={q.resolution} />
+                          ) : (
+                            <p className="text-sm p-2 rounded border border-border/50 bg-muted/30 min-h-[2rem] text-muted-foreground italic">
+                              Sem resolução
+                            </p>
+                          )
                         )}
                       </div>
                     </div>
