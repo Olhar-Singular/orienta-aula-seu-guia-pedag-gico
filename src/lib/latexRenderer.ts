@@ -109,15 +109,15 @@ export function renderMathToHtml(text: string): string {
   });
 
   // 5. Superscripts: 10^{-2}, x^{3}, then 10^(-2), then 10^5
-  result = result.replace(/([a-zA-Z0-9,.])\s*\^\s*\{([^{}]+)\}/g, (_m, base, exp) => {
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*\{([^{}]+)\}/g, (_m, base, exp) => {
     return renderKatex(`${unicodeToLatex(base)}^{${unicodeToLatex(exp)}}`);
   });
   // Parenthesized exponents: 10^(24), 10^(-27), 3 x 10^(24 - (-27))
-  result = result.replace(/([a-zA-Z0-9,.])\s*\^\s*\(([^)]+)\)/g, (_m, base, exp) => {
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*\(([^)]+)\)/g, (_m, base, exp) => {
     return renderKatex(`${unicodeToLatex(base)}^{${unicodeToLatex(exp)}}`);
   });
   // Simple numeric exponents: 10^5, x^2
-  result = result.replace(/([a-zA-Z0-9,.])\s*\^\s*(-?\d+)(?![{(])/g, (_m, base, exp) => {
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*(-?\d+)(?![{(])/g, (_m, base, exp) => {
     return renderKatex(`${unicodeToLatex(base)}^{${exp}}`);
   });
 
