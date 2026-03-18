@@ -88,7 +88,17 @@ type ExtractedQuestion = {
   savedId?: string;
   difficulty?: string;
   editing?: boolean;
+  /** Fingerprint at time of duplicate detection */
+  originalFingerprint?: string;
 };
+
+/** Generates a simple fingerprint from question content for dedup comparison */
+function questionFingerprint(q: { text: string; options?: string[]; correct_answer?: number }): string {
+  const norm = normalizeTextForDedup(q.text);
+  const opts = q.options ? q.options.map(o => normalizeTextForDedup(o)).join("|") : "";
+  const ans = q.correct_answer != null ? String(q.correct_answer) : "";
+  return `${norm}::${opts}::${ans}`;
+}
 
 type PdfUpload = {
   id: string;
@@ -382,6 +392,7 @@ export default function QuestionBank() {
         if (existingNorm.has(normalizeTextForDedup(q.text))) {
           q.isDuplicate = true;
           q.selected = false;
+          q.originalFingerprint = questionFingerprint(q);
           dupeCount++;
         }
       });
@@ -576,7 +587,22 @@ export default function QuestionBank() {
   };
 
   const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
-    setExtractedQuestions((prev) => prev.map((q, idx) => idx === i ? { ...q, [field]: value } : q));
+    setExtractedQuestions((prev) => prev.map((q, idx) => {
+      if (idx !== i) return q;
+      const updated = { ...q, [field]: value };
+
+      // Auto-clear duplicate status when content changes
+      if (updated.isDuplicate && updated.originalFingerprint &&
+          (field === "text" || field === "options" || field === "correct_answer")) {
+        const newFp = questionFingerprint(updated);
+        if (newFp !== updated.originalFingerprint) {
+          updated.isDuplicate = false;
+          updated.selected = true;
+        }
+      }
+
+      return updated;
+    }));
   };
 
   const filteredQuestions = questions.filter((q) => {
@@ -656,11 +682,11 @@ export default function QuestionBank() {
                           {!q.saved && (
                             <Button
                               size="sm"
-                              variant={q.editing ? "default" : "ghost"}
+                              variant={q.editing ? "secondary" : "ghost"}
                               onClick={() => updateExtracted(i, "editing", !q.editing)}
-                              title={q.editing ? "Fechar edição" : "Editar questão"}
                             >
-                              <Pencil className="w-3 h-3" />
+                              <Pencil className="w-3 h-3 mr-1" />
+                              {q.editing ? "Fechar edição" : "Editar"}
                             </Button>
                           )}
                           {!q.saved && !q.isDuplicate && (
