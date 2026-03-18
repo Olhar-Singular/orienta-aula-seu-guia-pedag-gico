@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap } from "./AdaptationWizard";
 import {
@@ -49,6 +50,7 @@ const getDefaultQuestionImageMap = (
 };
 
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
+  const { schoolId } = useUserSchool();
   const [loading, setLoading] = useState(!data.result);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const questionImages = data.questionImages;
@@ -151,6 +153,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
             student_id: data.studentId || undefined,
             class_id: data.classId || undefined,
             observation_notes: data.observationNotes || undefined,
+            school_id: schoolId || undefined,
             question_images: data.selectedQuestions
               .filter((q) => q.image_url)
               .map((q) => ({

@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export default function Classes() {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -27,7 +29,6 @@ export default function Classes() {
       const { data, error } = await supabase
         .from("classes")
         .select("*, class_students(count)")
-        .eq("teacher_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -42,7 +43,8 @@ export default function Classes() {
         name: name.trim().slice(0, 100),
         description: description.trim().slice(0, 200) || null,
         school_year: schoolYear.trim().slice(0, 10) || null,
-      });
+        school_id: schoolId,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

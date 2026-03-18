@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import {
   validateExtractedQuestions,
@@ -33,6 +34,7 @@ export default function QuestionExtractModal({
   onSaved,
 }: Props) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -136,6 +138,7 @@ export default function QuestionExtractModal({
       source: sourceType,
       source_file_name: sourceFileName,
       created_by: user.id,
+      school_id: schoolId,
     }));
 
     const { error } = await (supabase.from as any)("question_bank").insert(rows);

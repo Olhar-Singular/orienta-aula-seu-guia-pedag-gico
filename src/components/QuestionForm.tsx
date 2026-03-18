@@ -18,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { Plus, X, Upload, Loader2, Search } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
@@ -42,6 +43,7 @@ export default function QuestionForm({
   onSaved,
 }: QuestionFormProps) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
@@ -148,6 +150,7 @@ export default function QuestionForm({
           .eq("id", question.id));
       } else {
         payload.created_by = user!.id;
+        payload.school_id = schoolId;
         ({ error } = await (supabase.from as any)("question_bank").insert(payload));
       }
 

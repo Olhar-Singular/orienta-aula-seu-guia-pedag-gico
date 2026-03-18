@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -111,6 +112,7 @@ const sourceLabels: Record<string, string> = {
 
 export default function QuestionBank() {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
 
   const [activeTab, setActiveTab] = useState("provas");
 
@@ -395,6 +397,7 @@ export default function QuestionBank() {
         source_file_name: uploadFile?.name || null,
         image_url: imageUrl,
         created_by: user.id,
+        school_id: schoolId,
       };
 
       const { error } = await (supabase.from as any)("question_bank").insert([row]);

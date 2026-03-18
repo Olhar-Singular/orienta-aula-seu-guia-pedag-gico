@@ -239,6 +239,7 @@ serve(async (req) => {
       class_id,
       question_images,
       observation_notes,
+      school_id,
     } = body;
 
     if (!original_activity || typeof original_activity !== "string" || !original_activity.trim()) {
@@ -448,6 +449,7 @@ INSTRUÇÕES DE ADAPTAÇÃO:
       adaptation_result: resultWithImages,
       model_used: modelName,
       tokens_used: tokensUsed,
+      school_id: school_id || null,
     });
 
     if (insertError) {

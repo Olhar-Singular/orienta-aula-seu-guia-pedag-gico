@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { supabase } from "@/integrations/supabase/client";
 import { streamAI } from "@/lib/streamAI";
 
@@ -60,6 +61,7 @@ export default function Create() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   
   const [step, setStep] = useState(0);
   const [context, setContext] = useState({
@@ -217,7 +219,8 @@ export default function Create() {
           include_example: createParams.includeExample,
           include_answer: createParams.includeAnswer,
           notes: createParams.notes || null,
-        });
+          school_id: schoolId,
+        } as any);
 
         if (error) {
           console.error("Save error:", error);

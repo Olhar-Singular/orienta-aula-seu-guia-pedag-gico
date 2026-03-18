@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, ScanText, Move } from "lucide-react";
 
@@ -25,6 +26,7 @@ export default function ImageCropperModal({
   onImageCropped,
 }: Props) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -173,6 +175,7 @@ export default function ImageCropperModal({
           source: "image_crop",
           image_url: publicUrl,
           created_by: user.id,
+          school_id: schoolId,
         }));
 
         const { error } = await (supabase.from as any)("question_bank").insert(rows);
