@@ -218,10 +218,9 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-      }
+      setPdfPageImage(null);
+      setPdfCurrentPage(1);
+      setPdfPageCount(0);
       clearDocxContainers();
       setError(null);
       setWmfWarning(false);
