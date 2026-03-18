@@ -310,18 +310,14 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
               <span className="text-sm font-medium text-foreground">Documento Original</span>
               {fileType === "pdf" && pageImages.length > 0 && (
                 <div className="flex items-center gap-1">
-                  {!showTextView && (
-                    <>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.max(50, z - 25))}>
-                        <ZoomOut className="w-3.5 h-3.5" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.min(300, z + 25))}>
-                        <ZoomIn className="w-3.5 h-3.5" />
-                      </Button>
-                      <span className="text-xs text-muted-foreground mx-1">|</span>
-                    </>
-                  )}
+                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.max(50, z - 25))}>
+                    <ZoomOut className="w-3.5 h-3.5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground w-10 text-center">{zoom}%</span>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setZoom(z => Math.min(300, z + 25))}>
+                    <ZoomIn className="w-3.5 h-3.5" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground mx-1">|</span>
                   <Button size="icon" variant="ghost" className="h-7 w-7" disabled={currentPage === 0} onClick={() => setCurrentPage(p => p - 1)}>
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </Button>
