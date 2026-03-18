@@ -982,8 +982,8 @@ export default function QuestionBank() {
                 </div>
 
                 {uploadFile && (
-                  <div className="flex gap-2">
-                    <Button onClick={handleExtract} disabled={extracting} className="flex-1">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={handleExtract} disabled={extracting} className="flex-1 min-w-[140px]">
                       {extracting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -992,6 +992,14 @@ export default function QuestionBank() {
                       ) : (
                         <>Extrair com IA</>
                       )}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowManualEdit(true)}
+                      disabled={extracting}
+                      className="flex-1 min-w-[140px]"
+                    >
+                      <SplitSquareHorizontal className="w-4 h-4 mr-1" /> Editar Manualmente
                     </Button>
                     <Button
                       variant="outline"
