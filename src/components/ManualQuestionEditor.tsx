@@ -307,20 +307,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
         <ResizablePanel defaultSize={50} minSize={30}>
           <div className="h-full flex flex-col bg-muted/30">
             <div className="flex items-center justify-between px-3 py-2 border-b bg-background">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Documento Original</span>
-                {fileType === "pdf" && pageImages.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant={showTextView ? "default" : "outline"}
-                    className="h-6 text-xs px-2"
-                    onClick={() => setShowTextView(v => !v)}
-                  >
-                    <Type className="w-3 h-3 mr-1" />
-                    {showTextView ? "Imagem" : "Texto"}
-                  </Button>
-                )}
-              </div>
+              <span className="text-sm font-medium text-foreground">Documento Original</span>
               {fileType === "pdf" && pageImages.length > 0 && (
                 <div className="flex items-center gap-1">
                   {!showTextView && (
