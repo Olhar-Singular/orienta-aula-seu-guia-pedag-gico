@@ -335,11 +335,6 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   <span className="ml-2 text-sm text-muted-foreground">Processando documento...</span>
                 </div>
               ) : fileType === "pdf" && pageImages.length > 0 ? (
-                showTextView ? (
-                  <div className="bg-background rounded p-4 text-sm whitespace-pre-wrap leading-relaxed text-foreground select-text cursor-text">
-                    {pageTexts[currentPage] || "Nenhum texto extraído desta página."}
-                  </div>
-                ) : (
                   <img
                     src={pageImages[currentPage]}
                     alt={`Página ${currentPage + 1}`}
