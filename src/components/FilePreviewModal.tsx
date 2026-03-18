@@ -108,13 +108,8 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
     setUseOfficeViewer(false);
 
     if (mode === "pdf") {
-      const url = URL.createObjectURL(file);
-      setPdfUrl(url);
-      return () => {
-        cancelled = true;
-        URL.revokeObjectURL(url);
-        setPdfUrl(null);
-      };
+      // PDF is loaded via the dedicated useEffect above
+      return;
     }
 
     if (mode !== "docx") return;
