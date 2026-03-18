@@ -492,7 +492,15 @@ export default function QuestionBank() {
       if (isDocx) {
         const mammoth = await import("mammoth");
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.default.convertToHtml({ arrayBuffer });
+        const options: any = {
+          arrayBuffer,
+          convertImage: mammoth.default.images.imgElement((image: any) => {
+            return image.read("base64").then((imageBuffer: string) => {
+              return { src: `data:${image.contentType};base64,${imageBuffer}` };
+            });
+          }),
+        };
+        const result = await mammoth.default.convertToHtml(options);
         setPreviewDocxHtml(result.value);
         setPreviewMode("docx");
       } else {
@@ -1047,7 +1055,7 @@ export default function QuestionBank() {
             <DialogTitle>Visualização do Documento</DialogTitle>
           </DialogHeader>
           <div
-            className="prose prose-sm max-w-none dark:prose-invert text-foreground"
+            className="prose prose-sm max-w-none dark:prose-invert text-foreground [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md"
             dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
           />
         </DialogContent>
