@@ -412,11 +412,12 @@ export default function QuestionBank() {
         school_id: schoolId,
       };
 
-      const { error } = await (supabase.from as any)("question_bank").insert([row]);
+      const { data: inserted, error } = await (supabase.from as any)("question_bank").insert([row]).select("id");
       if (error) throw error;
 
       updateExtracted(index, "saved", true);
       updateExtracted(index, "saving", false);
+      if (inserted?.[0]?.id) updateExtracted(index, "savedId", inserted[0].id);
       toast({ title: `Questão ${index + 1} salva com sucesso!` });
       fetchQuestions();
     } catch (e: any) {
