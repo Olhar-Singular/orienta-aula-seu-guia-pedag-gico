@@ -80,5 +80,5 @@ export function renderMathToHtml(text: string): string {
  */
 export function hasMathContent(text: string): boolean {
   if (!text) return false;
-  return /\\frac|\\sqrt|\$[^$]+\$|(?<![a-zA-Z])\d+\s*\/\s*\d+(?![a-zA-Z/])|[A-Za-z0-9]\^|[A-Za-z]_\d/.test(text);
+  return /\\frac|\\sqrt|\$[^$]+\$|(?<![a-zA-Z)\]])\d+\s*\/\s*\d+(?![a-zA-Z/(])|[A-Za-z0-9]\^|[A-Za-z]_\d/.test(text);
 }
