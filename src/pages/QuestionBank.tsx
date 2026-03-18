@@ -279,29 +279,7 @@ export default function QuestionBank() {
         pdfText = await extractDocxText(uploadFile);
       }
 
-      // Upload original to storage
-      const safeName = uploadFile.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
-      const filePath = `${user.id}/${Date.now()}_${safeName}`;
-
-      // Check for duplicate exam name
-      const existingExam = pdfUploads.find((u) => u.file_name === uploadFile.name);
-      if (existingExam) {
-        toast({ title: "Prova já enviada", description: `O arquivo "${uploadFile.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
-        setExtracting(false);
-        return;
-      }
-
-      await supabase.storage.from("question-pdfs").upload(filePath, uploadFile);
-
-      // Register in pdf_uploads
-      await (supabase.from as any)("pdf_uploads").insert({
-        user_id: user.id,
-        file_name: uploadFile.name,
-        file_path: filePath,
-      });
-      fetchUploads();
-
-      // Call edge function
+      // File already uploaded to storage in handleFileSelect
       const session = await supabase.auth.getSession();
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-questions`,
