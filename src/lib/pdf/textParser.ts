@@ -50,6 +50,49 @@ const FORMULA_EXPONENT = /\d[\^_]\{?\d+\}?/;
 
 // ── Helpers ───────────────────────────────────────────────
 
+/**
+ * Normalize Unicode superscript/subscript characters that cause
+ * overlapping in @react-pdf/renderer built-in fonts (Helvetica/Courier).
+ * Replaces them with ASCII-safe equivalents.
+ */
+const SUPERSCRIPT_MAP: Record<string, string> = {
+  "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+  "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+  "⁺": "+", "⁻": "-", "⁼": "=", "⁽": "(", "⁾": ")",
+  "ⁿ": "n", "ⁱ": "i",
+};
+const SUBSCRIPT_MAP: Record<string, string> = {
+  "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+  "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+  "₊": "+", "₋": "-", "₌": "=", "₍": "(", "₎": ")",
+};
+
+const SUPER_RE = new RegExp(`[${Object.keys(SUPERSCRIPT_MAP).join("")}]+`, "g");
+const SUB_RE = new RegExp(`[${Object.keys(SUBSCRIPT_MAP).join("")}]+`, "g");
+
+export function normalizeMathText(text: string): string {
+  let result = text;
+  // Replace sequences of superscript chars → ^(digits)
+  result = result.replace(SUPER_RE, (match) => {
+    const converted = [...match].map((c) => SUPERSCRIPT_MAP[c] ?? c).join("");
+    return `^${converted}`;
+  });
+  // Replace sequences of subscript chars → _(digits)
+  result = result.replace(SUB_RE, (match) => {
+    const converted = [...match].map((c) => SUBSCRIPT_MAP[c] ?? c).join("");
+    return `_${converted}`;
+  });
+  // Normalize common problematic Unicode symbols
+  result = result.replace(/×/g, " x ");
+  result = result.replace(/÷/g, " / ");
+  result = result.replace(/±/g, "+/-");
+  result = result.replace(/≠/g, "!=");
+  result = result.replace(/≤/g, "<=");
+  result = result.replace(/≥/g, ">=");
+  result = result.replace(/·/g, ".");
+  return result;
+}
+
 function isTitle(line: string): boolean {
   if (line.length < 5 || line.length > 80) return false;
   if (line.endsWith(":")) return false;

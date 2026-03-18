@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { colors } from "../styles";
-import { parseActivityText, type ParsedElement, type TextElementType } from "../textParser";
+import { parseActivityText, normalizeMathText, type ParsedElement, type TextElementType } from "../textParser";
 
 const styles = StyleSheet.create({
   // Fallback paragraph
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginBottom: 4,
     color: colors.text,
+    letterSpacing: 0.3,
   },
   // Instruction: ATENÇÃO:, IMPORTANTE:
   instruction: {
@@ -197,7 +198,8 @@ type Props = {
  * detects titles, questions, alternatives, steps, bullets, formulas, etc.
  */
 export default function PDFTextBlock({ text }: Props) {
-  const elements = parseActivityText(text);
+  const safeText = normalizeMathText(text);
+  const elements = parseActivityText(safeText);
 
   return <View>{elements.map((el, i) => renderElement(el, i))}</View>;
 }
