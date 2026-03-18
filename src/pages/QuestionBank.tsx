@@ -83,6 +83,8 @@ type ExtractedQuestion = {
   isDuplicate?: boolean;
   saved?: boolean;
   saving?: boolean;
+  savedId?: string;
+  difficulty?: string;
 };
 
 type PdfUpload = {
