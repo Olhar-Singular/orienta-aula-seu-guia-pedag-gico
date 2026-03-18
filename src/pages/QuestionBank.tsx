@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
@@ -41,6 +41,8 @@ import {
   ListChecks,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
