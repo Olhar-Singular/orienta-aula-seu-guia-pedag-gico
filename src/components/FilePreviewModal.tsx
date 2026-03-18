@@ -7,8 +7,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Download, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { renderPdfPage, getPdfPageCount } from "@/lib/pdf-utils";
 
 type Props = {
   open: boolean;
