@@ -322,6 +322,29 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           Gerar Adaptação
         </Button>
       </div>
+
+      {/* Alert dialog for unlocking barriers */}
+      <AlertDialog open={showUnlockAlert} onOpenChange={setShowUnlockAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-500" />
+              Editar barreiras do aluno
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed">
+              As barreiras deste aluno já foram definidas no perfil. Alterá-las aqui pode impactar consideravelmente na geração e personalização das questões adaptadas.
+              <br /><br />
+              Deseja continuar e editar as barreiras?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setBarriersLocked(false)}>
+              Sim, editar barreiras
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
