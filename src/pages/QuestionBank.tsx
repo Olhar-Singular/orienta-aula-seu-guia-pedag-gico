@@ -820,8 +820,8 @@ export default function QuestionBank() {
                                   size="sm"
                                   variant={q.correct_answer === j ? "default" : "outline"}
                                   className="w-8 h-7 text-xs shrink-0"
-                                  onClick={() => !q.saved && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
-                                  disabled={q.saved}
+                                  onClick={() => q.editing && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
+                                  disabled={!q.editing}
                                 >
                                   {String.fromCharCode(65 + j)}
                                 </Button>
@@ -831,7 +831,7 @@ export default function QuestionBank() {
                               </div>
                             ))}
                           </div>
-                          {!q.saved && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
+                          {q.editing && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
                             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
                             </p>
@@ -842,14 +842,19 @@ export default function QuestionBank() {
                       {/* Resolution */}
                       <div>
                         <Label className="text-xs">Resolução</Label>
-                        <Textarea
-                          value={q.resolution || ""}
-                          onChange={(e) => updateExtracted(i, "resolution", e.target.value)}
-                          rows={2}
-                          className="text-sm"
-                          placeholder="Explicação da resposta..."
-                          disabled={q.saved}
-                        />
+                        {q.editing ? (
+                          <Textarea
+                            value={q.resolution || ""}
+                            onChange={(e) => updateExtracted(i, "resolution", e.target.value)}
+                            rows={2}
+                            className="text-sm"
+                            placeholder="Explicação da resposta..."
+                          />
+                        ) : (
+                          <p className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[2rem]">
+                            {q.resolution || <span className="text-muted-foreground italic">Sem resolução</span>}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
