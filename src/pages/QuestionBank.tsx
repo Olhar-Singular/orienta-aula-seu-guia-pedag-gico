@@ -392,6 +392,7 @@ export default function QuestionBank() {
         if (existingNorm.has(normalizeTextForDedup(q.text))) {
           q.isDuplicate = true;
           q.selected = false;
+          q.originalFingerprint = questionFingerprint(q);
           dupeCount++;
         }
       });
