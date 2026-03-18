@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import katex from "katex";
 import "katex/dist/katex.min.css";
+import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import {
   Select,
   SelectContent,
