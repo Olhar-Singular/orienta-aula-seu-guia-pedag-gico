@@ -448,6 +448,7 @@ INSTRUÇÕES DE ADAPTAÇÃO:
       adaptation_result: resultWithImages,
       model_used: modelName,
       tokens_used: tokensUsed,
+      school_id: school_id || null,
     });
 
     if (insertError) {
