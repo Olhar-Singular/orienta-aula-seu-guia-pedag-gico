@@ -52,6 +52,16 @@ function unicodeToLatex(formula: string): string {
   for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
     latex = latex.split(unicode).join(tex);
   }
+
+  // Convert plain fractions to inline LaTeX (keeps them compact and readable)
+  latex = latex.replace(
+    /(^|[\s=,(;])((?:\?|\d+)\s*\/\s*(?:\?|\d+))(?!\s*\/\s*\d)/g,
+    (_match, prefix: string, fraction: string) => {
+      const [num, den] = fraction.split("/").map((part) => part.trim());
+      return `${prefix}\\tfrac{${num}}{${den}}`;
+    }
+  );
+
   // Wrap units like m/s², km/h etc in \text{}
   latex = latex.replace(
     /\b(m\/s²?|cm\/s|km\/h|Hz|kg|Pa|mol|atm)\b/g,
@@ -62,11 +72,10 @@ function unicodeToLatex(formula: string): string {
 
 /**
  * Detects formula-like patterns and renders them with KaTeX.
- * Patterns: equations with =, expressions with Δ/π/λ, values with units.
- * Does NOT match simple fractions like 23/24 — those stay as plain text.
+ * Supports explicit LaTeX fractions (\frac{}{}) and plain fractions (23/24).
  */
 const FORMULA_REGEX =
-  /(?:^|\s)((?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
+  /(?:^|\s)((?:\\(?:frac|tfrac|dfrac)\{[^{}\n]+\}\{[^{}\n]+\})|(?:(?:\?|\d+)\s*\/\s*(?:\?|\d+)(?!\s*\/\s*\d))|(?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
 
 function KaTeXInline({ formula }: { formula: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -87,7 +96,7 @@ function KaTeXInline({ formula }: { formula: string }) {
   return (
     <span
       ref={ref}
-      className="inline-block mx-0.5 align-middle"
+      className="inline-flex mx-0.5 align-middle whitespace-nowrap"
     />
   );
 }
