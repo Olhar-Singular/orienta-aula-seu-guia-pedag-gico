@@ -52,7 +52,7 @@ import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import ManualQuestionEditor from "@/components/ManualQuestionEditor";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
-import { extractDocxText } from "@/lib/docx-utils";
+import { extractDocxText, extractDocxWithImages } from "@/lib/docx-utils";
 import { autoCropFromBbox, normalizeTextForDedup, dataUrlToBlob } from "@/lib/extraction-utils";
 
 type Question = {
