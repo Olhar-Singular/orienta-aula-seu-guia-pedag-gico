@@ -715,10 +715,7 @@ export default function QuestionBank() {
                             <MathPreview text={q.text} />
                           </>
                         ) : (
-                          <div className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[3rem]">
-                            <MathPreview text={q.text} />
-                            {!/\\frac|\/|\^/.test(q.text) && <span>{q.text}</span>}
-                          </div>
+                          <ReadOnlyMathText text={q.text} />
                         )}
                       </div>
 
