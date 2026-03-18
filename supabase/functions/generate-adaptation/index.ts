@@ -22,7 +22,7 @@ REGRAS ABSOLUTAS:
 
 REGRA DE NOTAÇÃO MATEMÁTICA:
 - Para variáveis e símbolos, use notação escolar Unicode: v₀, v², m/s², Δv, · (ponto médio), − (sinal de menos correto).
-- FRAÇÕES: escreva em LaTeX inline no formato \frac{a}{b}; em equações, use \frac{23}{24} = \frac{?}{48}; cada equação em LINHA SEPARADA.
+- FRAÇÕES: escreva em LaTeX inline no formato \\frac{a}{b}; em equações, use \\frac{23}{24} = \\frac{?}{48}; cada equação em LINHA SEPARADA.
 - Não use delimitadores $...$ nem markdown; envie apenas texto limpo com comandos LaTeX para frações.
 
 REGRAS PARA MATEMÁTICA E FÍSICA:
