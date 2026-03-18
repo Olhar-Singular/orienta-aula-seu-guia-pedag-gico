@@ -239,6 +239,7 @@ serve(async (req) => {
       class_id,
       question_images,
       observation_notes,
+      school_id,
     } = body;
 
     if (!original_activity || typeof original_activity !== "string" || !original_activity.trim()) {
