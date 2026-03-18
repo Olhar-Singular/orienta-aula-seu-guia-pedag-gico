@@ -142,9 +142,8 @@ type Block =
 function preProcessContent(content: string): string {
   let processed = content;
 
-  // Insert newline before numbered questions that appear mid-text (e.g., "... text 1. Question")
-  // But not at the start of a line and not for fractions like 11/12
-  processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
+  // Insert newline before numbered questions mid-text, but NOT after / (fractions like 11/8)
+  processed = processed.replace(/([^\n\/])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
 
   // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
   processed = processed.replace(/([^\n])(\s+)([a-zA-Z]\)\s)/g, "$1\n$3");
