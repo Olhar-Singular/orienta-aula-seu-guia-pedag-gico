@@ -919,6 +919,12 @@ export default function QuestionBank() {
             }
           }}
         />
+        <ImagePreviewDialog
+          open={!!previewImageUrl}
+          onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
+          imageUrl={previewImageUrl}
+          title="Prévia da imagem da questão"
+        />
       </>
     );
   }
