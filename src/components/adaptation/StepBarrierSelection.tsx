@@ -46,6 +46,13 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [barriersLocked, setBarriersLocked] = useState(false);
+  const [showUnlockAlert, setShowUnlockAlert] = useState(false);
+
+  // Reset lock when student changes
+  useEffect(() => {
+    setBarriersLocked(false);
+  }, [data.studentId]);
 
   // Load classes
   useEffect(() => {
