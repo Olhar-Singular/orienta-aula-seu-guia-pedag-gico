@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     marginBottom: 4,
     color: colors.text,
+    letterSpacing: 0.3,
   },
   // Instruction: ATENÇÃO:, IMPORTANTE:
   instruction: {
