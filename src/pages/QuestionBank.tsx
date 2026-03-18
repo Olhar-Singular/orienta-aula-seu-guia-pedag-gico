@@ -587,7 +587,22 @@ export default function QuestionBank() {
   };
 
   const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
-    setExtractedQuestions((prev) => prev.map((q, idx) => idx === i ? { ...q, [field]: value } : q));
+    setExtractedQuestions((prev) => prev.map((q, idx) => {
+      if (idx !== i) return q;
+      const updated = { ...q, [field]: value };
+
+      // Auto-clear duplicate status when content changes
+      if (updated.isDuplicate && updated.originalFingerprint &&
+          (field === "text" || field === "options" || field === "correct_answer")) {
+        const newFp = questionFingerprint(updated);
+        if (newFp !== updated.originalFingerprint) {
+          updated.isDuplicate = false;
+          updated.selected = true;
+        }
+      }
+
+      return updated;
+    }));
   };
 
   const filteredQuestions = questions.filter((q) => {
