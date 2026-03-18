@@ -525,7 +525,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           </Button>
         </div>
 
-        <div ref={reportRef} className="space-y-4">
+        <div className="space-y-4">
           {/* Report Header */}
           <Card className="border-border bg-primary/5">
             <CardContent className="py-4 px-5">
