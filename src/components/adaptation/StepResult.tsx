@@ -50,6 +50,7 @@ const getDefaultQuestionImageMap = (
 };
 
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
+  const { schoolId } = useUserSchool();
   const [loading, setLoading] = useState(!data.result);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const questionImages = data.questionImages;
