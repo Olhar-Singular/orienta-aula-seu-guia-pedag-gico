@@ -160,6 +160,34 @@ function MathPreview({ text }: { text: string }) {
   );
 }
 
+/** Renders text as read-only with inline KaTeX for math content */
+function ReadOnlyMathText({ text }: { text: string }) {
+  const html = useMemo(() => {
+    if (!text) return "";
+    return text
+      .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => {
+        try { return katex.renderToString(`\\frac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return `${num}/${den}`; }
+      })
+      .replace(/(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z/])/g, (m, num, den) => {
+        try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return m; }
+      })
+      .replace(/(\d+)\s*\^\s*\{?(-?\d+)\}?/g, (_m, base, exp) => {
+        try { return katex.renderToString(`${base}^{${exp}}`, { throwOnError: false }); }
+        catch { return `${base}^${exp}`; }
+      })
+      .replace(/\n/g, "<br/>");
+  }, [text]);
+
+  return (
+    <div
+      className="text-sm p-2 rounded border border-border/50 bg-muted/30 whitespace-pre-wrap min-h-[3rem] leading-relaxed [&_.katex]:text-[115%]"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 export default function QuestionBank() {
   const { user } = useAuth();
   const { schoolId } = useUserSchool();
