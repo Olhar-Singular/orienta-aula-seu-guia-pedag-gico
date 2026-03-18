@@ -335,14 +335,13 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   <span className="ml-2 text-sm text-muted-foreground">Processando documento...</span>
                 </div>
               ) : fileType === "pdf" && pageImages.length > 0 ? (
-                  <img
-                    src={pageImages[currentPage]}
-                    alt={`Página ${currentPage + 1}`}
-                    className="mx-auto rounded shadow-sm"
-                    style={{ width: `${zoom}%`, maxWidth: "none" }}
-                    draggable={false}
-                  />
-                )
+                <img
+                  src={pageImages[currentPage]}
+                  alt={`Página ${currentPage + 1}`}
+                  className="mx-auto rounded shadow-sm"
+                  style={{ width: `${zoom}%`, maxWidth: "none" }}
+                  draggable={false}
+                />
               ) : fileType === "docx" && docxText ? (
                 <div className="bg-background rounded p-4 text-sm whitespace-pre-wrap leading-relaxed text-foreground select-text cursor-text">
                   {docxText}
