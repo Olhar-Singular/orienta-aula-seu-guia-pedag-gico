@@ -665,15 +665,17 @@ export default function QuestionBank() {
                           {q.imageUrl && <Badge variant="outline"><ImageIcon className="w-3 h-3 mr-1" />Imagem</Badge>}
                         </div>
                         <div className="flex items-center gap-1">
-                          {/* Edit in modal button - always visible */}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleEditExtractedInModal(i)}
-                            title="Editar no modal completo"
-                          >
-                            <Pencil className="w-3 h-3" />
-                          </Button>
+                          {/* Toggle inline edit mode */}
+                          {!q.saved && (
+                            <Button
+                              size="sm"
+                              variant={q.editing ? "default" : "ghost"}
+                              onClick={() => updateExtracted(i, "editing", !q.editing)}
+                              title={q.editing ? "Fechar edição" : "Editar questão"}
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </Button>
+                          )}
                           {!q.saved && !q.isDuplicate && (
                             <Button
                               size="sm"
