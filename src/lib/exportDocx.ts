@@ -76,7 +76,7 @@ function parseLineWithFractions(line: string): LineChild[] {
       const num = match[1];
       const den = match[2];
       children.push(
-        new Math({
+        new DocxMath({
           children: [
             new MathFraction({
               numerator: [new MathRun(num)],
