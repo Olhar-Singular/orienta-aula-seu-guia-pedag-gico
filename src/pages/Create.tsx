@@ -219,7 +219,8 @@ export default function Create() {
           include_example: createParams.includeExample,
           include_answer: createParams.includeAnswer,
           notes: createParams.notes || null,
-        });
+          school_id: schoolId,
+        } as any);
 
         if (error) {
           console.error("Save error:", error);
