@@ -846,6 +846,10 @@ export type Database = {
         }[]
       }
       get_user_school_id: { Args: { _user_id: string }; Returns: string }
+      is_adaptation_shared: {
+        Args: { _adaptation_id: string }
+        Returns: boolean
+      }
       is_class_owner: {
         Args: { _class_id: string; _user_id: string }
         Returns: boolean
