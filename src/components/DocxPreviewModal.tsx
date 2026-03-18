@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
-import "docx-preview/dist/docx-preview.css";
+
 
 type Props = {
   open: boolean;
