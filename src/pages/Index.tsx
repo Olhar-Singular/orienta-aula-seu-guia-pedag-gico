@@ -54,10 +54,6 @@ const faq = [
     q: "A adaptação substitui o professor?",
     a: "Nunca. Você é sempre o decisor final. Pode ajustar, ignorar ou complementar qualquer sugestão.",
   },
-  {
-    q: "Quanto custa?",
-    a: "Há um plano gratuito para começar. Sem necessidade de cartão de crédito.",
-  },
 ];
 
 export default function Index() {
