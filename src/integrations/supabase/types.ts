@@ -32,6 +32,7 @@ export type Database = {
           original_text: string | null
           question_count: number | null
           questionnaire_answers: Json | null
+          school_id: string | null
           strategy_settings: Json | null
           subject: string
           teacher_guidance: string | null
@@ -56,6 +57,7 @@ export type Database = {
           original_text?: string | null
           question_count?: number | null
           questionnaire_answers?: Json | null
+          school_id?: string | null
           strategy_settings?: Json | null
           subject: string
           teacher_guidance?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           original_text?: string | null
           question_count?: number | null
           questionnaire_answers?: Json | null
+          school_id?: string | null
           strategy_settings?: Json | null
           subject?: string
           teacher_guidance?: string | null
@@ -87,7 +90,15 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "adaptations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       adaptations_history: {
         Row: {
@@ -99,6 +110,7 @@ export type Database = {
           id: string
           model_used: string | null
           original_activity: string
+          school_id: string | null
           student_id: string | null
           teacher_id: string
           tokens_used: number | null
@@ -112,6 +124,7 @@ export type Database = {
           id?: string
           model_used?: string | null
           original_activity: string
+          school_id?: string | null
           student_id?: string | null
           teacher_id: string
           tokens_used?: number | null
@@ -125,6 +138,7 @@ export type Database = {
           id?: string
           model_used?: string | null
           original_activity?: string
+          school_id?: string | null
           student_id?: string | null
           teacher_id?: string
           tokens_used?: number | null
@@ -135,6 +149,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adaptations_history_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
@@ -243,6 +264,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          school_id: string | null
           school_year: string | null
           teacher_id: string
           updated_at: string | null
@@ -252,6 +274,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          school_id?: string | null
           school_year?: string | null
           teacher_id: string
           updated_at?: string | null
@@ -261,11 +284,20 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          school_id?: string | null
           school_year?: string | null
           teacher_id?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_usage: {
         Row: {
@@ -325,6 +357,7 @@ export type Database = {
           file_path: string
           id: string
           questions_extracted: number | null
+          school_id: string | null
           uploaded_at: string | null
           user_id: string
         }
@@ -334,6 +367,7 @@ export type Database = {
           file_path: string
           id?: string
           questions_extracted?: number | null
+          school_id?: string | null
           uploaded_at?: string | null
           user_id: string
         }
@@ -343,10 +377,19 @@ export type Database = {
           file_path?: string
           id?: string
           questions_extracted?: number | null
+          school_id?: string | null
           uploaded_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pdf_uploads_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plans: {
         Row: {
@@ -802,6 +845,7 @@ export type Database = {
           token: string
         }[]
       }
+      get_user_school_id: { Args: { _user_id: string }; Returns: string }
       is_class_owner: {
         Args: { _class_id: string; _user_id: string }
         Returns: boolean
