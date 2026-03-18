@@ -11,7 +11,8 @@ export type DocxExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  images?: string[];
+  imagesUniversal?: string[];
+  imagesDirected?: string[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -165,18 +166,17 @@ export async function exportToDocx(data: DocxExportData) {
     }));
   }
 
-  // Fetch images
-  const imageParagraphs: Paragraph[] = [];
-  if (data.images && data.images.length > 0) {
-    for (const imgUrl of data.images) {
+  // Fetch images per version
+  async function fetchImageParagraphs(urls: string[]): Promise<Paragraph[]> {
+    const paragraphs: Paragraph[] = [];
+    for (const imgUrl of urls) {
       const imgData = await fetchImageAsBuffer(imgUrl);
       if (imgData) {
         const maxWidth = 500;
         const scale = Math.min(1, maxWidth / imgData.width);
         const w = Math.round(imgData.width * scale);
         const h = Math.round(imgData.height * scale);
-
-        imageParagraphs.push(new Paragraph({
+        paragraphs.push(new Paragraph({
           children: [
             new ImageRun({
               data: imgData.buffer,
@@ -187,7 +187,11 @@ export async function exportToDocx(data: DocxExportData) {
         }));
       }
     }
+    return paragraphs;
   }
+
+  const universalImageParagraphs = await fetchImageParagraphs(data.imagesUniversal || []);
+  const directedImageParagraphs = await fetchImageParagraphs(data.imagesDirected || []);
 
   const doc = new Document({
     sections: [
@@ -215,11 +219,12 @@ export async function exportToDocx(data: DocxExportData) {
           // Universal
           new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionUniversal),
+          ...universalImageParagraphs,
           new Paragraph({ text: "" }),
           // Directed
           new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionDirected),
-          ...imageParagraphs,
+          ...directedImageParagraphs,
           new Paragraph({ text: "" }),
           // Strategies
           new Paragraph({ text: "Estratégias Aplicadas", heading: HeadingLevel.HEADING_2 }),
