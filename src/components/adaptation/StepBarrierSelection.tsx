@@ -5,6 +5,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import type { WizardData, BarrierItem } from "./AdaptationWizard";
-import { Users, User, MessageSquare } from "lucide-react";
+import { Users, User, MessageSquare, ShieldAlert, Pencil } from "lucide-react";
 
 type ClassRow = { id: string; name: string };
 type StudentRow = { id: string; name: string };
@@ -36,6 +46,13 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [barriersLocked, setBarriersLocked] = useState(false);
+  const [showUnlockAlert, setShowUnlockAlert] = useState(false);
+
+  // Reset lock when student changes
+  useEffect(() => {
+    setBarriersLocked(false);
+  }, [data.studentId]);
 
   // Load classes
   useEffect(() => {
@@ -111,6 +128,10 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           }))
         );
         updateData({ barriers: allBarriers });
+        // Lock barriers if student has pre-defined ones
+        if (barriers.length > 0) {
+          setBarriersLocked(true);
+        }
         const student = students.find((s) => s.id === data.studentId);
         if (student) updateData({ studentName: student.name });
       });
@@ -209,13 +230,24 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       {/* Barriers checklist */}
       {data.barriers.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-medium text-foreground">
               Barreiras observáveis
               {activeCount > 0 && (
                 <Badge variant="secondary" className="ml-2">{activeCount} selecionada(s)</Badge>
               )}
             </p>
+            {barriersLocked && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUnlockAlert(true)}
+                className="gap-1.5 text-xs"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar barreiras
+              </Button>
+            )}
           </div>
 
           {BARRIER_DIMENSIONS.map((dim) => {
@@ -234,12 +266,13 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                     {dimBarriers.map((b) => (
                       <label
                         key={b.barrier_key}
-                        className="flex items-start gap-3 cursor-pointer group"
+                        className={`flex items-start gap-3 group ${barriersLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                       >
                         <Checkbox
                           checked={b.is_active}
                           onCheckedChange={() => toggleBarrier(b.barrier_key)}
                           className="mt-0.5"
+                          disabled={barriersLocked}
                         />
                         <span className={`text-sm ${b.is_active ? "text-foreground" : "text-muted-foreground"} group-hover:text-foreground transition-colors`}>
                           {b.label}
@@ -289,6 +322,29 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           Gerar Adaptação
         </Button>
       </div>
+
+      {/* Alert dialog for unlocking barriers */}
+      <AlertDialog open={showUnlockAlert} onOpenChange={setShowUnlockAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-amber-500" />
+              Editar barreiras do aluno
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed">
+              As barreiras deste aluno já foram definidas no perfil. Alterá-las aqui pode impactar consideravelmente na geração e personalização das questões adaptadas.
+              <br /><br />
+              Deseja continuar e editar as barreiras?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => setBarriersLocked(false)}>
+              Sim, editar barreiras
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
