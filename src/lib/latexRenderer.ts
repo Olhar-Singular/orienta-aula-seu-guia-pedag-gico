@@ -129,16 +129,10 @@ export function renderMathToHtml(text: string): string {
     return renderKatex(`${base}_{${sub}}`);
   });
 
-  // 7. Unicode math symbols (standalone)
-  for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
-    if (unicode.length === 1 && result.includes(unicode)) {
-      // Only replace standalone unicode chars not already inside katex spans
-      result = result.replace(new RegExp(`(?<!<[^>]*)${escapeRegex(unicode)}`, "g"), () => {
-        return renderKatex(tex);
-      });
-    }
-  }
-
+  // 7. Scientific notation: 3 x 10^5, 0,09 . 10^{-2} (render dot as \cdot)
+  // This runs after superscripts are already rendered, so match rendered katex spans
+  result = result.replace(/\.\s*(?=<span class="katex">)/g, " \\cdot ".replace(/\\/g, "\\"));
+  
   // 8. Newlines to <br>
   result = result.replace(/\n/g, "<br/>");
 
