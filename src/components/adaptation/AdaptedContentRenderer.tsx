@@ -123,12 +123,15 @@ const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*(.+)/;
 const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
 // Detect markdown headers ## ...
 const MD_HEADER_REGEX = /^#{1,3}\s+(.+)/;
+// Detect bullet list items: * item, - item, • item
+const BULLET_REGEX = /^(?:[*\-•])\s+(.+)/;
 
 type Block =
   | { type: "paragraph"; lines: string[] }
   | { type: "question"; number: string; text: string }
   | { type: "alternatives"; items: { letter: string; text: string }[] }
-  | { type: "header"; text: string };
+  | { type: "header"; text: string }
+  | { type: "bulletList"; items: string[] };
 
 /**
  * Pre-process content to insert line breaks before numbered questions and alternatives
