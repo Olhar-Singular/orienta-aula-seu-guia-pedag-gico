@@ -38,12 +38,42 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
     if (styleContainerRef.current) styleContainerRef.current.innerHTML = "";
   };
 
-  // Cleanup PDF blob URL
+  // Load PDF pages via canvas rendering
+  const loadPdfPage = useCallback(async (f: File, page: number) => {
+    setPdfLoading(true);
+    try {
+      const img = await renderPdfPage(f, page, 2);
+      setPdfPageImage(img);
+      setPdfCurrentPage(page);
+    } catch (e) {
+      console.error("Error rendering PDF page:", e);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    if (!open || !file || mode !== "pdf") return;
+    let cancelled = false;
+    const load = async () => {
+      setPdfLoading(true);
+      try {
+        const count = await getPdfPageCount(file);
+        if (cancelled) return;
+        setPdfPageCount(count);
+        const img = await renderPdfPage(file, 1, 2);
+        if (cancelled) return;
+        setPdfPageImage(img);
+        setPdfCurrentPage(1);
+      } catch (e) {
+        console.error("Error loading PDF:", e);
+      } finally {
+        if (!cancelled) setPdfLoading(false);
+      }
     };
-  }, [pdfUrl]);
+    load();
+    return () => { cancelled = true; };
+  }, [open, file, mode]);
 
   // Generate Office Online URL from storage path
   useEffect(() => {
