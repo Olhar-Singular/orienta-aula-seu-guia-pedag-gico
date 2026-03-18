@@ -17,7 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRenderer";
-import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
+import AdaptationEditModal, { type AdaptationQuestionEditPayload } from "@/components/adaptation/AdaptationEditModal";
+import { parseAdaptedQuestions, replaceQuestionInAdaptedContent, type ParsedAdaptedQuestion } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
 
 const ACTIVITY_TYPES: Record<string, string> = {
