@@ -355,6 +355,8 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                 </Button>
               )}
             </div>
+          </CardContent>
+        </Card>
       )}
 
       {(data.adaptForWholeClass || data.studentId) && data.barriers.length > 0 && !canProceed && (
