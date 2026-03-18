@@ -26,6 +26,7 @@ export default function ImageCropperModal({
   onImageCropped,
 }: Props) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
