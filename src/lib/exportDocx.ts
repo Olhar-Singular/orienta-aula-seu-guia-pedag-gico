@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction, PageBreak } from "docx";
 
 export type DocxExportData = {
   schoolName?: string;
