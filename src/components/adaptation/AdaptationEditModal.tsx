@@ -506,8 +506,10 @@ export default function AdaptationEditModal({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={Math.min(12, Math.max(4, text.split("\n").length + 1))}
-                placeholder="Digite o enunciado da questão..."
+                placeholder="Digite o enunciado da questão... Use a/b para frações (ex: 23/24)"
+                className="font-mono text-sm"
               />
+              <MathPreview text={text} />
             </div>
 
             <div>
