@@ -153,6 +153,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
             student_id: data.studentId || undefined,
             class_id: data.classId || undefined,
             observation_notes: data.observationNotes || undefined,
+            school_id: schoolId || undefined,
             question_images: data.selectedQuestions
               .filter((q) => q.image_url)
               .map((q) => ({
