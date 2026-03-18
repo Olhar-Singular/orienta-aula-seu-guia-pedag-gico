@@ -682,11 +682,11 @@ export default function QuestionBank() {
                           {!q.saved && (
                             <Button
                               size="sm"
-                              variant={q.editing ? "default" : "ghost"}
+                              variant={q.editing ? "secondary" : "ghost"}
                               onClick={() => updateExtracted(i, "editing", !q.editing)}
-                              title={q.editing ? "Fechar edição" : "Editar questão"}
                             >
-                              <Pencil className="w-3 h-3" />
+                              <Pencil className="w-3 h-3 mr-1" />
+                              {q.editing ? "Fechar edição" : "Editar"}
                             </Button>
                           )}
                           {!q.saved && !q.isDuplicate && (
