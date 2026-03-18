@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +7,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Download, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { renderPdfPage, getPdfPageCount } from "@/lib/pdf-utils";
 
 type Props = {
   open: boolean;
@@ -24,7 +25,10 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
   const styleContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfPageImage, setPdfPageImage] = useState<string | null>(null);
+  const [pdfCurrentPage, setPdfCurrentPage] = useState(1);
+  const [pdfPageCount, setPdfPageCount] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [wmfWarning, setWmfWarning] = useState(false);
   const [officeViewerUrl, setOfficeViewerUrl] = useState<string | null>(null);
   const [useOfficeViewer, setUseOfficeViewer] = useState(false);
@@ -34,12 +38,42 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
     if (styleContainerRef.current) styleContainerRef.current.innerHTML = "";
   };
 
-  // Cleanup PDF blob URL
+  // Load PDF pages via canvas rendering
+  const loadPdfPage = useCallback(async (f: File, page: number) => {
+    setPdfLoading(true);
+    try {
+      const img = await renderPdfPage(f, page, 2);
+      setPdfPageImage(img);
+      setPdfCurrentPage(page);
+    } catch (e) {
+      console.error("Error rendering PDF page:", e);
+    } finally {
+      setPdfLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    return () => {
-      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    if (!open || !file || mode !== "pdf") return;
+    let cancelled = false;
+    const load = async () => {
+      setPdfLoading(true);
+      try {
+        const count = await getPdfPageCount(file);
+        if (cancelled) return;
+        setPdfPageCount(count);
+        const img = await renderPdfPage(file, 1, 2);
+        if (cancelled) return;
+        setPdfPageImage(img);
+        setPdfCurrentPage(1);
+      } catch (e) {
+        console.error("Error loading PDF:", e);
+      } finally {
+        if (!cancelled) setPdfLoading(false);
+      }
     };
-  }, [pdfUrl]);
+    load();
+    return () => { cancelled = true; };
+  }, [open, file, mode]);
 
   // Generate Office Online URL from storage path
   useEffect(() => {
@@ -74,13 +108,8 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
     setUseOfficeViewer(false);
 
     if (mode === "pdf") {
-      const url = URL.createObjectURL(file);
-      setPdfUrl(url);
-      return () => {
-        cancelled = true;
-        URL.revokeObjectURL(url);
-        setPdfUrl(null);
-      };
+      // PDF is loaded via the dedicated useEffect above
+      return;
     }
 
     if (mode !== "docx") return;
@@ -189,10 +218,9 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
 
   const handleClose = (isOpen: boolean) => {
     if (!isOpen) {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-        setPdfUrl(null);
-      }
+      setPdfPageImage(null);
+      setPdfCurrentPage(1);
+      setPdfPageCount(0);
       clearDocxContainers();
       setError(null);
       setWmfWarning(false);
@@ -247,14 +275,36 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
         )}
 
         <div className="relative overflow-auto max-h-[75vh] rounded-md border bg-muted/30">
-          {/* PDF */}
-          {mode === "pdf" && pdfUrl && (
-            <embed
-              src={`${pdfUrl}#toolbar=1&navpanes=0`}
-              type="application/pdf"
-              className="w-full rounded-md"
-              style={{ height: "72vh" }}
-            />
+          {/* PDF - canvas rendered */}
+          {mode === "pdf" && (
+            <div className="flex flex-col items-center gap-4 p-4">
+              {pdfLoading ? (
+                <div className="flex items-center justify-center h-[60vh]">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : pdfPageImage ? (
+                <img
+                  src={pdfPageImage}
+                  alt={`Página ${pdfCurrentPage}`}
+                  className="max-w-full rounded shadow-sm"
+                />
+              ) : (
+                <p className="text-muted-foreground py-12">Nenhum PDF carregado</p>
+              )}
+              {pdfPageCount > 1 && (
+                <div className="flex items-center gap-3">
+                  <Button size="icon" variant="outline" disabled={pdfCurrentPage <= 1 || pdfLoading} onClick={() => file && loadPdfPage(file, pdfCurrentPage - 1)}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground min-w-[120px] text-center">
+                    Página {pdfCurrentPage} / {pdfPageCount}
+                  </span>
+                  <Button size="icon" variant="outline" disabled={pdfCurrentPage >= pdfPageCount || pdfLoading} onClick={() => file && loadPdfPage(file, pdfCurrentPage + 1)}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* DOCX: Office Online iframe */}
