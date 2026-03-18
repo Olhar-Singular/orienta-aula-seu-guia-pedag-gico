@@ -39,6 +39,7 @@ import {
   Search,
   FileText,
   ListChecks,
+  SplitSquareHorizontal,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import "katex/dist/katex.min.css";
@@ -48,6 +49,7 @@ import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import ManualQuestionEditor from "@/components/ManualQuestionEditor";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText } from "@/lib/docx-utils";
@@ -195,6 +197,7 @@ export default function QuestionBank() {
   const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewStoragePath, setPreviewStoragePath] = useState<string | null>(null);
+  const [showManualEdit, setShowManualEdit] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -624,6 +627,20 @@ export default function QuestionBank() {
     }
   };
 
+  // ─── MANUAL EDIT MODE ───
+  if (showManualEdit && uploadFile) {
+    return (
+      <ManualQuestionEditor
+        file={uploadFile}
+        onFinish={() => {
+          setShowManualEdit(false);
+          setUploadFile(null);
+          fetchQuestions();
+        }}
+      />
+    );
+  }
+
   // ─── REVIEW MODE ───
   if (showReview) {
     return (
@@ -965,8 +982,8 @@ export default function QuestionBank() {
                 </div>
 
                 {uploadFile && (
-                  <div className="flex gap-2">
-                    <Button onClick={handleExtract} disabled={extracting} className="flex-1">
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={handleExtract} disabled={extracting} className="flex-1 min-w-[140px]">
                       {extracting ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -975,6 +992,14 @@ export default function QuestionBank() {
                       ) : (
                         <>Extrair com IA</>
                       )}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowManualEdit(true)}
+                      disabled={extracting}
+                      className="flex-1 min-w-[140px]"
+                    >
+                      <SplitSquareHorizontal className="w-4 h-4 mr-1" /> Editar Manualmente
                     </Button>
                     <Button
                       variant="outline"
