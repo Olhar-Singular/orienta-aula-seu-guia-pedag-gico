@@ -29,10 +29,12 @@ export type ParsedElement = {
 
 const TITLE_RE = /^[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇÜ\s\-–—]+$/;
 
+// Question number must be followed by text starting with a letter (not math symbols)
 const QUESTION_NUMBER_RE =
-  /^(?:quest[ãa]o\s*)?(\d{1,3})[\.\)\:\-]?\s*(.*)/i;
+  /^(?:quest[ãa]o\s*)?(\d{1,3})[\.\)\:\-]\s+([A-Za-zÀ-ú"(].*)/i;
 
-const ALTERNATIVE_RE = /^[\(\[]?([a-zA-Z])[\)\]\.\:]\s*(.*)/;
+// Alternatives: only a-e (standard exam answers), require space + text after
+const ALTERNATIVE_RE = /^[\(\[]?([a-eA-E])[\)\]\.\:]\s+(.*)/;
 
 const STEP_RE =
   /^(?:(?:PRIMEIRO|SEGUNDO|TERCEIRO|QUARTO|QUINTO|SEXTO|SÉTIMO|OITAVO|NONO|DÉCIMO|\d+[ºª]?)\s*(?:PASSO|ETAPA)|(?:PASSO|ETAPA)\s*\d+)\s*[\:\-]?\s*/i;
