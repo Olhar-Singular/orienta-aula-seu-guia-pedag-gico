@@ -343,6 +343,21 @@ export default function AdaptedContentRenderer({
               </div>
             );
 
+          case "bulletList":
+            return (
+              <ul key={i} className="space-y-1.5 pl-5">
+                {block.items.map((item, j) => (
+                  <li
+                    key={j}
+                    className="flex items-start gap-2 text-[13px] text-foreground/90 leading-relaxed"
+                  >
+                    <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60" />
+                    <span>{parseInlineFormatting(item)}</span>
+                  </li>
+                ))}
+              </ul>
+            );
+
           case "paragraph":
             return (
               <p key={i} className="text-[13px] text-foreground/90 leading-relaxed">
