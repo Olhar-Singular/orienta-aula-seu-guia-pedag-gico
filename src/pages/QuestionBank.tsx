@@ -492,7 +492,14 @@ export default function QuestionBank() {
       if (isDocx) {
         const mammoth = await import("mammoth");
         const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.default.convertToHtml({ arrayBuffer });
+        const result = await mammoth.default.convertToHtml({
+          arrayBuffer,
+          convertImage: mammoth.default.images.imgElement((image: any) => {
+            return image.read("base64").then((imageBuffer: string) => {
+              return { src: `data:${image.contentType};base64,${imageBuffer}` };
+            });
+          }),
+        });
         setPreviewDocxHtml(result.value);
         setPreviewMode("docx");
       } else {
