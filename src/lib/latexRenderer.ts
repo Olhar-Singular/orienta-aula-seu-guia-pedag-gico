@@ -55,7 +55,7 @@ export function renderMathToHtml(text: string): string {
   });
 
   // 7. Plain fractions like 3/4, 23/48 (not inside words like km/h)
-  result = result.replace(/(?<![a-zA-Z])(\?|\d+)\s*\/\s*(\?|\d+)(?![a-zA-Z/])/g, (_m, num, den) => {
+  result = result.replace(/(?<![a-zA-Z)\]])(\?|\d+)\s*\/\s*(\?|\d+)(?![a-zA-Z/(])/g, (_m, num, den) => {
     return renderKatex(`\\tfrac{${num}}{${den}}`);
   });
 
@@ -80,5 +80,5 @@ export function renderMathToHtml(text: string): string {
  */
 export function hasMathContent(text: string): boolean {
   if (!text) return false;
-  return /\\frac|\\sqrt|\$[^$]+\$|(?<![a-zA-Z])\d+\s*\/\s*\d+(?![a-zA-Z/])|[A-Za-z0-9]\^|[A-Za-z]_\d/.test(text);
+  return /\\frac|\\sqrt|\$[^$]+\$|(?<![a-zA-Z)\]])\d+\s*\/\s*\d+(?![a-zA-Z/(])|[A-Za-z0-9]\^|[A-Za-z]_\d/.test(text);
 }
