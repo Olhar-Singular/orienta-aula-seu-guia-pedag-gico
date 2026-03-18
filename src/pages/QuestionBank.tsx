@@ -509,6 +509,7 @@ export default function QuestionBank() {
         : "application/pdf";
       const file = new File([fileData], upload.file_name, { type: mimeType });
 
+      setPreviewStoragePath(upload.file_path);
       await openFilePreview(file);
     } catch (e: any) {
       toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
