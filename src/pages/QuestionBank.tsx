@@ -1122,7 +1122,7 @@ export default function QuestionBank() {
         </Tabs>
       </div>
 
-      <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
+      <QuestionForm open={showForm} onOpenChange={(open) => { setShowForm(open); if (!open) setEditingQuestion(null); }} question={editingQuestion} onSaved={() => { fetchQuestions(); /* Mark as saved in extracted list if applicable */ if (editingQuestion) { const idx = extractedQuestions.findIndex(eq => eq.savedId === editingQuestion.id || (eq.text === editingQuestion.text && !eq.savedId)); if (idx >= 0) { updateExtracted(idx, "saved", true); } } }} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <FilePreviewModal
         open={previewMode !== null}
