@@ -5,7 +5,6 @@ import { useUserSchool } from "@/hooks/useUserSchool";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,6 +44,7 @@ import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
+import DocxPreviewModal from "@/components/DocxPreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
@@ -134,7 +134,6 @@ export default function QuestionBank() {
   // Modal states
   const [showForm, setShowForm] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Upload + extraction state
@@ -150,7 +149,6 @@ export default function QuestionBank() {
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [previewUploadFile, setPreviewUploadFile] = useState<File | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
-  const [previewDocxHtml, setPreviewDocxHtml] = useState<string>("");
   const [loadingPreview, setLoadingPreview] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -476,6 +474,25 @@ export default function QuestionBank() {
     }
   };
 
+  const openFilePreview = async (file: File) => {
+    const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const type = detectFileType(bytes);
+
+    if (type === "pdf") {
+      setPreviewUploadFile(file);
+      setPreviewMode("pdf");
+      return;
+    }
+
+    if (type === "docx") {
+      setPreviewUploadFile(file);
+      setPreviewMode("docx");
+      return;
+    }
+
+    throw new Error("Formato não suportado para visualização");
+  };
+
   // ─── Preview file from history ───
   const handlePreviewUpload = async (upload: PdfUpload) => {
     setLoadingPreview(true);
@@ -489,24 +506,7 @@ export default function QuestionBank() {
         : "application/pdf";
       const file = new File([fileData], upload.file_name, { type: mimeType });
 
-      if (isDocx) {
-        const mammoth = await import("mammoth");
-        const arrayBuffer = await file.arrayBuffer();
-        const options: any = {
-          arrayBuffer,
-          convertImage: mammoth.default.images.imgElement((image: any) => {
-            return image.read("base64").then((imageBuffer: string) => {
-              return { src: `data:${image.contentType};base64,${imageBuffer}` };
-            });
-          }),
-        };
-        const result = await mammoth.default.convertToHtml(options);
-        setPreviewDocxHtml(result.value);
-        setPreviewMode("docx");
-      } else {
-        setPreviewUploadFile(file);
-        setPreviewMode("pdf");
-      }
+      await openFilePreview(file);
     } catch (e: any) {
       toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
     } finally {
@@ -865,11 +865,17 @@ export default function QuestionBank() {
                         <>Extrair com IA</>
                       )}
                     </Button>
-                    {uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                      <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
-                        <Eye className="w-4 h-4 mr-1" /> Visualizar
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (!uploadFile) return;
+                        void openFilePreview(uploadFile).catch((e: any) => {
+                          toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
+                        });
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-1" /> Visualizar
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setUploadFile(null)} aria-label="Remover arquivo">
                       <X className="w-4 h-4" />
                     </Button>
@@ -1042,24 +1048,26 @@ export default function QuestionBank() {
 
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
-      <PdfPreviewModal open={showPdfPreview} onOpenChange={setShowPdfPreview} file={uploadFile} />
       <PdfPreviewModal
         open={previewMode === "pdf"}
-        onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewUploadFile(null); } }}
-        file={previewUploadFile}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewMode(null);
+            setPreviewUploadFile(null);
+          }
+        }}
+        file={previewMode === "pdf" ? previewUploadFile : null}
       />
-      {/* Docx Preview Dialog */}
-      <Dialog open={previewMode === "docx"} onOpenChange={(open) => { if (!open) { setPreviewMode(null); setPreviewDocxHtml(""); } }}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Visualização do Documento</DialogTitle>
-          </DialogHeader>
-          <div
-            className="prose prose-sm max-w-none dark:prose-invert text-foreground [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-md"
-            dangerouslySetInnerHTML={{ __html: previewDocxHtml }}
-          />
-        </DialogContent>
-      </Dialog>
+      <DocxPreviewModal
+        open={previewMode === "docx"}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewMode(null);
+            setPreviewUploadFile(null);
+          }
+        }}
+        file={previewMode === "docx" ? previewUploadFile : null}
+      />
       <ImagePreviewDialog
         open={!!previewImageUrl}
         onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
