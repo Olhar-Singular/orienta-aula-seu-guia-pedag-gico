@@ -230,13 +230,24 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       {/* Barriers checklist */}
       {data.barriers.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm font-medium text-foreground">
               Barreiras observáveis
               {activeCount > 0 && (
                 <Badge variant="secondary" className="ml-2">{activeCount} selecionada(s)</Badge>
               )}
             </p>
+            {barriersLocked && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowUnlockAlert(true)}
+                className="gap-1.5 text-xs"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar barreiras
+              </Button>
+            )}
           </div>
 
           {BARRIER_DIMENSIONS.map((dim) => {
