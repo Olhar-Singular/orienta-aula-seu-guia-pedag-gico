@@ -1,13 +1,15 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,6 +56,21 @@ export default function MyAdaptations() {
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+
+  // Edit mode state
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editFields, setEditFields] = useState({
+    // Legacy fields
+    adapted_text: "",
+    teacher_guidance: "",
+    justification: "",
+    // Wizard fields
+    version_universal: "",
+    version_directed: "",
+    pedagogical_justification: "",
+    original_activity: "",
+  });
 
   // Legacy adaptations (old flow)
   const { data: legacyAdaptations = [] } = useQuery({
@@ -145,7 +162,113 @@ export default function MyAdaptations() {
     }
   };
 
-  const isLoading = false;
+  const startEditing = (item: UnifiedAdaptation) => {
+    if (item.source === "legacy") {
+      setEditFields({
+        adapted_text: item.raw.adapted_text || "",
+        teacher_guidance: item.raw.teacher_guidance || "",
+        justification: item.raw.justification || "",
+        version_universal: "",
+        version_directed: "",
+        pedagogical_justification: "",
+        original_activity: "",
+      });
+    } else {
+      const result = item.raw.adaptation_result as any;
+      setEditFields({
+        adapted_text: "",
+        teacher_guidance: "",
+        justification: "",
+        version_universal: result?.version_universal || "",
+        version_directed: result?.version_directed || "",
+        pedagogical_justification: result?.pedagogical_justification || "",
+        original_activity: item.raw.original_activity || "",
+      });
+    }
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!viewItem) return;
+    setSaving(true);
+
+    try {
+      if (viewItem.source === "legacy") {
+        const { error } = await supabase
+          .from("adaptations")
+          .update({
+            adapted_text: editFields.adapted_text,
+            teacher_guidance: editFields.teacher_guidance,
+            justification: editFields.justification,
+          })
+          .eq("id", viewItem.id);
+        if (error) throw error;
+      } else {
+        const currentResult = (viewItem.raw.adaptation_result as any) || {};
+        const updatedResult = {
+          ...currentResult,
+          version_universal: editFields.version_universal,
+          version_directed: editFields.version_directed,
+          pedagogical_justification: editFields.pedagogical_justification,
+        };
+        const { error } = await supabase
+          .from("adaptations_history")
+          .update({
+            original_activity: editFields.original_activity,
+            adaptation_result: updatedResult,
+          })
+          .eq("id", viewItem.id);
+        if (error) throw error;
+      }
+
+      toast.success("Adaptação atualizada!");
+      setEditing(false);
+      queryClient.invalidateQueries({ queryKey: ["adaptations-legacy"] });
+      queryClient.invalidateQueries({ queryKey: ["adaptations-history-all"] });
+      queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
+
+      // Update the viewItem in-place so the dialog reflects changes
+      if (viewItem.source === "legacy") {
+        setViewItem({
+          ...viewItem,
+          raw: {
+            ...viewItem.raw,
+            adapted_text: editFields.adapted_text,
+            teacher_guidance: editFields.teacher_guidance,
+            justification: editFields.justification,
+          },
+        });
+      } else {
+        const currentResult = (viewItem.raw.adaptation_result as any) || {};
+        setViewItem({
+          ...viewItem,
+          raw: {
+            ...viewItem.raw,
+            original_activity: editFields.original_activity,
+            adaptation_result: {
+              ...currentResult,
+              version_universal: editFields.version_universal,
+              version_directed: editFields.version_directed,
+              pedagogical_justification: editFields.pedagogical_justification,
+            },
+          },
+        });
+      }
+    } catch (e: any) {
+      toast.error("Erro ao salvar: " + (e.message || "tente novamente"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCloseView = () => {
+    setViewItem(null);
+    setEditing(false);
+  };
 
   return (
     <>
@@ -214,6 +337,9 @@ export default function MyAdaptations() {
                       <Clock className="w-3 h-3 inline mr-1" />
                       {new Date(item.created_at).toLocaleDateString("pt-BR")}
                     </span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setViewItem(item); startEditing(item); }}>
+                      <Pencil className="w-4 h-4 text-primary" />
+                    </Button>
                     {item.source === "legacy" && (
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(item)}>
                         <Copy className="w-4 h-4" />
@@ -236,20 +362,125 @@ export default function MyAdaptations() {
         </div>
       </div>
 
-      {/* View Detail */}
-      <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
+      {/* View / Edit Detail */}
+      <Dialog open={!!viewItem} onOpenChange={handleCloseView}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {viewItem?.source === "legacy"
-                ? `${viewItem?.raw.topic} — ${viewItem?.raw.grade}`
-                : "Detalhes da Adaptação"}
-            </DialogTitle>
-            {viewItem?.source === "legacy" && (
+            <div className="flex items-center justify-between gap-2">
+              <DialogTitle>
+                {viewItem?.source === "legacy"
+                  ? `${viewItem?.raw.topic} — ${viewItem?.raw.grade}`
+                  : "Detalhes da Adaptação"}
+              </DialogTitle>
+              {!editing && (
+                <Button variant="outline" size="sm" className="shrink-0 gap-1" onClick={() => viewItem && startEditing(viewItem)}>
+                  <Pencil className="w-3.5 h-3.5" /> Editar
+                </Button>
+              )}
+            </div>
+            {viewItem?.source === "legacy" && !editing && (
               <p className="text-sm text-muted-foreground">{viewItem?.raw.subject} · {viewItem?.raw.type}</p>
             )}
           </DialogHeader>
-          {viewItem?.source === "legacy" && (
+
+          {/* EDITING MODE */}
+          {editing && viewItem?.source === "legacy" && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-semibold">Atividade Adaptada</Label>
+                <Textarea
+                  value={editFields.adapted_text}
+                  onChange={(e) => setEditFields((f) => ({ ...f, adapted_text: e.target.value }))}
+                  rows={10}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold">Orientações ao Professor</Label>
+                <Textarea
+                  value={editFields.teacher_guidance}
+                  onChange={(e) => setEditFields((f) => ({ ...f, teacher_guidance: e.target.value }))}
+                  rows={6}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold">Justificativa Pedagógica</Label>
+                <Textarea
+                  value={editFields.justification}
+                  onChange={(e) => setEditFields((f) => ({ ...f, justification: e.target.value }))}
+                  rows={6}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button onClick={handleSaveEdit} disabled={saving} className="gap-1">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Salvando..." : "Salvar alterações"}
+                </Button>
+                <Button variant="outline" onClick={cancelEditing} disabled={saving}>
+                  <X className="w-4 h-4 mr-1" /> Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {editing && viewItem?.source === "wizard" && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm font-semibold">Atividade Original</Label>
+                <Textarea
+                  value={editFields.original_activity}
+                  onChange={(e) => setEditFields((f) => ({ ...f, original_activity: e.target.value }))}
+                  rows={4}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-1">
+                  <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                </Label>
+                <Textarea
+                  value={editFields.version_universal}
+                  onChange={(e) => setEditFields((f) => ({ ...f, version_universal: e.target.value }))}
+                  rows={10}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-1">
+                  <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                </Label>
+                <Textarea
+                  value={editFields.version_directed}
+                  onChange={(e) => setEditFields((f) => ({ ...f, version_directed: e.target.value }))}
+                  rows={10}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-semibold">Justificativa Pedagógica</Label>
+                <Textarea
+                  value={editFields.pedagogical_justification}
+                  onChange={(e) => setEditFields((f) => ({ ...f, pedagogical_justification: e.target.value }))}
+                  rows={4}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div className="flex gap-2 pt-2 border-t">
+                <Button onClick={handleSaveEdit} disabled={saving} className="gap-1">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Salvando..." : "Salvar alterações"}
+                </Button>
+                <Button variant="outline" onClick={cancelEditing} disabled={saving}>
+                  <X className="w-4 h-4 mr-1" /> Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW MODE - Legacy */}
+          {!editing && viewItem?.source === "legacy" && (
             <>
               <Tabs defaultValue="adapted">
                 <TabsList className="grid w-full grid-cols-3">
@@ -288,7 +519,9 @@ export default function MyAdaptations() {
               </div>
             </>
           )}
-          {viewItem?.source === "wizard" && (() => {
+
+          {/* VIEW MODE - Wizard */}
+          {!editing && viewItem?.source === "wizard" && (() => {
             const result = viewItem.raw.adaptation_result as any;
             const barriers = viewItem.barriers;
             return (
@@ -324,12 +557,10 @@ export default function MyAdaptations() {
                 )}
 
                 {result && (() => {
-                  // Extract saved images from adaptation_result
                   const savedImages: string[] = Array.isArray(result.question_images)
                     ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
                     : [];
 
-                  // Build a simple question image map: assign all images to the last question
                   const buildImageMap = (content: string) => {
                     if (savedImages.length === 0) return {};
                     const questions = parseAdaptedQuestions(content || "");
