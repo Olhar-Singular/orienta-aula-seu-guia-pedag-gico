@@ -44,7 +44,7 @@ import { toast } from "@/hooks/use-toast";
 import QuestionForm from "@/components/QuestionForm";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
-import DocxPreviewModal from "@/components/DocxPreviewModal";
+import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { detectFileType } from "@/lib/fileValidation";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
@@ -1048,25 +1048,16 @@ export default function QuestionBank() {
 
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
-      <PdfPreviewModal
-        open={previewMode === "pdf"}
+      <FilePreviewModal
+        open={previewMode !== null}
         onOpenChange={(open) => {
           if (!open) {
             setPreviewMode(null);
             setPreviewUploadFile(null);
           }
         }}
-        file={previewMode === "pdf" ? previewUploadFile : null}
-      />
-      <DocxPreviewModal
-        open={previewMode === "docx"}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPreviewMode(null);
-            setPreviewUploadFile(null);
-          }
-        }}
-        file={previewMode === "docx" ? previewUploadFile : null}
+        file={previewUploadFile}
+        mode={previewMode}
       />
       <ImagePreviewDialog
         open={!!previewImageUrl}
