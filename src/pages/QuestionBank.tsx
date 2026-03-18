@@ -1049,7 +1049,7 @@ export default function QuestionBank() {
       <QuestionForm open={showForm} onOpenChange={setShowForm} question={editingQuestion} onSaved={fetchQuestions} />
       <ImageCropperModal open={showCropper} onOpenChange={setShowCropper} onSaved={fetchQuestions} />
       <PdfPreviewModal
-        open={previewMode === "pdf"}
+        open={previewMode === "pdf" && cropperForQuestion === null}
         onOpenChange={(open) => {
           if (!open) {
             setPreviewMode(null);
@@ -1058,15 +1058,16 @@ export default function QuestionBank() {
         }}
         file={previewMode === "pdf" ? previewUploadFile : null}
       />
-      <DocxPreviewModal
-        open={previewMode === "docx"}
+      <FilePreviewModal
+        open={previewMode !== null && cropperForQuestion === null}
         onOpenChange={(open) => {
           if (!open) {
             setPreviewMode(null);
             setPreviewUploadFile(null);
           }
         }}
-        file={previewMode === "docx" ? previewUploadFile : null}
+        file={previewUploadFile}
+        mode={previewMode}
       />
       <ImagePreviewDialog
         open={!!previewImageUrl}
