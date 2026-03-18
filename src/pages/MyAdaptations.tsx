@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2, Save, X } from "lucide-react";
+import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2, Save, X, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,7 @@ import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRender
 import AdaptationEditModal, { type AdaptationQuestionEditPayload } from "@/components/adaptation/AdaptationEditModal";
 import { parseAdaptedQuestions, replaceQuestionInAdaptedContent, type ParsedAdaptedQuestion } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
+import { exportToDocx } from "@/lib/exportDocx";
 
 const ACTIVITY_TYPES: Record<string, string> = {
   prova: "Prova",
@@ -57,6 +58,7 @@ export default function MyAdaptations() {
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingDocx, setExportingDocx] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<{
     field: "version_universal" | "version_directed";
     title: string;
@@ -718,6 +720,32 @@ export default function MyAdaptations() {
                   }}>
                     {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
                     {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
+                  </Button>
+                  <Button variant="outline" size="sm" disabled={exportingDocx} onClick={async () => {
+                    setExportingDocx(true);
+                    const savedImages: string[] = Array.isArray(result?.question_images)
+                      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
+                      : [];
+                    try {
+                      await exportToDocx({
+                        studentName: viewItem.student_name || undefined,
+                        activityType: viewItem.raw.activity_type || undefined,
+                        date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
+                        versionUniversal: result?.version_universal || "",
+                        versionDirected: result?.version_directed || "",
+                        strategiesApplied: result?.strategies_applied || [],
+                        pedagogicalJustification: result?.pedagogical_justification || "",
+                        implementationTips: result?.implementation_tips || [],
+                        images: savedImages,
+                      });
+                      toast.success("Word exportado!");
+                    } catch {
+                      toast.error("Erro ao gerar Word");
+                    }
+                    setExportingDocx(false);
+                  }}>
+                    {exportingDocx ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
+                    {exportingDocx ? "Gerando Word..." : "Exportar Word"}
                   </Button>
                 </div>
               </div>
