@@ -65,9 +65,22 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       });
   }, [data.classId]);
 
-  // Load barriers when student changes
+  // Load barriers and student notes when student changes
   useEffect(() => {
     if (!data.studentId) return;
+
+    // Fetch student notes to pre-fill observations
+    supabase
+      .from("class_students")
+      .select("notes")
+      .eq("id", data.studentId)
+      .single()
+      .then(({ data: studentData }) => {
+        if (studentData?.notes && !data.observationNotes) {
+          updateData({ observationNotes: studentData.notes });
+        }
+      });
+
     (supabase.from as any)("student_barriers")
       .select("barrier_key, dimension, is_active, notes")
       .eq("student_id", data.studentId)
