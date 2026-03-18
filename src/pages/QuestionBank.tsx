@@ -898,6 +898,9 @@ export default function QuestionBank() {
                           </div>
                         </div>
                         <div className="flex gap-1 shrink-0">
+                          <Button size="icon" variant="ghost" onClick={() => handlePreviewUpload(p)} disabled={loadingPreview} aria-label="Visualizar arquivo">
+                            {loadingPreview ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                          </Button>
                           <Button size="sm" variant="outline" onClick={() => handleReExtract(p)} aria-label="Reextrair questões">
                             <FileUp className="w-4 h-4 mr-1" /> Extrair
                           </Button>
