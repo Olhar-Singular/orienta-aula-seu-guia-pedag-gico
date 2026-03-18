@@ -25,7 +25,8 @@ export type AdaptationPDFProps = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  images?: string[];
+  imagesUniversal?: string[];
+  imagesDirected?: string[];
 };
 
 export default function AdaptationPDF(props: AdaptationPDFProps) {
