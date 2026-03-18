@@ -1,16 +1,15 @@
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { colors } from "../styles";
-import { parseActivityText, normalizeMathText, type ParsedElement, type TextElementType } from "../textParser";
+import { parseActivityText, normalizeMathText, type ParsedElement } from "../textParser";
+import PDFRichLine from "./PDFRichLine";
 
 const styles = StyleSheet.create({
-  // Fallback paragraph
   paragraph: {
     fontSize: 11,
     lineHeight: 1.6,
     color: colors.text,
     marginBottom: 4,
   },
-  // Title: PROVA DE FÍSICA
   title: {
     fontSize: 15,
     fontFamily: "Helvetica-Bold",
@@ -20,21 +19,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textTransform: "uppercase",
   },
-  // Question number + optional title: "1. Força Eletrostática:"
   questionNumber: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
     color: colors.text,
     marginTop: 16,
     marginBottom: 4,
-  },
-  // Bullet item
-  bulletItem: {
-    fontSize: 11,
-    lineHeight: 1.5,
-    color: colors.text,
-    marginLeft: 16,
-    marginBottom: 3,
   },
   bulletDot: {
     width: 4,
@@ -56,7 +46,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     flex: 1,
   },
-  // Step: PRIMEIRO PASSO:
   step: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
@@ -67,7 +56,6 @@ const styles = StyleSheet.create({
     padding: "4 8",
     borderRadius: 3,
   },
-  // Alternative: a) Atração; 0,2 N.
   alternative: {
     fontSize: 11,
     lineHeight: 1.5,
@@ -76,11 +64,6 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     paddingLeft: 4,
   },
-  altLetter: {
-    fontFamily: "Helvetica-Bold",
-    color: colors.primary,
-  },
-  // Formula
   formula: {
     fontFamily: "Courier",
     fontSize: 10.5,
@@ -91,7 +74,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     letterSpacing: 0.3,
   },
-  // Instruction: ATENÇÃO:, IMPORTANTE:
   instruction: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
@@ -99,7 +81,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
   },
-  // Header: BLOCO I, PARTE A
   header: {
     fontSize: 13,
     fontFamily: "Helvetica-Bold",
@@ -110,7 +91,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primaryLight,
     paddingBottom: 3,
   },
-  // Separator
   separator: {
     marginTop: 6,
     marginBottom: 6,
@@ -120,72 +100,40 @@ const styles = StyleSheet.create({
 function renderElement(el: ParsedElement, index: number) {
   switch (el.type) {
     case "title":
-      return (
-        <Text key={index} style={styles.title}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.title} />;
 
     case "question-number":
-      return (
-        <Text key={index} style={styles.questionNumber}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.questionNumber} />;
 
     case "bullet-item":
       return (
         <View key={index} style={styles.bulletRow}>
           <View style={styles.bulletDot} />
-          <Text style={styles.bulletText}>{el.content}</Text>
+          <PDFRichLine text={el.content} style={styles.bulletText} />
         </View>
       );
 
     case "step":
-      return (
-        <Text key={index} style={styles.step}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.step} />;
 
     case "alternative":
-      return (
-        <Text key={index} style={styles.alternative}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.alternative} />;
 
     case "formula":
-      return (
-        <Text key={index} style={styles.formula}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.formula} />;
 
     case "instruction":
-      return (
-        <Text key={index} style={styles.instruction}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.instruction} />;
 
     case "header":
-      return (
-        <Text key={index} style={styles.header}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.header} />;
 
     case "separator":
       return <View key={index} style={styles.separator} />;
 
     case "paragraph":
     default:
-      return (
-        <Text key={index} style={styles.paragraph}>
-          {el.content}
-        </Text>
-      );
+      return <PDFRichLine key={index} text={el.content} style={styles.paragraph} />;
   }
 }
 
@@ -193,10 +141,6 @@ type Props = {
   text: string;
 };
 
-/**
- * Renders a text block with smart formatting:
- * detects titles, questions, alternatives, steps, bullets, formulas, etc.
- */
 export default function PDFTextBlock({ text }: Props) {
   const safeText = normalizeMathText(text);
   const elements = parseActivityText(safeText);
