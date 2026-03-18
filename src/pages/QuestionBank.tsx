@@ -117,6 +117,48 @@ const sourceLabels: Record<string, string> = {
   image_crop: "Imagem",
 };
 
+/** Renders text with LaTeX fractions and formulas via KaTeX */
+function MathPreview({ text }: { text: string }) {
+  const html = useMemo(() => {
+    if (!text) return "";
+    let result = text
+      // Render explicit LaTeX fractions
+      .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => {
+        try { return katex.renderToString(`\\frac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return `${num}/${den}`; }
+      })
+      // Render plain fractions like 3/4
+      .replace(/(?<![a-zA-Z])(\d+)\s*\/\s*(\d+)(?![a-zA-Z/])/g, (m, num, den) => {
+        try { return katex.renderToString(`\\tfrac{${num}}{${den}}`, { throwOnError: false }); }
+        catch { return m; }
+      })
+      // Render superscripts like 10^5 or 10^{-2}
+      .replace(/(\d+)\s*\^\s*\{?(-?\d+)\}?/g, (_m, base, exp) => {
+        try { return katex.renderToString(`${base}^{${exp}}`, { throwOnError: false }); }
+        catch { return `${base}^${exp}`; }
+      })
+      // Newlines to <br>
+      .replace(/\n/g, "<br/>");
+    return result;
+  }, [text]);
+
+  if (!text) return null;
+
+  // Check if there's any math content worth rendering
+  const hasMath = /\\frac|\/|\^/.test(text);
+  if (!hasMath) return null;
+
+  return (
+    <div className="mt-1 p-2 rounded border border-border/50 bg-muted/30">
+      <p className="text-[10px] text-muted-foreground mb-1">Prévia matemática</p>
+      <div
+        className="text-sm leading-relaxed [&_.katex]:text-[115%]"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
+
 export default function QuestionBank() {
   const { user } = useAuth();
   const { schoolId } = useUserSchool();
