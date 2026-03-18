@@ -8,11 +8,17 @@ const corsHeaders = {
 };
 
 const DIMENSIONS = [
-  "processamento",
-  "atencao",
-  "ritmo",
-  "engajamento",
-  "expressao",
+  "tea",
+  "tdah",
+  "tod",
+  "sindrome_down",
+  "altas_habilidades",
+  "dislexia",
+  "discalculia",
+  "disgrafia",
+  "tourette",
+  "dispraxia",
+  "toc",
 ];
 
 serve(async (req) => {
@@ -50,12 +56,18 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const systemPrompt = `Você é um especialista em educação inclusiva e Design Universal para Aprendizagem (DUA).
-Analise a atividade escolar fornecida e identifique barreiras pedagógicas potenciais nas 5 dimensões:
-- processamento: compreensão de enunciados, conceitos abstratos, sequências
-- atencao: foco, estímulos, interrupções
-- ritmo: tempo necessário, prazos, velocidade
-- engajamento: motivação, interesse, participação
-- expressao: formas de resposta, escrita, organização
+Analise a atividade escolar fornecida e identifique barreiras pedagógicas potenciais nas seguintes categorias de neurodivergência:
+- tea: TEA (abstração excessiva, comunicação social, sobrecarga sensorial, mudanças inesperadas)
+- tdah: TDAH (atenção sustentada, impulsividade, organização)
+- tod: TOD (resistência a regras, conflitos com autoridade)
+- sindrome_down: Síndrome de Down (ritmo lento, memória de curto prazo, abstração)
+- altas_habilidades: Altas Habilidades/Superdotação (desmotivação, tédio por baixa complexidade)
+- dislexia: Dislexia (leitura e interpretação de enunciados)
+- discalculia: Discalculia (conceitos numéricos e operações)
+- disgrafia: Disgrafia (escrita manual, organização espacial)
+- tourette: Síndrome de Tourette (tiques, atenção)
+- dispraxia: Dispraxia (coordenação motora, planejamento motor)
+- toc: TOC (rituais compulsivos, perfeccionismo)
 
 Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sugira uma mitigação concreta.`;
 

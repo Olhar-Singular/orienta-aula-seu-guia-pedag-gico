@@ -56,9 +56,9 @@ export const MOCK_STUDENTS = [MOCK_STUDENT];
 
 // ─── Student barriers fixtures ───
 export const MOCK_STUDENT_BARRIERS = [
-  { barrier_key: "proc_enunciados_longos", dimension: "processamento", is_active: true, notes: "Necessita fragmentação", student_id: MOCK_STUDENT.id },
-  { barrier_key: "aten_foco_atividades_longas", dimension: "atencao", is_active: true, notes: null, student_id: MOCK_STUDENT.id },
-  { barrier_key: "ritmo_mais_tempo", dimension: "ritmo", is_active: true, notes: "15min extra", student_id: MOCK_STUDENT.id },
+  { barrier_key: "tea_abstracao", dimension: "tea", is_active: true, notes: "Necessita fragmentação", student_id: MOCK_STUDENT.id },
+  { barrier_key: "tdah_atencao_sustentada", dimension: "tdah", is_active: true, notes: null, student_id: MOCK_STUDENT.id },
+  { barrier_key: "dislexia_leitura", dimension: "dislexia", is_active: true, notes: "15min extra", student_id: MOCK_STUDENT.id },
 ];
 
 // ─── Adaptation result fixtures ───

@@ -27,11 +27,17 @@ export type AnalysisResult = {
 };
 
 const DIMENSION_META: Record<string, { label: string; color: string }> = {
-  processamento: { label: "Processamento", color: "hsl(174, 62%, 34%)" },
-  atencao: { label: "Atenção", color: "hsl(35, 92%, 55%)" },
-  ritmo: { label: "Ritmo", color: "hsl(200, 60%, 50%)" },
-  engajamento: { label: "Engajamento", color: "hsl(340, 65%, 55%)" },
-  expressao: { label: "Expressão", color: "hsl(260, 55%, 55%)" },
+  tea: { label: "TEA", color: "hsl(174, 62%, 34%)" },
+  tdah: { label: "TDAH", color: "hsl(35, 92%, 55%)" },
+  tod: { label: "TOD", color: "hsl(200, 60%, 50%)" },
+  sindrome_down: { label: "Síndrome de Down", color: "hsl(340, 65%, 55%)" },
+  altas_habilidades: { label: "Altas Habilidades", color: "hsl(260, 55%, 55%)" },
+  dislexia: { label: "Dislexia", color: "hsl(120, 45%, 45%)" },
+  discalculia: { label: "Discalculia", color: "hsl(30, 70%, 50%)" },
+  disgrafia: { label: "Disgrafia", color: "hsl(280, 50%, 55%)" },
+  tourette: { label: "Tourette", color: "hsl(0, 65%, 55%)" },
+  dispraxia: { label: "Dispraxia", color: "hsl(50, 60%, 45%)" },
+  toc: { label: "TOC", color: "hsl(150, 50%, 40%)" },
 };
 
 const SEVERITY_STYLES: Record<string, { bg: string; text: string; label: string }> = {

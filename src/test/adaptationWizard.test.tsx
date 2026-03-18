@@ -23,12 +23,12 @@ describe("Wizard step navigation logic", () => {
 
   it("prevents next without activity type", () => {
     const value: string | null = null;
-    expect(!value).toBe(true); // next should be disabled
+    expect(!value).toBe(true);
   });
 
   it("allows next with activity type selected", () => {
     const value: string | null = "prova";
-    expect(!!value).toBe(true); // next should be enabled
+    expect(!!value).toBe(true);
   });
 
   it("prevents next without activity text", () => {
@@ -43,21 +43,23 @@ describe("Wizard step navigation logic", () => {
 });
 
 describe("Barrier auto-loading from student profile", () => {
-  it("maps all 5 dimensions with 4 barriers each", () => {
-    expect(BARRIER_DIMENSIONS).toHaveLength(5);
+  it("maps all 11 neurodivergence dimensions", () => {
+    expect(BARRIER_DIMENSIONS).toHaveLength(11);
     const keys = BARRIER_DIMENSIONS.map((d) => d.key);
-    expect(keys).toContain("processamento");
-    expect(keys).toContain("atencao");
-    expect(keys).toContain("ritmo");
-    expect(keys).toContain("engajamento");
-    expect(keys).toContain("expressao");
-
-    BARRIER_DIMENSIONS.forEach((d) => {
-      expect(d.barriers.length).toBe(4);
-    });
+    expect(keys).toContain("tea");
+    expect(keys).toContain("tdah");
+    expect(keys).toContain("tod");
+    expect(keys).toContain("sindrome_down");
+    expect(keys).toContain("altas_habilidades");
+    expect(keys).toContain("dislexia");
+    expect(keys).toContain("discalculia");
+    expect(keys).toContain("disgrafia");
+    expect(keys).toContain("tourette");
+    expect(keys).toContain("dispraxia");
+    expect(keys).toContain("toc");
   });
 
-  it("creates 20 barrier items from all dimensions", () => {
+  it("creates barrier items from all dimensions", () => {
     const items = BARRIER_DIMENSIONS.flatMap((dim) =>
       dim.barriers.map((b) => ({
         dimension: dim.key,
@@ -66,7 +68,7 @@ describe("Barrier auto-loading from student profile", () => {
         is_active: false,
       }))
     );
-    expect(items).toHaveLength(20);
+    expect(items.length).toBeGreaterThanOrEqual(24);
     items.forEach((item) => {
       expect(item.is_active).toBe(false);
       expect(item.dimension).toBeTruthy();
@@ -77,9 +79,9 @@ describe("Barrier auto-loading from student profile", () => {
 
   it("activates barriers based on student data snapshot", () => {
     const studentBarriers = [
-      { barrier_key: "proc_enunciados_longos", dimension: "processamento", is_active: true },
-      { barrier_key: "aten_foco_atividades_longas", dimension: "atencao", is_active: true },
-      { barrier_key: "ritmo_mais_tempo", dimension: "ritmo", is_active: true },
+      { barrier_key: "tea_abstracao", dimension: "tea", is_active: true },
+      { barrier_key: "tdah_atencao_sustentada", dimension: "tdah", is_active: true },
+      { barrier_key: "dislexia_leitura", dimension: "dislexia", is_active: true },
     ];
     const activeKeys = new Set(studentBarriers.map((b) => b.barrier_key));
 
@@ -95,9 +97,9 @@ describe("Barrier auto-loading from student profile", () => {
     const active = items.filter((i) => i.is_active);
     expect(active).toHaveLength(3);
     expect(active.map((a) => a.barrier_key)).toEqual([
-      "proc_enunciados_longos",
-      "aten_foco_atividades_longas",
-      "ritmo_mais_tempo",
+      "tea_abstracao",
+      "tdah_atencao_sustentada",
+      "dislexia_leitura",
     ]);
   });
 
@@ -111,17 +113,15 @@ describe("Barrier auto-loading from student profile", () => {
       }))
     );
 
-    // Toggle first barrier on
     const toggled = items.map((b) =>
-      b.barrier_key === "proc_enunciados_longos" ? { ...b, is_active: !b.is_active } : b
+      b.barrier_key === "tea_abstracao" ? { ...b, is_active: !b.is_active } : b
     );
-    expect(toggled.find((b) => b.barrier_key === "proc_enunciados_longos")!.is_active).toBe(true);
+    expect(toggled.find((b) => b.barrier_key === "tea_abstracao")!.is_active).toBe(true);
 
-    // Toggle it off again
     const toggledOff = toggled.map((b) =>
-      b.barrier_key === "proc_enunciados_longos" ? { ...b, is_active: !b.is_active } : b
+      b.barrier_key === "tea_abstracao" ? { ...b, is_active: !b.is_active } : b
     );
-    expect(toggledOff.find((b) => b.barrier_key === "proc_enunciados_longos")!.is_active).toBe(false);
+    expect(toggledOff.find((b) => b.barrier_key === "tea_abstracao")!.is_active).toBe(false);
   });
 
   it("requires at least one active barrier to proceed", () => {
