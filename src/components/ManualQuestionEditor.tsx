@@ -131,6 +131,10 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
         if (type === "pdf") {
           const result = await parsePdf(file);
           setPageImages(result.pageImages);
+          // Split combined text into per-page texts
+          const parts = result.text.split(/\n--- Página \d+ ---\n/);
+          const texts = parts.filter(t => t.trim());
+          setPageTexts(texts);
         } else if (type === "docx") {
           const text = await extractDocxText(file);
           setDocxText(text);
