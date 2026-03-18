@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction, PageBreak } from "docx";
 
 export type DocxExportData = {
   schoolName?: string;
@@ -220,12 +220,14 @@ export async function exportToDocx(data: DocxExportData) {
           new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionUniversal),
           ...universalImageParagraphs,
-          new Paragraph({ text: "" }),
+          // Page break before Directed version
+          new Paragraph({ children: [new PageBreak()] }),
           // Directed
           new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
           ...textToParagraphs(data.versionDirected),
           ...directedImageParagraphs,
-          new Paragraph({ text: "" }),
+          // Page break before Strategies/Justification/Tips
+          new Paragraph({ children: [new PageBreak()] }),
           // Strategies
           new Paragraph({ text: "Estratégias Aplicadas", heading: HeadingLevel.HEADING_2 }),
           ...data.strategiesApplied.map((s) => new Paragraph({
