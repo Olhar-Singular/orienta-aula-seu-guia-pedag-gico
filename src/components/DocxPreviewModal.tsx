@@ -89,12 +89,11 @@ export default function DocxPreviewModal({ open, onOpenChange, file }: Props) {
 
         if (cancelled || !containerRef.current) return;
 
-        const hasText = (containerRef.current.textContent?.trim().length ?? 0) > 0;
-        const hasVisualElements = !!containerRef.current.querySelector(
-          ".docx-wrapper, .docx, .docx p, .docx table, .docx img, img, table, p"
-        );
+        const docxRoot = containerRef.current.querySelector(".docx") as HTMLElement | null;
+        const textLength = docxRoot?.textContent?.replace(/\s+/g, "").length ?? 0;
+        const hasVisualElements = !!docxRoot?.querySelector("img, table, svg, canvas, object, li, p");
 
-        if (!hasText && !hasVisualElements) {
+        if (textLength < 20 && !hasVisualElements) {
           await renderFallbackHtml();
         }
       } catch (primaryError) {
