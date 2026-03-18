@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,7 +75,7 @@ type Props = {
 export default function StudentPeiReport({ studentId, studentName, classId, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const reportRef = useRef<HTMLDivElement>(null);
+  
   const [isGenerating, setIsGenerating] = useState(false);
 
   // PEI form state
@@ -267,46 +267,50 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
   const evolutionData = [...monthMap.entries()].sort().map(([month, adaptations]) => ({ month, adaptations }));
 
   const handleExportReportPdf = async () => {
-    if (!reportRef.current) return;
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const jsPDF = (await import("jspdf")).default;
+      const { downloadPeiReportPDF } = await import("@/lib/pdf/index");
+      const { BARRIER_DIMENSIONS: dims } = await import("@/lib/barriers");
 
-      const canvas = await html2canvas(reportRef.current, { scale: 1.5, useCORS: true });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth - 20;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const dimMax = Math.max(...[...dimFreq.values()], 1);
 
-      let y = 10;
-      if (imgHeight <= pageHeight - 20) {
-        pdf.addImage(imgData, "PNG", 10, y, imgWidth, imgHeight);
-      } else {
-        // Multi-page
-        let remainingHeight = canvas.height;
-        let srcY = 0;
-        const sliceHeight = Math.floor((canvas.width * (pageHeight - 20)) / imgWidth);
-        let page = 0;
-        while (remainingHeight > 0) {
-          if (page > 0) pdf.addPage();
-          const h = Math.min(sliceHeight, remainingHeight);
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = h;
-          const ctx = sliceCanvas.getContext("2d")!;
-          ctx.drawImage(canvas, 0, srcY, canvas.width, h, 0, 0, canvas.width, h);
-          const sliceImg = sliceCanvas.toDataURL("image/png");
-          const sliceImgH = (h * imgWidth) / canvas.width;
-          pdf.addImage(sliceImg, "PNG", 10, 10, imgWidth, sliceImgH);
-          srcY += h;
-          remainingHeight -= h;
-          page++;
-        }
-      }
-
-      pdf.save(`Relatorio_${studentName.replace(/\s+/g, "_")}.pdf`);
+      await downloadPeiReportPDF(
+        {
+          studentName,
+          className: className || "Turma",
+          registrationCode: student?.registration_code || undefined,
+          date: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
+          totalAdaptations: (history || []).length,
+          totalBarriers: barrierFreq.size,
+          totalStrategies: strategyFreq.size,
+          goals: peiForm.goals.map((g) => ({
+            area: g.area,
+            description: g.description,
+            deadline: g.deadline,
+            status: g.status,
+          })),
+          studentProfile: peiForm.student_profile || undefined,
+          curricularAdaptations: peiForm.curricular_adaptations || undefined,
+          resourcesAndSupport: peiForm.resources_and_support || undefined,
+          pedagogicalStrategies: peiForm.pedagogical_strategies || undefined,
+          reviewSchedule: peiForm.review_schedule || undefined,
+          additionalNotes: peiForm.additional_notes || undefined,
+          topBarriers: topBarriers,
+          dimensions: dims.map((d) => ({
+            label: d.label,
+            count: dimFreq.get(d.key) || 0,
+            max: dimMax,
+          })),
+          topStrategies: topStrategies.map(([name, count]) => ({ name, count })),
+          recentActivities: (history || [])
+            .slice(-10)
+            .reverse()
+            .map((h) => ({
+              text: h.original_activity,
+              date: new Date(h.created_at!).toLocaleDateString("pt-BR"),
+            })),
+        },
+        studentName
+      );
       toast.success("Relatório exportado!");
     } catch {
       toast.error("Erro ao exportar relatório.");
@@ -521,7 +525,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           </Button>
         </div>
 
-        <div ref={reportRef} className="space-y-4">
+        <div className="space-y-4">
           {/* Report Header */}
           <Card className="border-border bg-primary/5">
             <CardContent className="py-4 px-5">

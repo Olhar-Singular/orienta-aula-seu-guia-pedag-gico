@@ -24,28 +24,18 @@ vi.mock("@/integrations/supabase/client", () =>
   })
 );
 
-// Mock jsPDF and html2canvas to avoid canvas issues
-vi.mock("jspdf", () => ({
-  default: vi.fn().mockImplementation(() => ({
-    internal: { pageSize: { getWidth: () => 210, getHeight: () => 297 } },
-    setFontSize: vi.fn(),
-    setFont: vi.fn(),
-    setTextColor: vi.fn(),
-    text: vi.fn(),
-    line: vi.fn(),
-    splitTextToSize: vi.fn(() => ["line1"]),
-    addPage: vi.fn(),
-    addImage: vi.fn(),
-    save: vi.fn(),
-    getStringUnitWidth: vi.fn(() => 10),
+// Mock @react-pdf/renderer to avoid canvas issues in tests
+vi.mock("@react-pdf/renderer", () => ({
+  pdf: vi.fn(() => ({
+    toBlob: vi.fn().mockResolvedValue(new Blob(["mock"], { type: "application/pdf" })),
   })),
-}));
-vi.mock("html2canvas", () => ({
-  default: vi.fn().mockResolvedValue({
-    toDataURL: () => "data:image/png;base64,mock",
-    height: 1000,
-    width: 700,
-  }),
+  Document: ({ children }: any) => children,
+  Page: ({ children }: any) => children,
+  View: ({ children }: any) => children,
+  Text: ({ children }: any) => children,
+  Image: () => null,
+  StyleSheet: { create: (s: any) => s },
+  Font: { register: vi.fn() },
 }));
 
 import AdaptationWizard from "@/components/adaptation/AdaptationWizard";
