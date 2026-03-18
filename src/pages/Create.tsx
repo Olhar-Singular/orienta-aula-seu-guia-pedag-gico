@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { supabase } from "@/integrations/supabase/client";
 import { streamAI } from "@/lib/streamAI";
 

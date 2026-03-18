@@ -44,7 +44,8 @@ export default function Classes() {
         name: name.trim().slice(0, 100),
         description: description.trim().slice(0, 200) || null,
         school_year: schoolYear.trim().slice(0, 10) || null,
-      });
+        school_id: schoolId,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
