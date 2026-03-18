@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Upload, ScanText, Move } from "lucide-react";
 
