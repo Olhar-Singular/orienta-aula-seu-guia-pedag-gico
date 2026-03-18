@@ -75,7 +75,7 @@ type Props = {
 export default function StudentPeiReport({ studentId, studentName, classId, onSaved }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const reportRef = useRef<HTMLDivElement>(null);
+  
   const [isGenerating, setIsGenerating] = useState(false);
 
   // PEI form state
