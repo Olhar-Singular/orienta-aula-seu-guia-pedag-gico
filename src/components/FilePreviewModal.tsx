@@ -275,14 +275,36 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode, stora
         )}
 
         <div className="relative overflow-auto max-h-[75vh] rounded-md border bg-muted/30">
-          {/* PDF */}
-          {mode === "pdf" && pdfUrl && (
-            <embed
-              src={`${pdfUrl}#toolbar=1&navpanes=0`}
-              type="application/pdf"
-              className="w-full rounded-md"
-              style={{ height: "72vh" }}
-            />
+          {/* PDF - canvas rendered */}
+          {mode === "pdf" && (
+            <div className="flex flex-col items-center gap-4 p-4">
+              {pdfLoading ? (
+                <div className="flex items-center justify-center h-[60vh]">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : pdfPageImage ? (
+                <img
+                  src={pdfPageImage}
+                  alt={`Página ${pdfCurrentPage}`}
+                  className="max-w-full rounded shadow-sm"
+                />
+              ) : (
+                <p className="text-muted-foreground py-12">Nenhum PDF carregado</p>
+              )}
+              {pdfPageCount > 1 && (
+                <div className="flex items-center gap-3">
+                  <Button size="icon" variant="outline" disabled={pdfCurrentPage <= 1 || pdfLoading} onClick={() => file && loadPdfPage(file, pdfCurrentPage - 1)}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground min-w-[120px] text-center">
+                    Página {pdfCurrentPage} / {pdfPageCount}
+                  </span>
+                  <Button size="icon" variant="outline" disabled={pdfCurrentPage >= pdfPageCount || pdfLoading} onClick={() => file && loadPdfPage(file, pdfCurrentPage + 1)}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* DOCX: Office Online iframe */}
