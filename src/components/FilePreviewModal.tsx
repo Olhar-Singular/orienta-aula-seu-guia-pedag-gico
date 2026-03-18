@@ -56,13 +56,13 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
 
           if (cancelled || !containerRef.current) return;
 
-          const result = await mammoth.default.convertToHtml(
+          const result = await mammoth.convertToHtml(
             { arrayBuffer },
             {
-              convertImage: mammoth.default.images.imgElement((image: any) => {
-                return image.read("base64").then((imageBuffer: string) => {
-                  return { src: `data:${image.contentType};base64,${imageBuffer}` };
-                });
+              convertImage: mammoth.images.imgElement((image: any) => {
+                return image.read("base64").then((imageBuffer: string) => ({
+                  src: `data:${image.contentType};base64,${imageBuffer}`,
+                }));
               }),
             }
           );
