@@ -58,17 +58,12 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
         <PDFTextBlock text={props.versionUniversal} />
       </PDFSection>
 
-      {/* Images after universal */}
-      {props.images && props.images.length > 0 && (
-        <PDFImage urls={props.images} />
-      )}
-
       {/* Directed Version */}
       <PDFSection title="Versão Direcionada">
         <PDFTextBlock text={props.versionDirected} />
       </PDFSection>
 
-      {/* Images after directed */}
+      {/* Images (once only) */}
       {props.images && props.images.length > 0 && (
         <PDFImage urls={props.images} />
       )}
