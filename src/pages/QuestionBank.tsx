@@ -865,11 +865,17 @@ export default function QuestionBank() {
                         <>Extrair com IA</>
                       )}
                     </Button>
-                    {uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                      <Button variant="outline" onClick={() => setShowPdfPreview(true)}>
-                        <Eye className="w-4 h-4 mr-1" /> Visualizar
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (!uploadFile) return;
+                        void openFilePreview(uploadFile).catch((e: any) => {
+                          toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
+                        });
+                      }}
+                    >
+                      <Eye className="w-4 h-4 mr-1" /> Visualizar
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => setUploadFile(null)} aria-label="Remover arquivo">
                       <X className="w-4 h-4" />
                     </Button>
