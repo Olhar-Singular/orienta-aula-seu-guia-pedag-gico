@@ -128,6 +128,10 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           }))
         );
         updateData({ barriers: allBarriers });
+        // Lock barriers if student has pre-defined ones
+        if (barriers.length > 0) {
+          setBarriersLocked(true);
+        }
         const student = students.find((s) => s.id === data.studentId);
         if (student) updateData({ studentName: student.name });
       });
