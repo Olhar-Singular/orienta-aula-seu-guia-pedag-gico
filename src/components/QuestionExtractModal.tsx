@@ -34,6 +34,7 @@ export default function QuestionExtractModal({
   onSaved,
 }: Props) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
