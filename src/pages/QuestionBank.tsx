@@ -474,6 +474,25 @@ export default function QuestionBank() {
     }
   };
 
+  const openFilePreview = async (file: File) => {
+    const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const type = detectFileType(bytes);
+
+    if (type === "pdf") {
+      setPreviewUploadFile(file);
+      setPreviewMode("pdf");
+      return;
+    }
+
+    if (type === "docx") {
+      setPreviewUploadFile(file);
+      setPreviewMode("docx");
+      return;
+    }
+
+    throw new Error("Formato não suportado para visualização");
+  };
+
   // ─── Preview file from history ───
   const handlePreviewUpload = async (upload: PdfUpload) => {
     setLoadingPreview(true);
@@ -487,24 +506,7 @@ export default function QuestionBank() {
         : "application/pdf";
       const file = new File([fileData], upload.file_name, { type: mimeType });
 
-      if (isDocx) {
-        const mammoth = await import("mammoth");
-        const arrayBuffer = await file.arrayBuffer();
-        const options: any = {
-          arrayBuffer,
-          convertImage: mammoth.default.images.imgElement((image: any) => {
-            return image.read("base64").then((imageBuffer: string) => {
-              return { src: `data:${image.contentType};base64,${imageBuffer}` };
-            });
-          }),
-        };
-        const result = await mammoth.default.convertToHtml(options);
-        setPreviewDocxHtml(result.value);
-        setPreviewMode("docx");
-      } else {
-        setPreviewUploadFile(file);
-        setPreviewMode("pdf");
-      }
+      await openFilePreview(file);
     } catch (e: any) {
       toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
     } finally {
