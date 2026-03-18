@@ -112,6 +112,7 @@ const sourceLabels: Record<string, string> = {
 
 export default function QuestionBank() {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
 
   const [activeTab, setActiveTab] = useState("provas");
 
