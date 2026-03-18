@@ -235,6 +235,198 @@ REGRAS DE FORMATAÇÃO
 7. Preserve fórmulas, símbolos e unidades integralmente
 8. NUNCA use asteriscos (**) ou markdown. Para frações, use LaTeX inline (ex: \\frac{a}{b}). Texto limpo.`;
 
+const ADAPTATION_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "deliver_adaptation",
+    description: "Entrega a atividade adaptada estruturada",
+    parameters: {
+      type: "object",
+      properties: {
+        version_universal: {
+          type: "string",
+          description: "Versão universal da atividade adaptada (Design Universal para Aprendizagem)",
+        },
+        version_directed: {
+          type: "string",
+          description: "Versão direcionada ao perfil específico do aluno",
+        },
+        strategies_applied: {
+          type: "array",
+          items: { type: "string" },
+          description: "Lista de estratégias pedagógicas aplicadas",
+        },
+        pedagogical_justification: {
+          type: "string",
+          description: "Justificativa pedagógica curta das adaptações realizadas",
+        },
+        implementation_tips: {
+          type: "array",
+          items: { type: "string" },
+          description: "Dicas práticas de implementação para o professor",
+        },
+        autonomy_confirmation: {
+          type: "string",
+          description: "Confirmação de que a decisão final é do profissional",
+        },
+      },
+      required: [
+        "version_universal",
+        "version_directed",
+        "strategies_applied",
+        "pedagogical_justification",
+        "implementation_tips",
+        "autonomy_confirmation",
+      ],
+    },
+  },
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Não autorizado." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Não autorizado." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(supabaseUrl, supabaseServiceKey);
+
+    const body = await req.json();
+    const {
+      original_activity,
+      activity_type,
+      barriers,
+      student_id,
+      class_id,
+      observation_notes,
+      school_id,
+      question_images,
+    } = body;
+
+    if (!original_activity || !activity_type || !barriers) {
+      return new Response(JSON.stringify({ error: "Campos obrigatórios ausentes." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const sanitizedActivity = sanitize(original_activity, 15000);
+    const sanitizedType = sanitize(activity_type, 100);
+    const sanitizedObservations = observation_notes ? sanitize(observation_notes, 2000) : "";
+
+    // Build enriched context
+    let studentContext = "";
+    if (student_id) {
+      // Fetch student barrier history
+      const { data: studentBarriers } = await admin
+        .from("student_barriers")
+        .select("barrier_key, dimension, notes")
+        .eq("student_id", student_id)
+        .eq("is_active", true);
+
+      // Fetch student notes from profile
+      const { data: studentData } = await admin
+        .from("class_students")
+        .select("name, notes")
+        .eq("id", student_id)
+        .single();
+
+      // Fetch recent adaptations for context
+      const { data: recentAdaptations } = await admin
+        .from("adaptations_history")
+        .select("activity_type, barriers_used, created_at")
+        .eq("student_id", student_id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (studentData?.name) {
+        studentContext += `\nNome do aluno: ${studentData.name}`;
+      }
+      if (studentData?.notes) {
+        studentContext += `\nObservações fixas do perfil do aluno: ${studentData.notes}`;
+      }
+      if (studentBarriers && studentBarriers.length > 0) {
+        studentContext += `\nBarreiras registradas no perfil: ${studentBarriers.map((b: any) => `${b.barrier_key}${b.notes ? ` (${b.notes})` : ""}`).join(", ")}`;
+      }
+      if (recentAdaptations && recentAdaptations.length > 0) {
+        studentContext += `\nÚltimas ${recentAdaptations.length} adaptações realizadas para este aluno (contexto de continuidade).`;
+      }
+    }
+
+    // Build the active barriers description
+    const activeBarriersList = barriers
+      .filter((b: any) => b.is_active !== false)
+      .map((b: any) => {
+        const parts = [b.barrier_key || b.label];
+        if (b.dimension) parts.push(`(dimensão: ${b.dimension})`);
+        if (b.notes) parts.push(`— nota: ${b.notes}`);
+        return parts.join(" ");
+      })
+      .join("\n- ");
+
+    // Build user prompt with full context
+    let userPrompt = `TIPO DE ATIVIDADE: ${sanitizedType}
+
+BARREIRAS OBSERVÁVEIS DO ALUNO:
+- ${activeBarriersList}`;
+
+    if (sanitizedObservations) {
+      userPrompt += `\n\nOBSERVAÇÕES DO PROFESSOR (contexto adicional para personalização):
+${sanitizedObservations}`;
+    }
+
+    if (studentContext) {
+      userPrompt += `\n\nCONTEXTO ENRIQUECIDO DO ALUNO:${studentContext}`;
+    }
+
+    userPrompt += `\n\n═══════════════════════════════════════
+ATIVIDADE ORIGINAL PARA ADAPTAR:
+═══════════════════════════════════════
+${sanitizedActivity}`;
+
+    if (question_images && Array.isArray(question_images) && question_images.length > 0) {
+      userPrompt += `\n\nNOTA: A atividade contém ${question_images.length} imagem(ns) associadas às questões. Preserve referências a figuras/imagens nas adaptações.`;
+    }
+
+    userPrompt += `\n\nINSTRUÇÕES FINAIS:
+1. Gere a VERSÃO UNIVERSAL (acessível a todos) e a VERSÃO DIRECIONADA (específica para as barreiras indicadas)
+2. Liste as estratégias aplicadas
+3. Forneça justificativa pedagógica curta
+4. Inclua dicas de implementação prática
+5. Confirme a autonomia do profissional`;
+
+    const SYSTEM_PROMPT_FINAL = SYSTEM_PROMPT;
+
     // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-flash";
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -246,7 +438,7 @@ REGRAS DE FORMATAÇÃO
       body: JSON.stringify({
         model: modelName,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: SYSTEM_PROMPT_FINAL },
           { role: "user", content: userPrompt },
         ],
         tools: [ADAPTATION_TOOL],

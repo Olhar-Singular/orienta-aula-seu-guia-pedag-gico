@@ -28,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import type { WizardData, BarrierItem } from "./AdaptationWizard";
-import { Users, User, MessageSquare, ShieldAlert, Pencil } from "lucide-react";
+import { Users, User, MessageSquare, ShieldAlert, Pencil, X, Save } from "lucide-react";
 
 type ClassRow = { id: string; name: string };
 type StudentRow = { id: string; name: string };
@@ -48,10 +48,15 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [barriersLocked, setBarriersLocked] = useState(false);
   const [showUnlockAlert, setShowUnlockAlert] = useState(false);
+  const [originalBarriers, setOriginalBarriers] = useState<BarrierItem[]>([]);
+  const [isEditingBarriers, setIsEditingBarriers] = useState(false);
+  const [savingObservations, setSavingObservations] = useState(false);
 
   // Reset lock when student changes
   useEffect(() => {
     setBarriersLocked(false);
+    setIsEditingBarriers(false);
+    setOriginalBarriers([]);
   }, [data.studentId]);
 
   // Load classes
@@ -248,6 +253,21 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                 Editar barreiras
               </Button>
             )}
+            {isEditingBarriers && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  updateData({ barriers: originalBarriers });
+                  setBarriersLocked(true);
+                  setIsEditingBarriers(false);
+                }}
+                className="gap-1.5 text-xs text-destructive hover:text-destructive"
+              >
+                <X className="w-3.5 h-3.5" />
+                Cancelar edição
+              </Button>
+            )}
           </div>
 
           {BARRIER_DIMENSIONS.map((dim) => {
@@ -305,9 +325,36 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               className="min-h-[100px] resize-y"
               maxLength={2000}
             />
-            <p className="text-xs text-muted-foreground text-right mt-1">
-              {data.observationNotes.length}/2000
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                {data.observationNotes.length}/2000
+              </p>
+              {data.studentId && data.observationNotes.trim() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={savingObservations}
+                  onClick={async () => {
+                    if (!data.studentId) return;
+                    setSavingObservations(true);
+                    const { error } = await supabase
+                      .from("class_students")
+                      .update({ notes: data.observationNotes })
+                      .eq("id", data.studentId);
+                    setSavingObservations(false);
+                    if (error) {
+                      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Observações salvas", description: "As observações foram salvas no perfil do aluno." });
+                    }
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {savingObservations ? "Salvando..." : "Salvar observações no perfil"}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -339,7 +386,11 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setBarriersLocked(false)}>
+            <AlertDialogAction onClick={() => {
+              setOriginalBarriers([...data.barriers]);
+              setBarriersLocked(false);
+              setIsEditingBarriers(true);
+            }}>
               Sim, editar barreiras
             </AlertDialogAction>
           </AlertDialogFooter>
