@@ -734,22 +734,20 @@ export default function QuestionBank() {
                               <Search className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
                             </div>
                           </div>
-                          <div className="flex gap-1 flex-wrap">
-                            {!q.saved && !q.isDuplicate && (
-                              <>
-                                <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
-                                  <X className="w-3 h-3 mr-1" /> Remover imagem
+                          {q.editing && (
+                            <div className="flex gap-1 flex-wrap">
+                              <Button size="sm" variant="outline" onClick={() => updateExtracted(i, "imageUrl", undefined)}>
+                                <X className="w-3 h-3 mr-1" /> Remover imagem
+                              </Button>
+                              {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
+                                <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
+                                  <Crop className="w-3 h-3 mr-1" /> Trocar recorte
                                 </Button>
-                                {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
-                                  <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
-                                    <Crop className="w-3 h-3 mr-1" /> Trocar recorte
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      ) : !q.saved && !q.isDuplicate && (
+                      ) : q.editing && (
                         <div className="flex gap-1">
                           {uploadFile && uploadFile.name.toLowerCase().endsWith(".pdf") && (
                             <Button size="sm" variant="outline" onClick={() => setCropperForQuestion(i)}>
@@ -786,21 +784,28 @@ export default function QuestionBank() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div>
                           <Label className="text-xs">Matéria</Label>
-                          <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)} disabled={q.saved}>
-                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
+                          {q.editing ? (
+                            <Select value={q.subject} onValueChange={(v) => updateExtracted(i, "subject", v)}>
+                              <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <p className="text-sm p-1 text-muted-foreground">{q.subject}</p>
+                          )}
                         </div>
                         <div>
                           <Label className="text-xs">Tópico</Label>
-                          <Input
-                            value={q.topic || ""}
-                            onChange={(e) => updateExtracted(i, "topic", e.target.value)}
-                            className="h-8 text-sm"
-                            disabled={q.saved}
-                          />
+                          {q.editing ? (
+                            <Input
+                              value={q.topic || ""}
+                              onChange={(e) => updateExtracted(i, "topic", e.target.value)}
+                              className="h-8 text-sm"
+                            />
+                          ) : (
+                            <p className="text-sm p-1 text-muted-foreground">{q.topic || "—"}</p>
+                          )}
                         </div>
                       </div>
 
