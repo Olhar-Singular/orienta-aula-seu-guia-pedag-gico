@@ -108,11 +108,16 @@ export function renderMathToHtml(text: string): string {
     return renderKatex(`\\tfrac{${num}}{${den}}`);
   });
 
-  // 5. Superscripts: 10^5, 10^{-2}, x^2
-  result = result.replace(/([a-zA-Z0-9])\s*\^\s*\{([^{}]+)\}/g, (_m, base, exp) => {
+  // 5. Superscripts: 10^{-2}, x^{3}, then 10^(-2), then 10^5
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*\{([^{}]+)\}/g, (_m, base, exp) => {
     return renderKatex(`${unicodeToLatex(base)}^{${unicodeToLatex(exp)}}`);
   });
-  result = result.replace(/([a-zA-Z0-9])\s*\^\s*(-?\d+)/g, (_m, base, exp) => {
+  // Parenthesized exponents: 10^(24), 10^(-27), 3 x 10^(24 - (-27))
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*\(([^)]+)\)/g, (_m, base, exp) => {
+    return renderKatex(`${unicodeToLatex(base)}^{${unicodeToLatex(exp)}}`);
+  });
+  // Simple numeric exponents: 10^5, x^2
+  result = result.replace(/([a-zA-Z0-9,.]+)\s*\^\s*(-?\d+)(?![{(])/g, (_m, base, exp) => {
     return renderKatex(`${unicodeToLatex(base)}^{${exp}}`);
   });
 
@@ -124,17 +129,19 @@ export function renderMathToHtml(text: string): string {
     return renderKatex(`${base}_{${sub}}`);
   });
 
-  // 7. Unicode math symbols (standalone)
+  // 7. Unicode math symbols (standalone, not inside HTML tags)
   for (const [unicode, tex] of Object.entries(UNICODE_TO_LATEX)) {
     if (unicode.length === 1 && result.includes(unicode)) {
-      // Only replace standalone unicode chars not already inside katex spans
       result = result.replace(new RegExp(`(?<!<[^>]*)${escapeRegex(unicode)}`, "g"), () => {
         return renderKatex(tex);
       });
     }
   }
 
-  // 8. Newlines to <br>
+  // 8. Scientific notation dot: `. 10` → `· 10` before rendered katex
+  result = result.replace(/\.\s*(?=<span class="katex">)/g, ` ${renderKatex("\\cdot")} `);
+
+  // 9. Newlines to <br>
   result = result.replace(/\n/g, "<br/>");
 
   return result;
