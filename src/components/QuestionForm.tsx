@@ -18,6 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { Plus, X, Upload, Loader2, Search } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
