@@ -143,7 +143,7 @@ function preProcessContent(content: string): string {
   processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
 
   // Insert newline before alternatives mid-text (e.g., "... text a) alt b) alt")
-  processed = processed.replace(/([^\n])(\s+)([a-eA-E]\)\s)/g, "$1\n$3");
+  processed = processed.replace(/([^\n])(\s+)([a-zA-Z]\)\s)/g, "$1\n$3");
 
   // Convert markdown headers to our format
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
