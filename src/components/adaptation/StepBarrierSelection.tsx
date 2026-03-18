@@ -325,11 +325,36 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               className="min-h-[100px] resize-y"
               maxLength={2000}
             />
-            <p className="text-xs text-muted-foreground text-right mt-1">
-              {data.observationNotes.length}/2000
-            </p>
-          </CardContent>
-        </Card>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-muted-foreground">
+                {data.observationNotes.length}/2000
+              </p>
+              {data.studentId && data.observationNotes.trim() && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={savingObservations}
+                  onClick={async () => {
+                    if (!data.studentId) return;
+                    setSavingObservations(true);
+                    const { error } = await supabase
+                      .from("class_students")
+                      .update({ notes: data.observationNotes })
+                      .eq("id", data.studentId);
+                    setSavingObservations(false);
+                    if (error) {
+                      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Observações salvas", description: "As observações foram salvas no perfil do aluno." });
+                    }
+                  }}
+                  className="gap-1.5 text-xs"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  {savingObservations ? "Salvando..." : "Salvar observações no perfil"}
+                </Button>
+              )}
+            </div>
       )}
 
       {(data.adaptForWholeClass || data.studentId) && data.barriers.length > 0 && !canProceed && (
