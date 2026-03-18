@@ -160,6 +160,7 @@ function parseBlocks(content: string): Block[] {
   const blocks: Block[] = [];
   let currentParagraph: string[] = [];
   let currentAlts: { letter: string; text: string }[] = [];
+  let currentBullets: string[] = [];
 
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
@@ -175,11 +176,19 @@ function parseBlocks(content: string): Block[] {
     }
   };
 
+  const flushBullets = () => {
+    if (currentBullets.length > 0) {
+      blocks.push({ type: "bulletList", items: [...currentBullets] });
+      currentBullets = [];
+    }
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (!trimmed || trimmed === "---") {
       flushAlts();
+      flushBullets();
       flushParagraph();
       continue;
     }
@@ -188,6 +197,7 @@ function parseBlocks(content: string): Block[] {
     const mdMatch = trimmed.match(MD_HEADER_REGEX);
     if (mdMatch) {
       flushAlts();
+      flushBullets();
       flushParagraph();
       blocks.push({ type: "header", text: mdMatch[1].replace(/:$/, "") });
       continue;
@@ -197,6 +207,7 @@ function parseBlocks(content: string): Block[] {
     const headerMatch = trimmed.match(HEADER_REGEX);
     if (headerMatch) {
       flushAlts();
+      flushBullets();
       flushParagraph();
       blocks.push({ type: "header", text: trimmed.replace(/:$/, "") });
       continue;
@@ -206,6 +217,7 @@ function parseBlocks(content: string): Block[] {
     const qMatch = trimmed.match(QUESTION_LINE_REGEX);
     if (qMatch) {
       flushAlts();
+      flushBullets();
       flushParagraph();
       blocks.push({ type: "question", number: qMatch[1], text: qMatch[2] });
       continue;
@@ -214,17 +226,29 @@ function parseBlocks(content: string): Block[] {
     // Check for alternative
     const altMatch = trimmed.match(ALT_LINE_REGEX);
     if (altMatch) {
+      flushBullets();
       flushParagraph();
       currentAlts.push({ letter: altMatch[1].toLowerCase(), text: altMatch[2] });
       continue;
     }
 
+    // Check for bullet list item
+    const bulletMatch = trimmed.match(BULLET_REGEX);
+    if (bulletMatch) {
+      flushAlts();
+      flushParagraph();
+      currentBullets.push(bulletMatch[1]);
+      continue;
+    }
+
     // Regular text
     flushAlts();
+    flushBullets();
     currentParagraph.push(trimmed);
   }
 
   flushAlts();
+  flushBullets();
   flushParagraph();
 
   return blocks;
