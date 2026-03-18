@@ -12,7 +12,8 @@ export type ExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  images?: string[];
+  imagesUniversal?: string[];
+  imagesDirected?: string[];
 };
 
 export async function exportToPdf(data: ExportData) {
@@ -27,7 +28,8 @@ export async function exportToPdf(data: ExportData) {
     strategiesApplied: data.strategiesApplied,
     pedagogicalJustification: data.pedagogicalJustification,
     implementationTips: data.implementationTips,
-    images: data.images,
+    imagesUniversal: data.imagesUniversal,
+    imagesDirected: data.imagesDirected,
   };
   await downloadAdaptationPDF(props);
 }
