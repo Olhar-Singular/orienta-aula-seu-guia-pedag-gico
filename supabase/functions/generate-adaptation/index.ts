@@ -20,11 +20,10 @@ REGRAS ABSOLUTAS:
 - Sempre reforce a autonomia do usuário.
 - A decisão final é SEMPRE do profissional.
 
-REGRA ABSOLUTA DE NOTAÇÃO MATEMÁTICA:
-- É TERMINANTEMENTE PROIBIDO usar LaTeX, MathJax ou notações com: $, {}, \\, ^, _.
-- NÃO usar: $v_{0}$, v^2, m/s^2.
-- USAR SEMPRE notação escolar simples (Unicode): v₀, v², m/s², Δv, · (ponto médio), − (sinal de menos correto).
-- Se detectar LaTeX no texto, converter automaticamente para notação escolar simples.
+REGRA DE NOTAÇÃO MATEMÁTICA:
+- Para variáveis e símbolos, use notação escolar Unicode: v₀, v², m/s², Δv, · (ponto médio), − (sinal de menos correto).
+- FRAÇÕES: escreva cada equação com fração em LINHA SEPARADA no formato a/b = c/d (ex: 23/24 = ?/48). NUNCA concatene múltiplas frações na mesma linha.
+- Se detectar LaTeX ($, {}, \\, ^, _) no texto original, converter para notação escolar simples.
 
 REGRAS PARA MATEMÁTICA E FÍSICA:
 1) Preservar integralmente fórmulas, símbolos e unidades.
