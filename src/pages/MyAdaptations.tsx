@@ -20,6 +20,7 @@ import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRender
 import AdaptationEditModal, { type AdaptationQuestionEditPayload } from "@/components/adaptation/AdaptationEditModal";
 import { parseAdaptedQuestions, replaceQuestionInAdaptedContent, type ParsedAdaptedQuestion } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
+import { exportToDocx } from "@/lib/exportDocx";
 
 const ACTIVITY_TYPES: Record<string, string> = {
   prova: "Prova",
