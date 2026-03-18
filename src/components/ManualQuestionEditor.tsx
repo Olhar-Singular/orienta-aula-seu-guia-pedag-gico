@@ -102,12 +102,10 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   // Document preview state
   const [pageImages, setPageImages] = useState<string[]>([]);
   const [docxText, setDocxText] = useState<string>("");
-  const [docxText, setDocxText] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(0);
   const [loadingDoc, setLoadingDoc] = useState(true);
   const [zoom, setZoom] = useState(150);
   const [fileType, setFileType] = useState<"pdf" | "docx" | null>(null);
-  const [showTextView, setShowTextView] = useState(false);
 
   // Questions state
   const [questions, setQuestions] = useState<ManualQuestion[]>([emptyQuestion()]);
