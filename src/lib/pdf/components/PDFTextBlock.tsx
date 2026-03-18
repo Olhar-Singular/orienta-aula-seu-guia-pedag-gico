@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from "@react-pdf/renderer";
 import { colors } from "../styles";
-import { parseActivityText, type ParsedElement, type TextElementType } from "../textParser";
+import { parseActivityText, normalizeMathText, type ParsedElement, type TextElementType } from "../textParser";
 
 const styles = StyleSheet.create({
   // Fallback paragraph
