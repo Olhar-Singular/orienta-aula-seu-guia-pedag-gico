@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math, MathRun, MathFraction } from "docx";
 
 export type DocxExportData = {
   schoolName?: string;
@@ -20,6 +20,106 @@ const TYPE_LABELS: Record<string, string> = {
   atividade_casa: "Atividade de Casa",
   trabalho: "Trabalho",
 };
+
+// Match \frac{...}{...}, \tfrac{...}{...}, \dfrac{...}{...}
+const LATEX_FRAC_RE = /\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/;
+// Match plain fractions like 7/8, 42/48, ?/48
+const PLAIN_FRAC_RE = /(^|[\s=,(;+\-])(\?|\d+)\s*\/\s*(\?|\d+)(?=[\s=,);.\-+:]|$)/;
+
+type LineChild = TextRun | Math;
+
+/**
+ * Parse a line of text and return an array of TextRun and Math elements,
+ * converting fraction patterns into proper OMML MathFraction objects.
+ */
+function parseLineWithFractions(line: string): LineChild[] {
+  const children: LineChild[] = [];
+  let remaining = line;
+
+  while (remaining.length > 0) {
+    // Try LaTeX fraction first
+    const latexMatch = remaining.match(LATEX_FRAC_RE);
+    // Try plain fraction
+    const plainMatch = remaining.match(PLAIN_FRAC_RE);
+
+    // Find the earliest match
+    let match: RegExpMatchArray | null = null;
+    let matchType: "latex" | "plain" | null = null;
+
+    if (latexMatch && plainMatch) {
+      if ((latexMatch.index ?? Infinity) <= (plainMatch.index ?? Infinity)) {
+        match = latexMatch;
+        matchType = "latex";
+      } else {
+        match = plainMatch;
+        matchType = "plain";
+      }
+    } else if (latexMatch) {
+      match = latexMatch;
+      matchType = "latex";
+    } else if (plainMatch) {
+      match = plainMatch;
+      matchType = "plain";
+    }
+
+    if (!match || match.index === undefined) {
+      // No more fractions, add remaining text
+      if (remaining) children.push(new TextRun(remaining));
+      break;
+    }
+
+    if (matchType === "latex") {
+      // Text before the match
+      const before = remaining.slice(0, match.index);
+      if (before) children.push(new TextRun(before));
+
+      const num = match[1];
+      const den = match[2];
+      children.push(
+        new Math({
+          children: [
+            new MathFraction({
+              numerator: [new MathRun(num)],
+              denominator: [new MathRun(den)],
+            }),
+          ],
+        })
+      );
+      remaining = remaining.slice(match.index + match[0].length);
+    } else {
+      // Plain fraction: group 1 is prefix, group 2 is num, group 3 is den
+      const prefix = match[1] || "";
+      const before = remaining.slice(0, match.index) + prefix;
+      if (before) children.push(new TextRun(before));
+
+      const num = match[2];
+      const den = match[3];
+      children.push(
+        new Math({
+          children: [
+            new MathFraction({
+              numerator: [new MathRun(num)],
+              denominator: [new MathRun(den)],
+            }),
+          ],
+        })
+      );
+      remaining = remaining.slice(match.index + match[0].length);
+    }
+  }
+
+  return children;
+}
+
+/**
+ * Convert a block of text into Paragraphs with inline fraction support.
+ */
+function textToParagraphs(text: string): Paragraph[] {
+  return text.split("\n").map((line) => {
+    const children = parseLineWithFractions(line);
+    return new Paragraph({ children });
+  });
+}
 
 async function fetchImageAsBuffer(url: string): Promise<{ buffer: ArrayBuffer; width: number; height: number } | null> {
   try {
@@ -71,7 +171,6 @@ export async function exportToDocx(data: DocxExportData) {
     for (const imgUrl of data.images) {
       const imgData = await fetchImageAsBuffer(imgUrl);
       if (imgData) {
-        // Scale to max 500px wide, maintaining aspect ratio
         const maxWidth = 500;
         const scale = Math.min(1, maxWidth / imgData.width);
         const w = Math.round(imgData.width * scale);
@@ -115,12 +214,12 @@ export async function exportToDocx(data: DocxExportData) {
           new Paragraph({ text: "" }),
           // Universal
           new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
-          ...data.versionUniversal.split("\n").map((line) => new Paragraph({ text: line })),
+          ...textToParagraphs(data.versionUniversal),
           ...imageParagraphs,
           new Paragraph({ text: "" }),
           // Directed
           new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
-          ...data.versionDirected.split("\n").map((line) => new Paragraph({ text: line })),
+          ...textToParagraphs(data.versionDirected),
           ...imageParagraphs,
           new Paragraph({ text: "" }),
           // Strategies
@@ -131,7 +230,7 @@ export async function exportToDocx(data: DocxExportData) {
           new Paragraph({ text: "" }),
           // Justification
           new Paragraph({ text: "Justificativa Pedagógica", heading: HeadingLevel.HEADING_2 }),
-          ...data.pedagogicalJustification.split("\n").map((line) => new Paragraph({ text: line })),
+          ...textToParagraphs(data.pedagogicalJustification),
           new Paragraph({ text: "" }),
           // Tips
           new Paragraph({ text: "Dicas de Implementação", heading: HeadingLevel.HEADING_2 }),
