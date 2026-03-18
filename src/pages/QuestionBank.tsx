@@ -627,6 +627,20 @@ export default function QuestionBank() {
     }
   };
 
+  // ─── MANUAL EDIT MODE ───
+  if (showManualEdit && uploadFile) {
+    return (
+      <ManualQuestionEditor
+        file={uploadFile}
+        onFinish={() => {
+          setShowManualEdit(false);
+          setUploadFile(null);
+          fetchQuestions();
+        }}
+      />
+    );
+  }
+
   // ─── REVIEW MODE ───
   if (showReview) {
     return (
