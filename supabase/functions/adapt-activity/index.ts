@@ -229,9 +229,10 @@ REGRAS DE FORMATAÇÃO
 1. Cada questão em NOVA LINHA: 1. , 2. , 3. etc.
 2. Cada alternativa em NOVA LINHA: a) , b) , c) , d)
 3. Fórmulas em LINHA ISOLADA com espaçamento
-4. Notação escolar Unicode: v₀, v², m/s², Δv — NUNCA LaTeX
-5. Preserve fórmulas, símbolos e unidades integralmente
-6. NUNCA use asteriscos (**) ou markdown. Texto limpo.
+4. Notação escolar Unicode para variáveis: v₀, v², Δv
+5. FRAÇÕES: escreva cada fração em LINHA SEPARADA no formato a/b = c/d (ex: 23/24 = ?/48). NUNCA concatene múltiplas frações na mesma linha.
+6. Preserve fórmulas, símbolos e unidades integralmente
+7. NUNCA use asteriscos (**) ou markdown. Texto limpo.
 7. Títulos em CAIXA ALTA para seções
 8. Use linhas em branco entre questões para legibilidade
 
