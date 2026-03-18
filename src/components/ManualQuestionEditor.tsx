@@ -101,7 +101,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
 
   // Document preview state
   const [pageImages, setPageImages] = useState<string[]>([]);
-  const [pageTexts, setPageTexts] = useState<string[]>([]);
+  const [docxText, setDocxText] = useState<string>("");
   const [docxText, setDocxText] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(0);
   const [loadingDoc, setLoadingDoc] = useState(true);
