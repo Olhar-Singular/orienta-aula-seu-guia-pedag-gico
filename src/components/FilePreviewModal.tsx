@@ -6,21 +6,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Download, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, Download, ExternalLink, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: File | null;
   mode: "pdf" | "docx" | null;
+  /** Storage file path (e.g. userId/timestamp_file.docx) for Office Online fallback */
+  storagePath?: string | null;
 };
 
-export default function FilePreviewModal({ open, onOpenChange, file, mode }: Props) {
+export default function FilePreviewModal({ open, onOpenChange, file, mode, storagePath }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const styleContainerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [wmfWarning, setWmfWarning] = useState(false);
+  const [officeViewerUrl, setOfficeViewerUrl] = useState<string | null>(null);
+  const [useOfficeViewer, setUseOfficeViewer] = useState(false);
 
   const clearDocxContainers = () => {
     if (containerRef.current) containerRef.current.innerHTML = "";
@@ -34,10 +41,37 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
     };
   }, [pdfUrl]);
 
+  // Generate Office Online URL from storage path
+  useEffect(() => {
+    if (!open || !storagePath || mode !== "docx") {
+      setOfficeViewerUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    const generateUrl = async () => {
+      try {
+        const { data } = await supabase.storage
+          .from("question-pdfs")
+          .createSignedUrl(storagePath, 3600); // 1 hour
+        if (!cancelled && data?.signedUrl) {
+          const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(data.signedUrl)}`;
+          setOfficeViewerUrl(viewerUrl);
+        }
+      } catch {
+        // silently fail - Office viewer is a fallback
+      }
+    };
+    void generateUrl();
+    return () => { cancelled = true; };
+  }, [open, storagePath, mode]);
+
   useEffect(() => {
     if (!open || !file) return;
 
     let cancelled = false;
+    setWmfWarning(false);
+    setUseOfficeViewer(false);
 
     if (mode === "pdf") {
       const url = URL.createObjectURL(file);
@@ -62,10 +96,15 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
 
         if (cancelled || !containerRef.current) return;
 
+        let hasWmf = false;
         const result = await mammoth.convertToHtml(
           { arrayBuffer },
           {
             convertImage: mammoth.images.imgElement((image: any) => {
+              const ct = image.contentType || "";
+              if (ct.includes("wmf") || ct.includes("emf") || ct.includes("x-wmf") || ct.includes("x-emf")) {
+                hasWmf = true;
+              }
               return image.read("base64").then((imageBuffer: string) => ({
                 src: `data:${image.contentType};base64,${imageBuffer}`,
               }));
@@ -74,6 +113,7 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
         );
 
         if (cancelled || !containerRef.current) return;
+        if (hasWmf) setWmfWarning(true);
 
         containerRef.current.innerHTML = result.value;
       };
@@ -103,12 +143,24 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
 
         if (cancelled || !containerRef.current) return;
 
+        // Check if docx-preview rendered WMF as broken images
         const docxRoot = containerRef.current.querySelector(".docx") as HTMLElement | null;
+        const imgs = docxRoot?.querySelectorAll("img") ?? [];
+        let wmfDetected = false;
+        imgs.forEach((img) => {
+          const src = img.getAttribute("src") || "";
+          if (src.includes("x-wmf") || src.includes("x-emf") || src.includes("image/wmf") || src.includes("image/emf")) {
+            wmfDetected = true;
+          }
+        });
+
         const textLength = docxRoot?.textContent?.replace(/\s+/g, "").length ?? 0;
         const hasVisualElements = !!docxRoot?.querySelector("img, table, svg, canvas, object, li, p");
 
         if (textLength < 20 && !hasVisualElements) {
           await renderFallbackHtml();
+        } else if (wmfDetected) {
+          setWmfWarning(true);
         }
       } catch (primaryError) {
         try {
@@ -131,6 +183,7 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
       cancelled = true;
       clearDocxContainers();
       setError(null);
+      setWmfWarning(false);
     };
   }, [open, file, mode]);
 
@@ -142,6 +195,8 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
       }
       clearDocxContainers();
       setError(null);
+      setWmfWarning(false);
+      setUseOfficeViewer(false);
     }
     onOpenChange(isOpen);
   };
@@ -165,7 +220,34 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
 
         <div ref={styleContainerRef} className="hidden" />
 
+        {/* WMF Warning */}
+        {wmfWarning && mode === "docx" && (
+          <Alert variant="destructive" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-800 dark:text-yellow-200 [&>svg]:text-yellow-600">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex flex-col gap-2">
+              <span>
+                Algumas imagens deste arquivo estão em formato antigo (WMF/EMF) que navegadores não suportam.
+              </span>
+              <span className="text-xs opacity-80">
+                Dica: salve o arquivo como PDF no Word antes de enviar, ou use o botão abaixo para visualizar com todas as imagens.
+              </span>
+              {officeViewerUrl && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-fit mt-1 border-yellow-600 text-yellow-700 hover:bg-yellow-100 dark:border-yellow-500 dark:text-yellow-300 dark:hover:bg-yellow-900"
+                  onClick={() => setUseOfficeViewer(true)}
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Visualizar com Microsoft Office Online
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="relative overflow-auto max-h-[75vh] rounded-md border bg-muted/30">
+          {/* PDF */}
           {mode === "pdf" && pdfUrl && (
             <embed
               src={`${pdfUrl}#toolbar=1&navpanes=0`}
@@ -175,7 +257,18 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
             />
           )}
 
-          {mode === "docx" && (
+          {/* DOCX: Office Online iframe */}
+          {mode === "docx" && useOfficeViewer && officeViewerUrl && (
+            <iframe
+              src={officeViewerUrl}
+              className="w-full rounded-md border-0"
+              style={{ height: "72vh" }}
+              title="Office Online Viewer"
+            />
+          )}
+
+          {/* DOCX: local render */}
+          {mode === "docx" && !useOfficeViewer && (
             <>
               {loading && (
                 <div className="absolute inset-0 z-10 grid place-items-center bg-background/80">
@@ -187,6 +280,11 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
                 <div className="py-10 px-4 text-center text-sm text-muted-foreground flex flex-col items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-destructive" />
                   <p>{error}</p>
+                  {officeViewerUrl && (
+                    <Button size="sm" variant="outline" onClick={() => setUseOfficeViewer(true)} className="mt-2">
+                      <ExternalLink className="w-4 h-4 mr-1" /> Tentar com Office Online
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div
@@ -207,4 +305,3 @@ export default function FilePreviewModal({ open, onOpenChange, file, mode }: Pro
     </Dialog>
   );
 }
-

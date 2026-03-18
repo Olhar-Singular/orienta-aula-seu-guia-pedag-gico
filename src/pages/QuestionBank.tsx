@@ -150,6 +150,7 @@ export default function QuestionBank() {
   const [previewUploadFile, setPreviewUploadFile] = useState<File | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewMode>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewStoragePath, setPreviewStoragePath] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -508,6 +509,7 @@ export default function QuestionBank() {
         : "application/pdf";
       const file = new File([fileData], upload.file_name, { type: mimeType });
 
+      setPreviewStoragePath(upload.file_path);
       await openFilePreview(file);
     } catch (e: any) {
       toast({ title: "Erro ao visualizar", description: e.message, variant: "destructive" });
@@ -1056,10 +1058,12 @@ export default function QuestionBank() {
           if (!open) {
             setPreviewMode(null);
             setPreviewUploadFile(null);
+            setPreviewStoragePath(null);
           }
         }}
         file={previewUploadFile}
         mode={previewMode}
+        storagePath={previewStoragePath}
       />
       <ImagePreviewDialog
         open={!!previewImageUrl}
