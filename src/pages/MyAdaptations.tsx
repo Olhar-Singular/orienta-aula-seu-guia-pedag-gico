@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, Clock, Copy, Trash2, FileText, Printer, Pencil, User, BookOpen, Target, Image as ImageIcon, Loader2, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRenderer";
-import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
+import AdaptationEditModal, { type AdaptationQuestionEditPayload } from "@/components/adaptation/AdaptationEditModal";
+import { parseAdaptedQuestions, replaceQuestionInAdaptedContent, type ParsedAdaptedQuestion } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
 
 const ACTIVITY_TYPES: Record<string, string> = {
@@ -56,7 +57,11 @@ export default function MyAdaptations() {
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
-
+  const [editingQuestion, setEditingQuestion] = useState<{
+    field: "version_universal" | "version_directed";
+    title: string;
+    question: ParsedAdaptedQuestion;
+  } | null>(null);
   // Edit mode state
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -425,59 +430,95 @@ export default function MyAdaptations() {
             </div>
           )}
 
-          {editing && viewItem?.source === "wizard" && (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm font-semibold">Atividade Original</Label>
-                <Textarea
-                  value={editFields.original_activity}
-                  onChange={(e) => setEditFields((f) => ({ ...f, original_activity: e.target.value }))}
-                  rows={4}
-                  className="mt-1 text-sm"
-                />
+          {editing && viewItem?.source === "wizard" && (() => {
+            const handleQuestionEdit = (field: "version_universal" | "version_directed", title: string) =>
+              (question: ParsedAdaptedQuestion) => {
+                setEditingQuestion({ field, title, question });
+              };
+
+            const handleQuestionSave = (payload: AdaptationQuestionEditPayload) => {
+              if (!editingQuestion) return;
+              const { field, question } = editingQuestion;
+              const currentContent = editFields[field] || "";
+              const updatedContent = replaceQuestionInAdaptedContent(currentContent, {
+                number: question.number,
+                text: payload.text,
+                options: payload.questionType === "objetiva" ? payload.options : [],
+                trailingLines: question.trailingLines,
+              });
+              setEditFields((f) => ({ ...f, [field]: updatedContent }));
+              setEditingQuestion(null);
+            };
+
+            return (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold">Atividade Original</Label>
+                  <Textarea
+                    value={editFields.original_activity}
+                    onChange={(e) => setEditFields((f) => ({ ...f, original_activity: e.target.value }))}
+                    rows={4}
+                    className="mt-1 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold flex items-center gap-1 mb-2">
+                    <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">Clique no ícone de edição em cada questão para editar individualmente.</p>
+                  <div className="bg-secondary/50 rounded-lg p-3">
+                    <AdaptedContentRenderer
+                      content={editFields.version_universal}
+                      onEditQuestion={handleQuestionEdit("version_universal", "Versão Universal")}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold flex items-center gap-1 mb-2">
+                    <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">Clique no ícone de edição em cada questão para editar individualmente.</p>
+                  <div className="bg-secondary/50 rounded-lg p-3">
+                    <AdaptedContentRenderer
+                      content={editFields.version_directed}
+                      onEditQuestion={handleQuestionEdit("version_directed", "Versão Direcionada")}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold">Justificativa Pedagógica</Label>
+                  <Textarea
+                    value={editFields.pedagogical_justification}
+                    onChange={(e) => setEditFields((f) => ({ ...f, pedagogical_justification: e.target.value }))}
+                    rows={4}
+                    className="mt-1 text-sm"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2 border-t">
+                  <Button onClick={handleSaveEdit} disabled={saving} className="gap-1">
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {saving ? "Salvando..." : "Salvar alterações"}
+                  </Button>
+                  <Button variant="outline" onClick={cancelEditing} disabled={saving}>
+                    <X className="w-4 h-4 mr-1" /> Cancelar
+                  </Button>
+                </div>
+
+                {editingQuestion && (
+                  <AdaptationEditModal
+                    open={!!editingQuestion}
+                    onOpenChange={(open) => !open && setEditingQuestion(null)}
+                    title={`${editingQuestion.title} • Questão ${editingQuestion.question.number}`}
+                    content={editingQuestion.question.text}
+                    initialOptions={editingQuestion.question.options}
+                    images={[]}
+                    activityContext={editFields.original_activity?.slice(0, 200) || ""}
+                    onSave={handleQuestionSave}
+                  />
+                )}
               </div>
-              <div>
-                <Label className="text-sm font-semibold flex items-center gap-1">
-                  <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
-                </Label>
-                <Textarea
-                  value={editFields.version_universal}
-                  onChange={(e) => setEditFields((f) => ({ ...f, version_universal: e.target.value }))}
-                  rows={10}
-                  className="mt-1 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-semibold flex items-center gap-1">
-                  <Target className="w-4 h-4 text-primary" /> Versão Direcionada
-                </Label>
-                <Textarea
-                  value={editFields.version_directed}
-                  onChange={(e) => setEditFields((f) => ({ ...f, version_directed: e.target.value }))}
-                  rows={10}
-                  className="mt-1 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-semibold">Justificativa Pedagógica</Label>
-                <Textarea
-                  value={editFields.pedagogical_justification}
-                  onChange={(e) => setEditFields((f) => ({ ...f, pedagogical_justification: e.target.value }))}
-                  rows={4}
-                  className="mt-1 text-sm"
-                />
-              </div>
-              <div className="flex gap-2 pt-2 border-t">
-                <Button onClick={handleSaveEdit} disabled={saving} className="gap-1">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  {saving ? "Salvando..." : "Salvar alterações"}
-                </Button>
-                <Button variant="outline" onClick={cancelEditing} disabled={saving}>
-                  <X className="w-4 h-4 mr-1" /> Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* VIEW MODE - Legacy */}
           {!editing && viewItem?.source === "legacy" && (
