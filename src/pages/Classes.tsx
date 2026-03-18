@@ -29,7 +29,6 @@ export default function Classes() {
       const { data, error } = await supabase
         .from("classes")
         .select("*, class_students(count)")
-        .eq("teacher_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
