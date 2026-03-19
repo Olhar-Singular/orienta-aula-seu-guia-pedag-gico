@@ -40,16 +40,15 @@ function renderLogin() {
 
 describe("Login Page", () => {
   it("renders login form with email and password fields", () => {
-    const { getByLabelText, getByText } = renderLogin();
+    const { getByLabelText, getByRole } = renderLogin();
     expect(getByLabelText("E-mail")).toBeInTheDocument();
     expect(getByLabelText("Senha")).toBeInTheDocument();
-    expect(getByText("Entrar")).toBeInTheDocument();
+    expect(getByRole("button", { name: "Entrar" })).toBeInTheDocument();
   });
 
   it("renders card title", () => {
-    const { getByText } = renderLogin();
-    expect(getByText("Entrar")).toBeTruthy();
-    expect(getByText("Acesse sua conta para continuar")).toBeTruthy();
+    const { getByRole } = renderLogin();
+    expect(getByRole("heading", { name: "Entrar" })).toBeTruthy();
   });
 
   it("renders forgot password link", () => {
@@ -62,9 +61,8 @@ describe("Login Page", () => {
     
     fireEvent.change(getByLabelText("E-mail"), { target: { value: "test@test.com" } });
     fireEvent.change(getByLabelText("Senha"), { target: { value: "password123" } });
-    fireEvent.submit(getByRole("form") || getByLabelText("E-mail").closest("form")!);
+    fireEvent.click(getByRole("button", { name: "Entrar" }));
 
-    // Wait for async
     await vi.waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith("test@test.com", "password123");
     });

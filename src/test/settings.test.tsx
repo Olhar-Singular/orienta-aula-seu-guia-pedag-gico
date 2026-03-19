@@ -79,11 +79,11 @@ function renderSettings() {
 
 describe("Settings page", () => {
   it("renders all four tabs", () => {
-    const { getByText } = renderSettings();
-    expect(getByText("Perfil")).toBeTruthy();
-    expect(getByText("Escola")).toBeTruthy();
-    expect(getByText("Preferências")).toBeTruthy();
-    expect(getByText("Segurança")).toBeTruthy();
+    const { getByRole } = renderSettings();
+    expect(getByRole("tab", { name: /Perfil/ })).toBeTruthy();
+    expect(getByRole("tab", { name: /Escola/ })).toBeTruthy();
+    expect(getByRole("tab", { name: /Preferências/ })).toBeTruthy();
+    expect(getByRole("tab", { name: /Segurança/ })).toBeTruthy();
   });
 
   it("renders profile form by default", () => {

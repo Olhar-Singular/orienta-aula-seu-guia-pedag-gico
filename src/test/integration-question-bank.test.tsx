@@ -5,34 +5,63 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
 import {
   MOCK_USER,
+  MOCK_SESSION,
   MOCK_PROFILE,
   MOCK_QUESTIONS,
   MOCK_QUESTION,
   MOCK_EXTRACTED_QUESTIONS,
 } from "./fixtures";
-import { createSupabaseMock, mockAuthHook, mockSubscriptionHook, createTestWrapper, mockFetch } from "./helpers";
+import { createTestWrapper, createChainableQuery, mockFetch } from "./helpers";
 import { validateExtractedQuestions } from "@/lib/questionParser";
 import { validatePdfMagicBytes, validateDocxMagicBytes, validateImageMagicBytes, detectFileType } from "@/lib/fileValidation";
 import { normalizeTextForDedup, findDuplicates, dataUrlToBlob } from "@/lib/extraction-utils";
 
-// ─── Mocks ───
-const supabaseMock = createSupabaseMock({
-  profiles: MOCK_PROFILE,
-  question_bank: MOCK_QUESTIONS,
-});
+// ─── Use vi.hoisted for variables used inside vi.mock ───
+const { mockFrom } = vi.hoisted(() => ({
+  mockFrom: vi.fn(),
+}));
 
-vi.mock("@/hooks/useAuth", () => mockAuthHook());
-vi.mock("@/hooks/useSubscription", () => mockSubscriptionHook());
-vi.mock("@/integrations/supabase/client", () => supabaseMock);
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: "user-001", email: "maria@escola.com", user_metadata: { name: "Maria Silva" } },
+    session: { access_token: "tok", refresh_token: "ref", user: { id: "user-001" } },
+    loading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}));
+vi.mock("@/hooks/useSubscription", () => ({
+  useSubscription: () => ({ loading: false }),
+}));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: (...args: any[]) => mockFrom(...args),
+    functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+      updateUser: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
 
 import QuestionBank from "@/pages/QuestionBank";
 
 describe("Flow: Question Bank → Extract → Save", () => {
-  let fetchMock: ReturnType<typeof mockFetch>;
+  let fetchMockFn: ReturnType<typeof mockFetch>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    fetchMock = mockFetch({
+    mockFrom.mockImplementation((table: string) => {
+      const data: Record<string, any> = {
+        profiles: MOCK_PROFILE,
+        question_bank: MOCK_QUESTIONS,
+      };
+      return createChainableQuery(data[table] ?? null);
+    });
+    fetchMockFn = mockFetch({
       "extract-questions": { questions: MOCK_EXTRACTED_QUESTIONS },
     });
   });
@@ -50,7 +79,7 @@ describe("Flow: Question Bank → Extract → Save", () => {
   it("calls supabase to load questions on mount", () => {
     const Wrapper = createTestWrapper("/dashboard/banco-questoes");
     render(<QuestionBank />, { wrapper: Wrapper });
-    expect(supabaseMock.supabase.from).toHaveBeenCalledWith("question_bank");
+    expect(mockFrom).toHaveBeenCalledWith("question_bank");
   });
 });
 
@@ -120,7 +149,6 @@ describe("Deduplication utilities", () => {
   });
 
   it("converts dataUrl to blob", () => {
-    // Create a tiny 1x1 PNG data URL
     const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const blob = dataUrlToBlob(dataUrl);
     expect(blob).toBeInstanceOf(Blob);
