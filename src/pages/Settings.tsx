@@ -179,11 +179,11 @@ function SchoolTab() {
 
   const joinSchool = useMutation({
     mutationFn: async () => {
-      const { data: school, error: fErr } = await supabase.from("schools").select("id").eq("code", joinCode.toUpperCase().trim()).single();
-      if (fErr || !school) throw new Error("Código não encontrado");
-      const { error: mErr } = await supabase.from("school_members").insert({ school_id: school.id, user_id: user!.id });
+      const { data: schoolId, error: fErr } = await supabase.rpc("get_school_id_by_code", { _code: joinCode.toUpperCase().trim() });
+      if (fErr || !schoolId) throw new Error("Código não encontrado");
+      const { error: mErr } = await supabase.from("school_members").insert({ school_id: schoolId, user_id: user!.id });
       if (mErr) throw mErr;
-      return school;
+      return { id: schoolId };
     },
     onSuccess: () => {
       toast.success("Você entrou na escola!");
