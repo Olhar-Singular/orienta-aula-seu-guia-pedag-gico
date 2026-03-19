@@ -60,7 +60,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   const [showUnlockAlert, setShowUnlockAlert] = useState(false);
   const [originalBarriers, setOriginalBarriers] = useState<BarrierItem[]>([]);
   const [isEditingBarriers, setIsEditingBarriers] = useState(false);
-  const [savingObservations, setSavingObservations] = useState(false);
+  const [savingBarriers, setSavingBarriers] = useState(false);
 
   // Reset lock when student changes
   useEffect(() => {
@@ -347,38 +347,68 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               className="min-h-[100px] resize-y"
               maxLength={2000}
             />
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-xs text-muted-foreground">
-                {data.observationNotes.length}/2000
-              </p>
-              {data.studentId && data.observationNotes.trim() && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={savingObservations}
-                  onClick={async () => {
-                    if (!data.studentId) return;
-                    setSavingObservations(true);
-                    const { error } = await supabase
-                      .from("class_students")
-                      .update({ notes: data.observationNotes })
-                      .eq("id", data.studentId);
-                    setSavingObservations(false);
-                    if (error) {
-                      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-                    } else {
-                      toast({ title: "Observações salvas", description: "As observações foram salvas no perfil do aluno." });
-                    }
-                  }}
-                  className="gap-1.5 text-xs"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  {savingObservations ? "Salvando..." : "Salvar observações no perfil"}
-                </Button>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {data.observationNotes.length}/2000
+            </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Save barriers + observations to student profile */}
+      {data.studentId && data.barriers.length > 0 && activeCount > 0 && (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={savingBarriers}
+          onClick={async () => {
+            if (!data.studentId) return;
+            setSavingBarriers(true);
+            try {
+              // Delete existing barriers for this student
+              await (supabase.from as any)("student_barriers")
+                .delete()
+                .eq("student_id", data.studentId);
+
+              // Insert active barriers
+              const activeBarriers = data.barriers
+                .filter((b) => b.is_active)
+                .map((b) => ({
+                  student_id: data.studentId,
+                  dimension: b.dimension,
+                  barrier_key: b.barrier_key,
+                  is_active: true,
+                  notes: b.notes || null,
+                }));
+
+              if (activeBarriers.length > 0) {
+                const { error: insertErr } = await (supabase.from as any)("student_barriers")
+                  .insert(activeBarriers);
+                if (insertErr) throw insertErr;
+              }
+
+              // Save observation notes to student profile
+              if (data.observationNotes.trim()) {
+                const { error: notesErr } = await supabase
+                  .from("class_students")
+                  .update({ notes: data.observationNotes })
+                  .eq("id", data.studentId);
+                if (notesErr) throw notesErr;
+              }
+
+              setBarriersLocked(true);
+              setIsEditingBarriers(false);
+              toast({ title: "Perfil salvo", description: "Barreiras e observações foram salvas no perfil do aluno." });
+            } catch (err: any) {
+              toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+            } finally {
+              setSavingBarriers(false);
+            }
+          }}
+          className="gap-1.5 w-full sm:w-auto"
+        >
+          <Save className="w-3.5 h-3.5" />
+          {savingBarriers ? "Salvando..." : "Salvar barreiras no perfil do aluno"}
+        </Button>
       )}
 
       {(data.adaptForWholeClass || data.studentId) && data.barriers.length > 0 && !canProceed && (
