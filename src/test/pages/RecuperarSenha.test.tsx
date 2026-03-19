@@ -2,12 +2,10 @@ import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
-const mockResetPasswordForEmail = vi.fn().mockResolvedValue({ error: null });
-
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
-      resetPasswordForEmail: mockResetPasswordForEmail,
+      resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
       getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
     },
