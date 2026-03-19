@@ -3,7 +3,8 @@ import { colors } from "../styles";
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 8,
+    marginTop: 6,
+    marginBottom: 10,
   },
   grid: {
     flexDirection: "row",
@@ -11,14 +12,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   imageSingle: {
-    maxWidth: "65%",
+    width: 340,
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,
     borderColor: colors.border,
   },
   imageMulti: {
-    maxWidth: "38%",
+    width: 200,
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,

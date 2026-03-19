@@ -84,16 +84,16 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
     }
 
     return (
-      <>
+      <View>
         {segments.map((seg, i) => (
-          <View key={i}>
+          <View key={i} wrap={false}>
             <PDFTextBlock text={seg.lines.join("\n")} />
             {seg.questionNumber && qImages[seg.questionNumber] && qImages[seg.questionNumber].length > 0 && (
               <PDFImage urls={qImages[seg.questionNumber]} />
             )}
           </View>
         ))}
-      </>
+      </View>
     );
   };
 
