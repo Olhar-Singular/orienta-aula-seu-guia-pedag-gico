@@ -32,15 +32,10 @@ describe("AdminRoute", () => {
     expect(queryByTestId("admin-content")).not.toBeInTheDocument();
   });
 
-  it("validates that non-admin is blocked (logic)", () => {
-    const memberRole = "teacher";
-    const hasAccess = memberRole === "admin";
-    expect(hasAccess).toBe(false);
-  });
-
-  it("validates that admin has access (logic)", () => {
-    const memberRole = "admin";
-    const hasAccess = memberRole === "admin";
-    expect(hasAccess).toBe(true);
+  it("validates access logic", () => {
+    const check = (role: string) => role === "admin";
+    expect(check("teacher")).toBe(false);
+    expect(check("admin")).toBe(true);
+    expect(check("")).toBe(false);
   });
 });
