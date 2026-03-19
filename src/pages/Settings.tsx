@@ -173,14 +173,31 @@ function SchoolTab() {
       toast.success("Escola criada com sucesso!");
       setNewSchoolName("");
       queryClient.invalidateQueries({ queryKey: ["my-school-membership"] });
+      queryClient.invalidateQueries({ queryKey: ["user-school"] });
     },
-    onError: () => toast.error("Erro ao criar escola."),
+    onError: (e: any) => toast.error(e?.message || "Erro ao criar escola."),
   });
 
   const joinSchool = useMutation({
     mutationFn: async () => {
-      const { data: schoolId, error: fErr } = await supabase.rpc("get_school_id_by_code", { _code: joinCode.toUpperCase().trim() });
-      if (fErr || !schoolId) throw new Error("Código não encontrado");
+      const code = joinCode.toUpperCase().trim();
+      if (code.length !== 6) throw new Error("Código inválido. Deve ter 6 caracteres.");
+
+      // Look up school by code using security definer function
+      const { data: schoolId, error: fErr } = await supabase.rpc("get_school_id_by_code", { _code: code });
+      if (fErr) throw new Error("Erro ao buscar escola.");
+      if (!schoolId) throw new Error("Código não encontrado. Verifique e tente novamente.");
+
+      // Check if already a member
+      const { data: existing } = await supabase
+        .from("school_members")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (existing) throw new Error("Você já está vinculado a esta escola.");
+
+      // Join
       const { error: mErr } = await supabase.from("school_members").insert({ school_id: schoolId, user_id: user!.id });
       if (mErr) throw mErr;
       return { id: schoolId };
@@ -189,6 +206,7 @@ function SchoolTab() {
       toast.success("Você entrou na escola!");
       setJoinCode("");
       queryClient.invalidateQueries({ queryKey: ["my-school-membership"] });
+      queryClient.invalidateQueries({ queryKey: ["user-school"] });
     },
     onError: (e: any) => toast.error(e.message || "Erro ao entrar na escola."),
   });
