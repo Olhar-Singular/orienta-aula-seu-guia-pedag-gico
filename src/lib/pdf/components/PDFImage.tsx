@@ -11,8 +11,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   imageSingle: {
-    maxWidth: "80%",
-    maxHeight: 208,
+    maxWidth: "65%",
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,
@@ -20,7 +19,6 @@ const styles = StyleSheet.create({
   },
   imageMulti: {
     maxWidth: "38%",
-    maxHeight: 160,
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,
