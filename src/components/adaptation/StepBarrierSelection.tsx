@@ -97,17 +97,21 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       });
   }, [data.classId]);
 
-  // Load barriers and notes for the selected student.
-  // Keep local edits when returning from a later step (barriers already in state).
+  // Sync studentName when students list loads after studentId is already set
   useEffect(() => {
-    if (!data.studentId) return;
-
+    if (!data.studentId || students.length === 0) return;
     const selectedStudent = students.find((s) => s.id === data.studentId);
     if (selectedStudent && data.studentName !== selectedStudent.name) {
       updateData({ studentName: selectedStudent.name });
     }
+    // Only depend on studentId and students list — not studentName (avoids loop)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.studentId, students]);
 
-    if (data.barriers.length > 0) return;
+  // Load barriers and notes for the selected student.
+  // Keep local edits when returning from a later step (barriers already in state).
+  useEffect(() => {
+    if (!data.studentId || data.barriers.length > 0) return;
 
     let cancelled = false;
     const studentId = data.studentId;
@@ -145,7 +149,9 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
     return () => {
       cancelled = true;
     };
-  }, [data.studentId, data.barriers.length, data.studentName, students, updateData]);
+    // Only re-run when studentId changes or barriers are cleared (length becomes 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.studentId, data.barriers.length]);
 
   // Initialize barriers for whole class mode
   useEffect(() => {

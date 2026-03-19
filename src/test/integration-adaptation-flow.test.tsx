@@ -68,7 +68,7 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     const { getByText } = render(<AdaptationWizard />, { wrapper: Wrapper });
 
     expect(getByText("Prova")).toBeTruthy();
-    expect(getByText("Exercício")).toBeTruthy();
+    expect(getByText("Exercícios")).toBeTruthy();
     expect(getByText("Atividade de Casa")).toBeTruthy();
     expect(getByText("Trabalho")).toBeTruthy();
   });

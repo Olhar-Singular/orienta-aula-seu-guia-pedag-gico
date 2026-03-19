@@ -147,3 +147,44 @@ export const MOCK_EXTRACTED_QUESTIONS = [
   { text: "O que é o ciclo da água?", subject: "Ciências", options: ["Um processo de purificação", "A circulação contínua da água na natureza", "A transformação da água em gelo"], correct_answer: 1 },
   { text: "De onde a água evapora principalmente?", subject: "Ciências", options: ["Das montanhas", "Dos oceanos, rios e lagos", "Das florestas"], correct_answer: 1 },
 ];
+
+// ─── Math/LaTeX content fixtures ───
+export const MOCK_MATH_CONTENT = `1. Calcule o valor de x na equação: $x^2 + 2x - 3 = 0$
+a) x = 1 ou x = -3
+b) x = -1 ou x = 3
+c) x = 2 ou x = -1
+d) x = -2 ou x = 1
+
+2. Simplifique a fração: $\\frac{42}{48}$
+a) $\\frac{7}{8}$
+b) $\\frac{6}{7}$
+c) $\\frac{21}{24}$
+d) $\\frac{14}{16}$
+
+3. Um carro percorre 120 km em 2 horas. Qual sua velocidade média?
+Dados: v = Δs/Δt
+a) 60 km/h
+b) 80 km/h
+c) 100 km/h
+d) 40 km/h`;
+
+export const MOCK_CORRUPTED_LATEX = `1. Calcule: \x0Crac{3}{4} + \x0Crac{1}{2}
+a) 5/4
+b) 7/4`;
+
+export const MOCK_UNICODE_MATH = `1. A velocidade v₀ é 10 m/s. Após 5s com aceleração de 2 m/s², qual a velocidade final?
+Use: v = v₀ + at
+a) 20 m/s
+b) 15 m/s
+c) 25 m/s
+d) 30 m/s`;
+
+export const MOCK_MULTILINE_QUESTION = `1. Leia o texto abaixo:
+A água é essencial para a vida.
+Responda: qual a importância da água?
+a) Hidratação
+b) Alimentação
+
+2. Qual o ciclo da água?
+a) Evaporação
+b) Condensação`;
