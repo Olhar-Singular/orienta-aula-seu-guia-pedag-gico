@@ -23,6 +23,7 @@ import {
   replaceQuestionInAdaptedContent,
   type ParsedAdaptedQuestion,
 } from "@/lib/adaptedQuestions";
+import ContextIndicator from "./ContextIndicator";
 
 type Props = {
   data: WizardData;
