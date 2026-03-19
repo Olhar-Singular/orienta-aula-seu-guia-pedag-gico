@@ -181,7 +181,8 @@ function parseExponents(text: string): TextRun[] {
  * Convert a block of text into Paragraphs with inline fraction support.
  */
 function textToParagraphs(text: string): Paragraph[] {
-  return text.split("\n").map((line) => {
+  return text.split("\n").map((rawLine) => {
+    const line = normalizeLatexForDocx(rawLine);
     const children = parseLineWithFractions(line);
     return new Paragraph({ children });
   });
