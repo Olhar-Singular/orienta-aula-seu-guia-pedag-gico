@@ -132,7 +132,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               onClick={(e) => e.stopPropagation()}
               aria-label="Menu de navegação mobile"
             >
-              {navItems.map((item) => {
+              {allNavItems.map((item) => {
                 const active = item.path === "/dashboard"
                   ? location.pathname === "/dashboard"
                   : location.pathname.startsWith(item.path);
