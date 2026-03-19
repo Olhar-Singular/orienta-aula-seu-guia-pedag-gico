@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Mock useAuth
 vi.mock("@/hooks/useAuth", () => ({
@@ -8,21 +9,37 @@ vi.mock("@/hooks/useAuth", () => ({
   AuthProvider: ({ children }: any) => children,
 }));
 
-// Mock CreditsBadge
-vi.mock("@/components/CreditsBadge", () => ({
-  default: () => <div data-testid="credits-badge">Credits</div>,
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: () => Promise.resolve({ data: null }),
+          maybeSingle: () => Promise.resolve({ data: null }),
+        }),
+      }),
+    }),
+    auth: {
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      getSession: () => Promise.resolve({ data: { session: null } }),
+    },
+  },
 }));
 
 import Layout from "@/components/Layout";
 
-const renderLayout = (route = "/dashboard") =>
-  render(
-    <MemoryRouter initialEntries={[route]}>
-      <Layout>
-        <div data-testid="page-content">Content</div>
-      </Layout>
-    </MemoryRouter>
+const renderLayout = (route = "/dashboard") => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[route]}>
+        <Layout>
+          <div data-testid="page-content">Content</div>
+        </Layout>
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+};
 
 describe("Layout accessibility", () => {
   it("renders skip-to-content link", () => {

@@ -53,7 +53,6 @@ describe("parseCsv – additional coverage", () => {
   it("handles tab-separated values", () => {
     const tsv = "Ana\t12345\nBruno\t67890";
     const result = parseCsv(tsv);
-    // Falls back to comma parsing, result depends on implementation
     expect(result.students.length).toBeGreaterThanOrEqual(0);
   });
 
@@ -98,7 +97,6 @@ describe("validateExtractedQuestions – additional coverage", () => {
     const result = validateExtractedQuestions([
       { text: "Q?", subject: "S", correct_answer: 1.5 },
     ]);
-    // Should handle gracefully
     expect(result).toHaveLength(1);
   });
 
@@ -174,8 +172,10 @@ describe("School code – comprehensive", () => {
   });
 
   it("rejects codes with ambiguous characters (0, O, 1, I)", () => {
-    expect(isValidSchoolCode("A0B1KO")).toBe(false);
-    expect(isValidSchoolCode("AIBIKO")).toBe(false);
+    expect(isValidSchoolCode("A0B2K3")).toBe(false);
+    expect(isValidSchoolCode("AIB2K3")).toBe(false);
+    expect(isValidSchoolCode("AOB2K3")).toBe(false);
+    expect(isValidSchoolCode("A1B2K3")).toBe(false);
   });
 
   it("accepts generated codes consistently", () => {
