@@ -485,6 +485,7 @@ export default function MyAdaptations() {
                     <AdaptedContentRenderer
                       content={editFields.version_directed}
                       onEditQuestion={handleQuestionEdit("version_directed", "Versão Direcionada")}
+                      onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_directed: newContent }))}
                     />
                   </div>
                 </div>
