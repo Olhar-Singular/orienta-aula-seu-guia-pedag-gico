@@ -1,25 +1,26 @@
 /**
  * Integration Test: Login → Simulador de Barreiras → Analisar → Resultado
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render } from "@testing-library/react";
 import { fireEvent, waitFor } from "@testing-library/dom";
 import {
-  MOCK_USER,
   MOCK_PROFILE,
   MOCK_BARRIER_ANALYSIS,
   MOCK_ACTIVITY_TEXT,
 } from "./fixtures";
-import { mockAuthHook, mockSubscriptionHook, createTestWrapper, createChainableQuery } from "./helpers";
+import { createTestWrapper, createChainableQuery } from "./helpers";
 import { buildRadarData, type DetectedBarrier } from "@/pages/BarrierSimulator";
 
-// ─── Mocks (inline to avoid hoisting issues) ───
-const mockFunctionsInvoke = vi.fn();
+// ─── Use vi.hoisted for variables used inside vi.mock ───
+const { mockFunctionsInvoke } = vi.hoisted(() => ({
+  mockFunctionsInvoke: vi.fn(),
+}));
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
-    user: MOCK_USER,
-    session: { access_token: "tok", refresh_token: "ref", user: MOCK_USER },
+    user: { id: "user-001", email: "maria@escola.com", user_metadata: { name: "Maria Silva" } },
+    session: { access_token: "tok", refresh_token: "ref", user: { id: "user-001" } },
     loading: false,
     signUp: vi.fn(),
     signIn: vi.fn(),
@@ -33,8 +34,10 @@ vi.mock("@/hooks/useSubscription", () => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn((table: string) => {
-      if (table === "profiles") return createChainableQuery(MOCK_PROFILE);
-      return createChainableQuery(null);
+      const { createChainableQuery: cq } = require("./helpers");
+      const { MOCK_PROFILE: profile } = require("./fixtures");
+      if (table === "profiles") return cq(profile);
+      return cq(null);
     }),
     functions: { invoke: mockFunctionsInvoke },
     auth: {

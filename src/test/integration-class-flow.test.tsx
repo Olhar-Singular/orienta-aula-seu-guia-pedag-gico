@@ -13,21 +13,16 @@ import {
 } from "./fixtures";
 import { createTestWrapper, createChainableQuery } from "./helpers";
 
-// ─── Inline mocks to avoid hoisting issues ───
-const mockFrom = vi.fn((table: string) => {
-  const data: Record<string, any> = {
-    profiles: MOCK_PROFILE,
-    classes: MOCK_CLASSES,
-    class_students: MOCK_STUDENTS,
-    student_barriers: MOCK_STUDENT_BARRIERS,
-  };
-  return createChainableQuery(data[table] ?? null);
+// ─── Use vi.hoisted so variables are available inside vi.mock factories ───
+const { mockFrom } = vi.hoisted(() => {
+  // Can't use createChainableQuery here directly (not hoisted), so build inline
+  return { mockFrom: vi.fn() };
 });
 
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({
-    user: MOCK_USER,
-    session: MOCK_SESSION,
+    user: { id: "user-001", email: "maria@escola.com", user_metadata: { name: "Maria Silva" } },
+    session: { access_token: "tok", refresh_token: "ref", user: { id: "user-001" } },
     loading: false,
     signUp: vi.fn(),
     signIn: vi.fn(),
@@ -40,11 +35,11 @@ vi.mock("@/hooks/useSubscription", () => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: mockFrom,
+    from: (...args: any[]) => mockFrom(...args),
     functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
     auth: {
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-      getSession: vi.fn(() => Promise.resolve({ data: { session: MOCK_SESSION } })),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
       updateUser: vi.fn().mockResolvedValue({ error: null }),
     },
   },
@@ -57,6 +52,15 @@ import Classes from "@/pages/Classes";
 describe("Flow: Dashboard → Classes → Student Barriers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFrom.mockImplementation((table: string) => {
+      const data: Record<string, any> = {
+        profiles: MOCK_PROFILE,
+        classes: MOCK_CLASSES,
+        class_students: MOCK_STUDENTS,
+        student_barriers: MOCK_STUDENT_BARRIERS,
+      };
+      return createChainableQuery(data[table] ?? null);
+    });
   });
 
   it("renders Dashboard with greeting and metrics", () => {

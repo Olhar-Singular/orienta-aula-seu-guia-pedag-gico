@@ -61,9 +61,8 @@ describe("Login Page", () => {
     
     fireEvent.change(getByLabelText("E-mail"), { target: { value: "test@test.com" } });
     fireEvent.change(getByLabelText("Senha"), { target: { value: "password123" } });
-    fireEvent.submit(getByRole("form") || getByLabelText("E-mail").closest("form")!);
+    fireEvent.click(getByRole("button", { name: "Entrar" }));
 
-    // Wait for async
     await vi.waitFor(() => {
       expect(mockSignIn).toHaveBeenCalledWith("test@test.com", "password123");
     });
