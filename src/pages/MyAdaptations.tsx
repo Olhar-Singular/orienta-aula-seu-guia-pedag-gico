@@ -717,8 +717,8 @@ export default function MyAdaptations() {
                               strategiesApplied: result?.strategies_applied || [],
                               pedagogicalJustification: result?.pedagogical_justification || "",
                               implementationTips: result?.implementation_tips || [],
-                              questionImagesUniversal: imageMap,
-                              questionImagesDirected: imageMap,
+                              questionImagesUniversal: imageMapUniversal,
+                              questionImagesDirected: imageMapDirected,
                             });
                             toast.success("Word exportado!");
                           } catch {
