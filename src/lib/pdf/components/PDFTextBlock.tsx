@@ -7,6 +7,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 11,
     lineHeight: 1.6,
+    fontFamily: "Helvetica",
     color: colors.text,
     marginBottom: 4,
   },
@@ -59,6 +60,7 @@ const styles = StyleSheet.create({
   alternative: {
     fontSize: 11,
     lineHeight: 1.5,
+    fontFamily: "Helvetica",
     color: colors.text,
     marginLeft: 20,
     marginBottom: 3,

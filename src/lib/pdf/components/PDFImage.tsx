@@ -10,8 +10,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  image: {
-    maxHeight: 180,
+  imageSingle: {
+    maxWidth: "100%",
+    maxHeight: 260,
+    objectFit: "contain",
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+  },
+  imageMulti: {
+    maxWidth: "48%",
+    maxHeight: 200,
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,
@@ -30,7 +39,7 @@ export default function PDFImage({ urls }: Props) {
     <View style={styles.wrapper}>
       <View style={styles.grid}>
         {urls.map((url, i) => (
-          <Image key={i} src={url} style={styles.image} />
+          <Image key={i} src={url} style={urls.length === 1 ? styles.imageSingle : styles.imageMulti} />
         ))}
       </View>
     </View>

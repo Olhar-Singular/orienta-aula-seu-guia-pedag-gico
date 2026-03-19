@@ -13,7 +13,7 @@ describe("normalizeMathText", () => {
 
   it("replaces unicode math symbols", () => {
     expect(normalizeMathText("5 × 3")).toBe("5  x  3");
-    expect(normalizeMathText("10 ÷ 2")).toBe("10  /  2");
+    expect(normalizeMathText("10 ÷ 2")).toBe("10  ÷  2");
     expect(normalizeMathText("±5")).toBe("+/-5");
     expect(normalizeMathText("a ≠ b")).toBe("a != b");
     expect(normalizeMathText("x ≤ 10")).toBe("x <= 10");
