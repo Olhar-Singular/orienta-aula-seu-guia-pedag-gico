@@ -63,7 +63,7 @@ export default function Index() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <img src={logoTransparentImg} alt="Olhar Singular" className="h-8 w-auto" loading="eager" />
+            <img src={logoTransparentImg} alt="Olhar Singular" className="h-8 w-auto" loading="eager" width="32" height="32" />
             <span className="text-xs font-semibold text-primary tracking-widest uppercase" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Olhar Singular</span>
           </Link>
           <nav className="hidden sm:flex items-center gap-6" aria-label="Navegação principal">
@@ -124,6 +124,9 @@ export default function Index() {
                   alt="Ilustração de uma sala de aula inclusiva"
                   className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                   loading="eager"
+                  fetchPriority="high"
+                  width="1024"
+                  height="1024"
                 />
               </motion.div>
             </div>
@@ -301,7 +304,7 @@ export default function Index() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <img src={logoTransparentImg} alt="Olhar Singular" className="h-16 w-auto" loading="lazy" />
+              <img src={logoTransparentImg} alt="Olhar Singular" className="h-16 w-auto" loading="lazy" width="64" height="64" />
               <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
