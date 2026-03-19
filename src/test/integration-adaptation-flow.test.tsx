@@ -108,7 +108,7 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     };
 
     expect(payload.original_activity.length).toBeGreaterThan(10);
-    expect(payload.barriers.length).toBe(5);
+    expect(payload.barriers.length).toBe(BARRIER_DIMENSIONS.length);
     expect(payload.activity_type).toBe("exercicio");
   });
 
