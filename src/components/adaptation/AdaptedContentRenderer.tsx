@@ -537,21 +537,40 @@ export default function AdaptedContentRenderer({
                   {parseInlineFormatting(block.lines.join(" "))}
                 </p>
                 {onContentChange && (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteParagraph(block.lines)}
-                    aria-label="Remover parágrafo"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
+                  <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={() => setEditingBlock({ lines: block.lines, type: "paragraph" })}
+                      aria-label="Editar parágrafo"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteParagraph(block.lines)}
+                      aria-label="Remover parágrafo"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
             );
         }
       })}
+
+      <TextBlockEditModal
+        open={!!editingBlock}
+        onOpenChange={(open) => { if (!open) setEditingBlock(null); }}
+        initialText={editingBlock ? editingBlock.lines.join("\n") : ""}
+        onSave={handleEditBlockSave}
+      />
     </div>
   );
 }
