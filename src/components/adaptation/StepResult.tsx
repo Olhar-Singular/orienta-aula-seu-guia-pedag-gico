@@ -171,7 +171,10 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
       }
 
       const result = await resp.json();
-      updateData({ result: result.adaptation });
+      updateData({
+        result: result.adaptation,
+        contextPillars: result.context_pillars || null,
+      });
 
       const mergedImages = await generateImagesForResult(accessToken);
       const universalImages = getDefaultQuestionImageMap(
