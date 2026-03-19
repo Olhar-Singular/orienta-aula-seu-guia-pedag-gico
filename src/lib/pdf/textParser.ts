@@ -86,6 +86,9 @@ export function normalizeMathText(text: string): string {
   // Strip dollar-sign delimiters: $...$ → content
   result = result.replace(/\$([^$]+)\$/g, (_m, inner) => inner.trim());
 
+  // Strip double-dollar delimiters: $$...$$ → content
+  result = result.replace(/\$\$([^$]+)\$\$/g, (_m, inner) => inner.trim());
+
   // Convert \frac{a}{b}, \tfrac{a}{b}, \dfrac{a}{b} → a/b
   result = result.replace(/\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => `${num.trim()}/${den.trim()}`);
 
@@ -96,6 +99,15 @@ export function normalizeMathText(text: string): string {
   result = result.replace(/\\pm\b/g, "±");
   result = result.replace(/\\sqrt\{([^{}]+)\}/g, "√($1)");
   result = result.replace(/\\text\{([^{}]+)\}/g, "$1");
+  result = result.replace(/\\left\b/g, "");
+  result = result.replace(/\\right\b/g, "");
+  result = result.replace(/\\,/g, " ");
+  result = result.replace(/\\;/g, " ");
+  result = result.replace(/\\quad\b/g, "  ");
+  result = result.replace(/\\qquad\b/g, "    ");
+  result = result.replace(/\\\\/g, "");
+  // Clean up any remaining backslash commands that weren't caught
+  result = result.replace(/\\[a-zA-Z]+\{([^{}]*)\}/g, "$1");
 
   // Replace sequences of superscript chars → ^(digits)
   result = result.replace(SUPER_RE, (match) => {
