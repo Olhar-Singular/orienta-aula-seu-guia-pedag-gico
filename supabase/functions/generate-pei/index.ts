@@ -34,16 +34,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, supabaseKey);
 
-    // Server-side credit check
-    const creditCheck = await checkCredits(admin, user!.id, "generate-pei", corsHeaders);
-    if (!creditCheck.ok) return creditCheck.response!;
-
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) throw new Error("Não autorizado");
+
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, user.id, "generate-pei", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
 
     const { student_id } = await req.json();
     if (!student_id) throw new Error("student_id obrigatório");
@@ -193,7 +193,7 @@ Preencha os campos usando a função fornecida.`;
     }
 
     // Deduct credit server-side
-    await deductCredit(admin, user!.id, "generate-pei");
+    await deductCredit(admin, user.id, "generate-pei");
 
     return new Response(JSON.stringify(peiResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
