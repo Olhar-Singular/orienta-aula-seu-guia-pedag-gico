@@ -60,6 +60,7 @@ const styles = StyleSheet.create({
   alternative: {
     fontSize: 11,
     lineHeight: 1.5,
+    fontFamily: "Helvetica",
     color: colors.text,
     marginLeft: 20,
     marginBottom: 3,

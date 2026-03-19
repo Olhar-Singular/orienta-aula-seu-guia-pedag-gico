@@ -39,7 +39,7 @@ export default function PDFImage({ urls }: Props) {
     <View style={styles.wrapper}>
       <View style={styles.grid}>
         {urls.map((url, i) => (
-          <Image key={i} src={url} style={styles.image} />
+          <Image key={i} src={url} style={urls.length === 1 ? styles.imageSingle : styles.imageMulti} />
         ))}
       </View>
     </View>

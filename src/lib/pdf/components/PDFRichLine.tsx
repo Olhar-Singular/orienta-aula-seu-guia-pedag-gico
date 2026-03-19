@@ -85,8 +85,10 @@ export default function PDFRichLine({ text, style }: Props) {
 
   const segments = parseLineFractions(text);
 
+  // Check if this is a short expression (likely a formula line) — use inline fractions
+  // For longer paragraph text, also use inline but with wrapping
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { minHeight: style?.fontSize ? style.fontSize * 1.8 : 20 }]}>
       {segments.map((seg, i) =>
         seg.type === "fraction" ? (
           <PDFFraction key={i} numerator={seg.num} denominator={seg.den} />

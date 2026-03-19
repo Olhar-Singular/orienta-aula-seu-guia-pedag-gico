@@ -3,7 +3,7 @@ import { StyleSheet } from "@react-pdf/renderer";
 export const colors = {
   primary: "#0d7377",
   primaryLight: "#0d737722",
-  text: "#1a1a1a",
+  text: "#333333",
   muted: "#666666",
   caption: "#999999",
   border: "#e5e5e5",
