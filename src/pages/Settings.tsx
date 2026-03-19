@@ -162,11 +162,12 @@ function SchoolTab() {
   const createSchool = useMutation({
     mutationFn: async () => {
       const code = generateSchoolCode();
-      const { data: school, error: sErr } = await supabase.from("schools").insert({ name: newSchoolName, code }).select().single();
+      const schoolId = crypto.randomUUID();
+      const { error: sErr } = await supabase.from("schools").insert({ id: schoolId, name: newSchoolName, code });
       if (sErr) throw sErr;
-      const { error: mErr } = await supabase.from("school_members").insert({ school_id: school.id, user_id: user!.id, role: "admin" });
+      const { error: mErr } = await supabase.from("school_members").insert({ school_id: schoolId, user_id: user!.id, role: "admin" });
       if (mErr) throw mErr;
-      return school;
+      return { id: schoolId, name: newSchoolName, code };
     },
     onSuccess: () => {
       toast.success("Escola criada com sucesso!");
