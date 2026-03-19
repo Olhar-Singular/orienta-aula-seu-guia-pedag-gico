@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
-import { checkCredits, deductCredit } from "../_shared/checkCredits.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -350,9 +350,6 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Server-side credit check
-    const creditCheck = await checkCredits(admin, user.id, "adapt-activity", corsHeaders);
-    if (!creditCheck.ok) return creditCheck.response!;
 
     const body = await req.json();
     const {
@@ -691,8 +688,6 @@ ${sanitizedActivity}`;
       console.error("Failed to save adaptation history:", insertError);
     }
 
-    // Deduct credit server-side
-    await deductCredit(admin, user.id, "adapt-activity");
 
     return new Response(
       JSON.stringify({

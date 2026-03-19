@@ -226,12 +226,6 @@ export default function Create() {
           console.error("Save error:", error);
           toast.error("Erro ao salvar adaptação.");
         } else {
-          // Consume 1 credit
-          await supabase.from("credit_usage").insert({
-            user_id: user.id,
-            action: "adaptation",
-            credits_used: 1,
-          });
           setSaved(true);
           toast.success("Adaptação gerada e salva!");
         }
