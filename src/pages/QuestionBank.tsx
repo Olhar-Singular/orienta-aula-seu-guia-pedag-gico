@@ -650,9 +650,21 @@ export default function QuestionBank() {
     return (
       <>
         <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+           <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
             <div className="flex gap-2">
+              {uploadFile && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const name = uploadFile.name.toLowerCase();
+                    setReviewPreviewMode(name.endsWith(".docx") ? "docx" : "pdf");
+                    setShowReviewPreview(true);
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-1" /> Ver Prova
+                </Button>
+              )}
               <Button variant="outline" onClick={handleFinishReview}>
                 {savedCount > 0 ? "Concluir" : "Cancelar"}
               </Button>
