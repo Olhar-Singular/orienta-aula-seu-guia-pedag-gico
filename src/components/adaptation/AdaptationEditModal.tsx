@@ -643,7 +643,23 @@ export default function AdaptationEditModal({
               <Label>Tipo de Questão</Label>
               <Select
                 value={questionType}
-                onValueChange={(value) => setQuestionType(value as "objetiva" | "dissertativa")}
+                onValueChange={(value) => {
+                  const newType = value as "objetiva" | "dissertativa";
+                  // When switching from objetiva → dissertativa, merge alternatives into enunciado
+                  if (newType === "dissertativa" && questionType === "objetiva" && options.length > 0) {
+                    const altLines = options
+                      .filter((opt) => opt.trim())
+                      .map((opt, i) => `${String.fromCharCode(97 + i)}) ${opt}`)
+                      .join("\n");
+                    setText((prev) => {
+                      const trimmed = prev.trim();
+                      return trimmed ? `${trimmed}\n\n${altLines}` : altLines;
+                    });
+                    setOptions([]);
+                    setCorrectAnswer(null);
+                  }
+                  setQuestionType(newType);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
