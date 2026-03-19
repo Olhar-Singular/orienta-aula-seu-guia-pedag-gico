@@ -656,7 +656,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           notes: string | null
-          student_id: string
+          student_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -665,7 +665,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           notes?: string | null
-          student_id: string
+          student_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -674,7 +674,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           notes?: string | null
-          student_id?: string
+          student_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -695,7 +695,7 @@ export type Database = {
           file_path: string
           file_size: number | null
           id: string
-          student_id: string
+          student_id: string | null
           teacher_id: string
         }
         Insert: {
@@ -705,7 +705,7 @@ export type Database = {
           file_path: string
           file_size?: number | null
           id?: string
-          student_id: string
+          student_id?: string | null
           teacher_id: string
         }
         Update: {
@@ -715,7 +715,7 @@ export type Database = {
           file_path?: string
           file_size?: number | null
           id?: string
-          student_id?: string
+          student_id?: string | null
           teacher_id?: string
         }
         Relationships: [
@@ -739,7 +739,7 @@ export type Database = {
           pedagogical_strategies: string | null
           resources_and_support: string | null
           review_schedule: string | null
-          student_id: string
+          student_id: string | null
           student_profile: string | null
           teacher_id: string
           updated_at: string | null
@@ -754,7 +754,7 @@ export type Database = {
           pedagogical_strategies?: string | null
           resources_and_support?: string | null
           review_schedule?: string | null
-          student_id: string
+          student_id?: string | null
           student_profile?: string | null
           teacher_id: string
           updated_at?: string | null
@@ -769,7 +769,7 @@ export type Database = {
           pedagogical_strategies?: string | null
           resources_and_support?: string | null
           review_schedule?: string | null
-          student_id?: string
+          student_id?: string | null
           student_profile?: string | null
           teacher_id?: string
           updated_at?: string | null
