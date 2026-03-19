@@ -633,7 +633,7 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_universal || ""}
-                            questionImages={imageMap}
+                            questionImages={imageMapUniversal}
                           />
                         </div>
                       </div>
