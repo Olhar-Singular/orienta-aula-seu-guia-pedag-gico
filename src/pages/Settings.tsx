@@ -173,8 +173,9 @@ function SchoolTab() {
       toast.success("Escola criada com sucesso!");
       setNewSchoolName("");
       queryClient.invalidateQueries({ queryKey: ["my-school-membership"] });
+      queryClient.invalidateQueries({ queryKey: ["user-school"] });
     },
-    onError: () => toast.error("Erro ao criar escola."),
+    onError: (e: any) => toast.error(e?.message || "Erro ao criar escola."),
   });
 
   const joinSchool = useMutation({
