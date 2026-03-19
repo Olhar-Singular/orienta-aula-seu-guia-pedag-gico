@@ -19,6 +19,7 @@ type Props = {
   className?: string;
   questionImages?: Record<string, string[]>;
   onEditQuestion?: (question: ParsedAdaptedQuestion) => void;
+  onContentChange?: (newContent: string) => void;
 };
 
 /**
