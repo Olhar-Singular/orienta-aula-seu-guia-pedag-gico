@@ -2,9 +2,9 @@ import { describe, it, expect } from "vitest";
 import { parseActivityText, normalizeMathText } from "@/lib/pdf/textParser";
 
 describe("normalizeMathText", () => {
-  it("converts superscript chars to ^notation", () => {
-    expect(normalizeMathText("10²")).toBe("10^2");
-    expect(normalizeMathText("x³")).toBe("x^3");
+  it("keeps superscript chars as unicode for PDF rendering", () => {
+    expect(normalizeMathText("10²")).toBe("10²");
+    expect(normalizeMathText("x³")).toBe("x³");
   });
 
   it("converts subscript chars to _notation", () => {
