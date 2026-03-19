@@ -60,7 +60,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   const [showUnlockAlert, setShowUnlockAlert] = useState(false);
   const [originalBarriers, setOriginalBarriers] = useState<BarrierItem[]>([]);
   const [isEditingBarriers, setIsEditingBarriers] = useState(false);
-  const [savingObservations, setSavingObservations] = useState(false);
+  const [savingBarriers, setSavingBarriers] = useState(false);
 
   // Reset lock when student changes
   useEffect(() => {
