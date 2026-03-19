@@ -57,6 +57,7 @@ export type WizardData = {
   adaptForWholeClass: boolean;
   observationNotes: string;
   result: AdaptationResult | null;
+  contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
 };
 
