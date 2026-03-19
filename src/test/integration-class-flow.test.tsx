@@ -127,8 +127,8 @@ describe("Flow: Dashboard → Classes → Student Barriers", () => {
   it("validates barriers span multiple dimensions", () => {
     const dims = new Set(MOCK_STUDENT_BARRIERS.map((b) => b.dimension));
     expect(dims.size).toBe(3);
-    expect(dims.has("processamento")).toBe(true);
-    expect(dims.has("atencao")).toBe(true);
-    expect(dims.has("ritmo")).toBe(true);
+    expect(dims.has("tea")).toBe(true);
+    expect(dims.has("tdah")).toBe(true);
+    expect(dims.has("dislexia")).toBe(true);
   });
 });

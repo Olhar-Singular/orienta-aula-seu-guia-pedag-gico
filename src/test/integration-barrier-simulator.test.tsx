@@ -130,44 +130,57 @@ describe("Flow: Barrier Simulator → Analyze → Result", () => {
 describe("Radar chart data transformation", () => {
   const barriers: DetectedBarrier[] = MOCK_BARRIER_ANALYSIS.barriers;
 
-  it("builds radar data for all 5 dimensions", () => {
+  it("builds radar data for all 11 dimensions", () => {
     const data = buildRadarData(barriers);
-    expect(data).toHaveLength(5);
+    expect(data).toHaveLength(11);
   });
 
   it("calculates correct weighted scores", () => {
     const data = buildRadarData(barriers);
-    const proc = data.find((d) => d.dimension === "Processamento");
-    expect(proc?.score).toBe(3);
-    const aten = data.find((d) => d.dimension === "Atenção");
-    expect(aten?.score).toBe(2);
-    const expr = data.find((d) => d.dimension === "Expressão");
-    expect(expr?.score).toBe(1);
+    // barriers fixture uses dimensions: processamento→not in DIMENSION_META, so map to actual keys
+    // MOCK_BARRIER_ANALYSIS.barriers use "processamento", "atencao", "expressao" which don't match DIMENSION_META keys
+    // All scores will be 0 since dimension keys don't match
+    // Let's test with matching keys instead
+    const testBarriers: DetectedBarrier[] = [
+      { dimension: "tea", barrier_key: "b1", label: "B1", severity: "alta", mitigation: "M1" },
+      { dimension: "tdah", barrier_key: "b2", label: "B2", severity: "media", mitigation: "M2" },
+      { dimension: "dislexia", barrier_key: "b3", label: "B3", severity: "baixa", mitigation: "M3" },
+    ];
+    const result = buildRadarData(testBarriers);
+    const tea = result.find((d) => d.dimension === "TEA");
+    expect(tea?.score).toBe(3);
+    const tdah = result.find((d) => d.dimension === "TDAH");
+    expect(tdah?.score).toBe(2);
+    const dislexia = result.find((d) => d.dimension === "Dislexia");
+    expect(dislexia?.score).toBe(1);
   });
 
   it("returns zero scores for dimensions without barriers", () => {
-    const data = buildRadarData(barriers);
-    const ritmo = data.find((d) => d.dimension === "Ritmo");
-    expect(ritmo?.score).toBe(0);
-    const engaj = data.find((d) => d.dimension === "Engajamento");
-    expect(engaj?.score).toBe(0);
+    const testBarriers: DetectedBarrier[] = [
+      { dimension: "tea", barrier_key: "b1", label: "B1", severity: "alta", mitigation: "M1" },
+    ];
+    const data = buildRadarData(testBarriers);
+    const tod = data.find((d) => d.dimension === "TOD");
+    expect(tod?.score).toBe(0);
+    const tourette = data.find((d) => d.dimension === "Tourette");
+    expect(tourette?.score).toBe(0);
   });
 
   it("handles empty barriers array", () => {
     const data = buildRadarData([]);
-    expect(data).toHaveLength(5);
+    expect(data).toHaveLength(11);
     expect(data.every((d) => d.score === 0)).toBe(true);
   });
 
   it("handles maximum severity scenario", () => {
     const maxBarriers: DetectedBarrier[] = [
-      { dimension: "processamento", barrier_key: "p1", label: "B1", severity: "alta", mitigation: "M1" },
-      { dimension: "processamento", barrier_key: "p2", label: "B2", severity: "alta", mitigation: "M2" },
-      { dimension: "processamento", barrier_key: "p3", label: "B3", severity: "alta", mitigation: "M3" },
-      { dimension: "processamento", barrier_key: "p4", label: "B4", severity: "alta", mitigation: "M4" },
+      { dimension: "tea", barrier_key: "p1", label: "B1", severity: "alta", mitigation: "M1" },
+      { dimension: "tea", barrier_key: "p2", label: "B2", severity: "alta", mitigation: "M2" },
+      { dimension: "tea", barrier_key: "p3", label: "B3", severity: "alta", mitigation: "M3" },
+      { dimension: "tea", barrier_key: "p4", label: "B4", severity: "alta", mitigation: "M4" },
     ];
     const data = buildRadarData(maxBarriers);
-    const proc = data.find((d) => d.dimension === "Processamento");
-    expect(proc?.score).toBe(12);
+    const tea = data.find((d) => d.dimension === "TEA");
+    expect(tea?.score).toBe(12);
   });
 });
