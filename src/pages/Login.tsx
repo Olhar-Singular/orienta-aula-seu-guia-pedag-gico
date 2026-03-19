@@ -83,12 +83,9 @@ export default function Login() {
                 {loading ? "Aguarde..." : "Entrar"}
               </Button>
             </form>
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              Não tem conta?{" "}
-              <Link to="/cadastro" className="text-primary font-medium hover:underline">
-                Cadastre-se
-              </Link>
-            </div>
+            <p className="mt-4 text-center text-xs text-muted-foreground">
+              O acesso é gerenciado pelo administrador da sua escola.
+            </p>
           </CardContent>
         </Card>
 
