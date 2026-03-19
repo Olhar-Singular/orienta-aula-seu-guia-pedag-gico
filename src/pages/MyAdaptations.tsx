@@ -680,9 +680,6 @@ export default function MyAdaptations() {
                   </Button>
                   <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
                     setExportingPdf(true);
-                    const savedImages: string[] = Array.isArray(result?.question_images)
-                      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
-                      : [];
                     try {
                       await exportToPdf({
                         studentName: viewItem.student_name || undefined,
@@ -693,7 +690,8 @@ export default function MyAdaptations() {
                         strategiesApplied: result?.strategies_applied || [],
                         pedagogicalJustification: result?.pedagogical_justification || "",
                         implementationTips: result?.implementation_tips || [],
-                        // For saved adaptations, we don't have per-question mapping, so skip images
+                        questionImagesUniversal: imageMap,
+                        questionImagesDirected: imageMap,
                       });
                       toast.success("PDF exportado!");
                     } catch {
@@ -706,9 +704,6 @@ export default function MyAdaptations() {
                   </Button>
                   <Button variant="outline" size="sm" disabled={exportingDocx} onClick={async () => {
                     setExportingDocx(true);
-                    const savedImages: string[] = Array.isArray(result?.question_images)
-                      ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
-                      : [];
                     try {
                       await exportToDocx({
                         studentName: viewItem.student_name || undefined,
@@ -719,7 +714,8 @@ export default function MyAdaptations() {
                         strategiesApplied: result?.strategies_applied || [],
                         pedagogicalJustification: result?.pedagogical_justification || "",
                         implementationTips: result?.implementation_tips || [],
-                        // For saved adaptations, we don't have per-question mapping, so skip images
+                        questionImagesUniversal: imageMap,
+                        questionImagesDirected: imageMap,
                       });
                       toast.success("Word exportado!");
                     } catch {
