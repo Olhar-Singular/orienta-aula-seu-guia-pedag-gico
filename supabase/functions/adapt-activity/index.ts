@@ -350,9 +350,6 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Server-side credit check
-    const creditCheck = await checkCredits(admin, user.id, "adapt-activity", corsHeaders);
-    if (!creditCheck.ok) return creditCheck.response!;
 
     const body = await req.json();
     const {
