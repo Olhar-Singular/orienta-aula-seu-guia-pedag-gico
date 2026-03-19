@@ -3,6 +3,7 @@ import {
   normalizeAdaptedContent,
   parseAdaptedQuestions,
   replaceQuestionInAdaptedContent,
+  stripMarkdownFormatting,
 } from "@/lib/adaptedQuestions";
 
 describe("normalizeAdaptedContent", () => {
