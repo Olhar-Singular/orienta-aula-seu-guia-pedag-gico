@@ -141,6 +141,10 @@ serve(async (req) => {
     const newWindow = !windowStart || windowStart <= hourAgo ? now.toISOString() : rl!.window_start;
     await admin.from("rate_limits").upsert({ user_id: authData.user.id, request_count: newCount, window_start: newWindow });
 
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, authData.user.id, "generate-adaptation", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
+
     const { messages, context, action } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

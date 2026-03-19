@@ -34,6 +34,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, supabaseKey);
 
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, user!.id, "generate-pei", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
+
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
