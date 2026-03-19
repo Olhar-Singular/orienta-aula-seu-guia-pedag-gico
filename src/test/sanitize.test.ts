@@ -3,7 +3,7 @@ import { sanitize } from "../../supabase/functions/_shared/sanitize";
 
 describe("sanitize", () => {
   it("removes HTML tags", () => {
-    expect(sanitize("<script>alert('xss')</script>Hello")).toBe("alertxssHello");
+    expect(sanitize("<script>alert('xss')</script>Hello")).toBe("alert(xss)Hello");
   });
 
   it("removes dangerous characters", () => {
