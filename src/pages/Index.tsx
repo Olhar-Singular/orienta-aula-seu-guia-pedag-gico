@@ -286,9 +286,9 @@ export default function Index() {
               <p className="text-primary-foreground/75 mb-8 max-w-md mx-auto">
                 Crie sua primeira adaptação em menos de 5 minutos. Gratuito para começar, sem cartão de crédito.
               </p>
-              <Link to="/cadastro">
+              <Link to="/login">
                 <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold gap-2 text-base px-8 shadow-glow">
-                  Começar Gratuitamente <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  Acessar plataforma <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </Link>
             </div>
