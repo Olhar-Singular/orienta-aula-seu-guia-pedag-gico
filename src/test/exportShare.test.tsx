@@ -74,6 +74,7 @@ const mockData = {
     pedagogical_justification: "Justification",
     implementation_tips: ["Tip 1"],
   },
+  contextPillars: null,
   questionImages: { version_universal: {}, version_directed: {} },
 };
 
