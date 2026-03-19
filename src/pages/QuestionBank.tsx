@@ -198,6 +198,8 @@ export default function QuestionBank() {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewStoragePath, setPreviewStoragePath] = useState<string | null>(null);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const [showReviewPreview, setShowReviewPreview] = useState(false);
+  const [reviewPreviewMode, setReviewPreviewMode] = useState<PreviewMode>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -648,9 +650,21 @@ export default function QuestionBank() {
     return (
       <>
         <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+           <div className="flex items-center justify-between flex-wrap gap-2">
             <h1 className="text-2xl font-bold text-foreground">Revisão de Questões Extraídas</h1>
             <div className="flex gap-2">
+              {uploadFile && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const name = uploadFile.name.toLowerCase();
+                    setReviewPreviewMode(name.endsWith(".docx") ? "docx" : "pdf");
+                    setShowReviewPreview(true);
+                  }}
+                >
+                  <Eye className="w-4 h-4 mr-1" /> Ver Prova
+                </Button>
+              )}
               <Button variant="outline" onClick={handleFinishReview}>
                 {savedCount > 0 ? "Concluir" : "Cancelar"}
               </Button>
@@ -924,6 +938,12 @@ export default function QuestionBank() {
           onOpenChange={(open) => { if (!open) setPreviewImageUrl(null); }}
           imageUrl={previewImageUrl}
           title="Prévia da imagem da questão"
+        />
+        <FilePreviewModal
+          open={showReviewPreview}
+          onOpenChange={setShowReviewPreview}
+          file={uploadFile}
+          mode={reviewPreviewMode}
         />
       </>
     );
