@@ -64,15 +64,14 @@ function parseLineWithFractions(line: string): LineChild[] {
     }
 
     if (!match || match.index === undefined) {
-      // No more fractions, add remaining text
-      if (remaining) children.push(new TextRun(remaining));
+      // No more fractions, add remaining text with superscript support
+      if (remaining) children.push(...parseExponents(remaining));
       break;
     }
 
     if (matchType === "latex") {
-      // Text before the match
       const before = remaining.slice(0, match.index);
-      if (before) children.push(new TextRun(before));
+      if (before) children.push(...parseExponents(before));
 
       const num = match[1];
       const den = match[2];
@@ -88,10 +87,9 @@ function parseLineWithFractions(line: string): LineChild[] {
       );
       remaining = remaining.slice(match.index + match[0].length);
     } else {
-      // Plain fraction: group 1 is prefix, group 2 is num, group 3 is den
       const prefix = match[1] || "";
       const before = remaining.slice(0, match.index) + prefix;
-      if (before) children.push(new TextRun(before));
+      if (before) children.push(...parseExponents(before));
 
       const num = match[2];
       const den = match[3];
@@ -110,6 +108,32 @@ function parseLineWithFractions(line: string): LineChild[] {
   }
 
   return children;
+}
+
+/**
+ * Parse exponent patterns like ^2, ^{-3} and render as Word superscript TextRuns.
+ */
+const EXPONENT_RE = /\^[\{\(]?([0-9+\-]+)[\}\)]?/;
+
+function parseExponents(text: string): TextRun[] {
+  const runs: TextRun[] = [];
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    const match = remaining.match(EXPONENT_RE);
+    if (!match || match.index === undefined) {
+      if (remaining) runs.push(new TextRun(remaining));
+      break;
+    }
+
+    const before = remaining.slice(0, match.index);
+    if (before) runs.push(new TextRun(before));
+
+    runs.push(new TextRun({ text: match[1], superScript: true }));
+    remaining = remaining.slice(match.index + match[0].length);
+  }
+
+  return runs;
 }
 
 /**
