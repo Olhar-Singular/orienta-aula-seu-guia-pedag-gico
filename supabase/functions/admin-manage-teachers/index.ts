@@ -236,13 +236,6 @@ serve(async (req) => {
             role: teacher.role === "admin" ? "admin" : "teacher",
           });
 
-          // Generate recovery link
-          await admin.auth.admin.generateLink({
-            type: "recovery",
-            email: teacher.email,
-            options: { redirectTo: `${siteUrl}/reset-password` },
-          });
-
           results.push({ email: teacher.email, success: true });
         } catch (e) {
           results.push({
