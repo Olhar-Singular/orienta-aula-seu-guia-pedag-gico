@@ -22,6 +22,47 @@ const TYPE_LABELS: Record<string, string> = {
   trabalho: "Trabalho",
 };
 
+/**
+ * Normalize LaTeX markup for DOCX export.
+ * Strips $ delimiters, converts operators to readable symbols,
+ * but preserves \frac (handled by parseLineWithFractions) and ^exponents (handled by parseExponents).
+ */
+function normalizeLatexForDocx(text: string): string {
+  let result = text;
+
+  // Restore corrupted LaTeX from JSON streaming
+  result = result
+    .replace(/\x0Crac/g, "\\frac")
+    .replace(/\x0C/g, "\\f")
+    .replace(/\x08inom/g, "\\binom")
+    .replace(/\x09frac/g, "\\tfrac")
+    .replace(/\x09ext/g, "\\text");
+
+  // Strip dollar-sign delimiters: $...$ → content
+  result = result.replace(/\$\$([^$]+)\$\$/g, (_m, inner) => inner.trim());
+  result = result.replace(/\$([^$]+)\$/g, (_m, inner) => inner.trim());
+
+  // Convert LaTeX operators to readable symbols
+  result = result.replace(/\\div\b/g, "÷");
+  result = result.replace(/\\times\b/g, "×");
+  result = result.replace(/\\cdot\b/g, "·");
+  result = result.replace(/\\pm\b/g, "±");
+  result = result.replace(/\\sqrt\{([^{}]+)\}/g, "√($1)");
+  result = result.replace(/\\text\{([^{}]+)\}/g, "$1");
+  result = result.replace(/\\left\b/g, "");
+  result = result.replace(/\\right\b/g, "");
+  result = result.replace(/\\,/g, " ");
+  result = result.replace(/\\;/g, " ");
+  result = result.replace(/\\quad\b/g, "  ");
+  result = result.replace(/\\qquad\b/g, "    ");
+  result = result.replace(/\\\\/g, "");
+
+  // Clean up remaining backslash commands (except \frac, \tfrac, \dfrac which are handled later)
+  result = result.replace(/\\(?![tdf]?frac)[a-zA-Z]+\{([^{}]*)\}/g, "$1");
+
+  return result;
+}
+
 // Match \frac{...}{...}, \tfrac{...}{...}, \dfrac{...}{...}
 const LATEX_FRAC_RE = /\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/;
 // Match plain fractions like 7/8, 42/48, ?/48
@@ -140,7 +181,8 @@ function parseExponents(text: string): TextRun[] {
  * Convert a block of text into Paragraphs with inline fraction support.
  */
 function textToParagraphs(text: string): Paragraph[] {
-  return text.split("\n").map((line) => {
+  return text.split("\n").map((rawLine) => {
+    const line = normalizeLatexForDocx(rawLine);
     const children = parseLineWithFractions(line);
     return new Paragraph({ children });
   });
