@@ -96,6 +96,21 @@ function unicodeToLatex(formula: string): string {
 const FORMULA_REGEX =
   /(?:^|\s)((?:\\(?:frac|tfrac|dfrac)\{[^{}\n]+\}\{[^{}\n]+\})|(?:(?:\?|\d+)\s*\/\s*(?:\?|\d+)(?!\s*\/\s*\d))|(?:[A-Za-zΔλπσμ][₀₁₂³²]?\s*=\s*[^\n,]{3,60})|(?:Δ[A-Za-z]\s*[\/=][^\n,]{2,40})|(?:\b\d+(?:[.,]\d+)?\s*(?:m\/s²?|cm\/s|km\/h|m|cm|mm|Hz|s|kg|N|J|W|Pa|°C|°F|K)\b))/g;
 
+/**
+ * Restores LaTeX commands that were corrupted by JSON escape sequences.
+ * In JSON, \f = form feed, \t = tab, \n = newline, \r = carriage return, \b = backspace.
+ * When AI outputs \frac, \tfrac, etc., JSON parsing turns \f into U+000C, \t into tab, etc.
+ */
+function restoreCorruptedLatex(text: string): string {
+  return text
+    .replace(/\x0Crac/g, "\\frac")       // \f + rac → \frac
+    .replace(/\x0C/g, "\\f")             // any remaining form feeds
+    .replace(/\tsqrt/g, "\\tsqrt")        // \t + sqrt (unlikely but safe)
+    .replace(/\binom/g, "\\binom")        // \b + inom → \binom  
+    .replace(/\right/g, "\\right")        // \r + ight → \right (if not already newline)
+    .replace(/\not/g, "\\not");           // \n + ot → \not
+}
+
 function KaTeXInline({ formula }: { formula: string }) {
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -125,21 +140,34 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   let key = 0;
 
   // Strip ALL ** markers — the AI should not be using bold markdown
-  const cleaned = text.replace(/\*\*/g, "");
+  let cleaned = text.replace(/\*\*/g, "");
 
-  // Parse formulas
-  let lastIndex = 0;
-  const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
-  let match;
-  while ((match = formulaRegex.exec(cleaned)) !== null) {
-    const before = cleaned.slice(lastIndex, match.index);
-    if (before) nodes.push(<span key={key++}>{before}</span>);
-    const formulaText = (match[1] || match[0]).trim();
-    nodes.push(<KaTeXInline key={key++} formula={formulaText} />);
-    lastIndex = match.index + match[0].length;
+  // First, handle $...$ delimited LaTeX blocks — render them directly
+  const dollarParts = cleaned.split(/\$([^$]+)\$/g);
+  // dollarParts: [text, latex, text, latex, text, ...]
+  for (let i = 0; i < dollarParts.length; i++) {
+    const part = dollarParts[i];
+    if (!part) continue;
+
+    if (i % 2 === 1) {
+      // This is a LaTeX expression inside $...$
+      nodes.push(<KaTeXInline key={key++} formula={part} />);
+    } else {
+      // Regular text — parse with FORMULA_REGEX for non-delimited formulas
+      let lastIndex = 0;
+      const formulaRegex = new RegExp(FORMULA_REGEX.source, "g");
+      let match;
+      while ((match = formulaRegex.exec(part)) !== null) {
+        const before = part.slice(lastIndex, match.index);
+        if (before) nodes.push(<span key={key++}>{before}</span>);
+        const formulaText = (match[1] || match[0]).trim();
+        nodes.push(<KaTeXInline key={key++} formula={formulaText} />);
+        lastIndex = match.index + match[0].length;
+      }
+      const tail = part.slice(lastIndex);
+      if (tail) nodes.push(<span key={key++}>{tail}</span>);
+    }
   }
-  const tail = cleaned.slice(lastIndex);
-  if (tail) nodes.push(<span key={key++}>{tail}</span>);
 
   return nodes;
 }
