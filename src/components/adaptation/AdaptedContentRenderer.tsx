@@ -196,14 +196,31 @@ type Block =
  */
 function preProcessContent(content: string): string {
   let processed = restoreCorruptedLatex(content);
+
+  // Strip bold markers early so block-level regexes work on clean text
+  processed = processed.replace(/\*\*/g, "");
+
+  // Split numbered questions that are inline
   processed = processed.replace(
-    /([^\n\/x*+\-=()\d])(\s+)(\*{0,2}\d+\.\s+[A-Za-zÀ-ú])/g,
+    /([^\n\/x*+\-=()\d])(\s+)(\d+[\.\)]\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
+  // Split alternatives that are inline
   processed = processed.replace(
     /([^\n\/x*+\-=()\d])(\s+)([a-eA-E]\)\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
+  // Split bullet items (* item, - item, • item) that are inline
+  processed = processed.replace(
+    /([^\n])(\s+)([*\-•]\s+[A-Za-zÀ-ú])/g,
+    "$1\n$3"
+  );
+  // Convert "Passo N:" / "Etapa N:" style labels to recognisable headers
+  processed = processed.replace(
+    /^([*\-•]\s+)?(Passo|Etapa)\s+(\d+)\s*[:\-–]\s*/gim,
+    "$3. "
+  );
+
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
   return processed;
 }
