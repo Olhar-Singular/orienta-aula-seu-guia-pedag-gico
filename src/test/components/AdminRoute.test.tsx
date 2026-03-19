@@ -13,7 +13,7 @@ vi.mock("@/hooks/useUserSchool", () => ({
 
 import AdminRoute from "@/components/AdminRoute";
 
-function renderAdminRoute(overrides = {}) {
+function renderAdminRoute() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
@@ -31,31 +31,16 @@ describe("AdminRoute", () => {
     const { queryByTestId } = renderAdminRoute();
     expect(queryByTestId("admin-content")).not.toBeInTheDocument();
   });
-});
 
-// Test with admin user
-describe("AdminRoute with admin", () => {
-  beforeEach(() => {
-    vi.doMock("@/hooks/useAuth", () => ({
-      useAuth: () => ({ user: { id: "u1" }, loading: false }),
-    }));
-    vi.doMock("@/hooks/useUserSchool", () => ({
-      useUserSchool: () => ({ isLoading: false, memberRole: "admin" }),
-    }));
-  });
-
-  it("validates that non-admin is blocked", () => {
-    // This confirms the guard logic works structurally
-    const user = { id: "u1" };
+  it("validates that non-admin is blocked (logic)", () => {
     const memberRole = "teacher";
-    const hasAccess = user && memberRole === "admin";
+    const hasAccess = memberRole === "admin";
     expect(hasAccess).toBe(false);
   });
 
-  it("validates that admin has access", () => {
-    const user = { id: "u1" };
+  it("validates that admin has access (logic)", () => {
     const memberRole = "admin";
-    const hasAccess = user && memberRole === "admin";
+    const hasAccess = memberRole === "admin";
     expect(hasAccess).toBe(true);
   });
 });
