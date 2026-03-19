@@ -104,8 +104,9 @@ export default function AdaptationWizard() {
     questionImages: { version_universal: {}, version_directed: {} },
   });
 
-  const updateData = (partial: Partial<WizardData>) =>
+  const updateData = useCallback((partial: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...partial }));
+  }, []);
   const next = useCallback(() => {
     setDirection(1);
     setStep((s) => {
