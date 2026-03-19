@@ -96,11 +96,11 @@ serve(async (req) => {
           .update({ full_name: name })
           .eq("user_id", userId);
       } else {
-        // Create new user (with email auto-confirmed)
-        const tempPassword = crypto.randomUUID();
+        // Create new user with provided password or temp password
+        const userPassword = password || crypto.randomUUID();
         const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
           email,
-          password: tempPassword,
+          password: userPassword,
           email_confirm: true,
           user_metadata: { name },
         });
