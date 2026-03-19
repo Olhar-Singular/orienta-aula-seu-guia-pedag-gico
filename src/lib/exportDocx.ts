@@ -1,5 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction, PageBreak } from "docx";
 
+export type QuestionImageMap = Record<string, string[]>;
+
 export type DocxExportData = {
   schoolName?: string;
   teacherName?: string;
@@ -11,8 +13,8 @@ export type DocxExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  imagesUniversal?: string[];
-  imagesDirected?: string[];
+  questionImagesUniversal?: QuestionImageMap;
+  questionImagesDirected?: QuestionImageMap;
 };
 
 const TYPE_LABELS: Record<string, string> = {

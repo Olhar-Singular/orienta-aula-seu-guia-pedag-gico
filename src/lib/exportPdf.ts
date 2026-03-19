@@ -1,6 +1,8 @@
 // Legacy wrapper — delegates to new @react-pdf/renderer system
 import { downloadAdaptationPDF, type AdaptationPDFProps } from "@/lib/pdf/index";
 
+export type QuestionImageMap = Record<string, string[]>;
+
 export type ExportData = {
   schoolName?: string;
   teacherName?: string;
@@ -12,8 +14,8 @@ export type ExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  imagesUniversal?: string[];
-  imagesDirected?: string[];
+  questionImagesUniversal?: QuestionImageMap;
+  questionImagesDirected?: QuestionImageMap;
 };
 
 export async function exportToPdf(data: ExportData) {
@@ -28,8 +30,8 @@ export async function exportToPdf(data: ExportData) {
     strategiesApplied: data.strategiesApplied,
     pedagogicalJustification: data.pedagogicalJustification,
     implementationTips: data.implementationTips,
-    imagesUniversal: data.imagesUniversal,
-    imagesDirected: data.imagesDirected,
+    questionImagesUniversal: data.questionImagesUniversal,
+    questionImagesDirected: data.questionImagesDirected,
   };
   await downloadAdaptationPDF(props);
 }
