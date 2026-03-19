@@ -106,6 +106,16 @@ export function normalizeMathText(text: string): string {
   result = result.replace(/\\quad\b/g, "  ");
   result = result.replace(/\\qquad\b/g, "    ");
   result = result.replace(/\\\\/g, "");
+
+  // Convert caret exponents to Unicode superscripts: 0,8^2 → 0,8²
+  const SUPERSCRIPT_DIGITS: Record<string, string> = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻",
+  };
+  result = result.replace(/\^[\{\(]?([0-9+\-]+)[\}\)]?/g, (_m, exp: string) => {
+    return [...exp].map(c => SUPERSCRIPT_DIGITS[c] ?? c).join("");
+  });
   // Clean up any remaining backslash commands that weren't caught
   result = result.replace(/\\[a-zA-Z]+\{([^{}]*)\}/g, "$1");
 
