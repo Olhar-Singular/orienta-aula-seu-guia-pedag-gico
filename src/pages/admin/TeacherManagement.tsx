@@ -91,7 +91,8 @@ export default function TeacherManagement() {
   });
 
   // ─── ADD TEACHER ───
-  const [addForm, setAddForm] = useState({ name: "", email: "", role: "teacher" });
+  const [addForm, setAddForm] = useState({ name: "", email: "", password: "", role: "teacher" });
+  const [showPassword, setShowPassword] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
 
   const handleAdd = async () => {
