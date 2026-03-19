@@ -3,6 +3,7 @@ import {
   normalizeAdaptedContent,
   parseAdaptedQuestions,
   replaceQuestionInAdaptedContent,
+  stripMarkdownFormatting,
 } from "@/lib/adaptedQuestions";
 
 describe("normalizeAdaptedContent", () => {
@@ -98,5 +99,52 @@ describe("replaceQuestionInAdaptedContent", () => {
       options: ["A"],
     });
     expect(result).toBe(content);
+  });
+});
+
+describe("stripMarkdownFormatting", () => {
+  it("removes italic underscore markers", () => {
+    expect(stripMarkdownFormatting("_texto em itálico_")).toBe("texto em itálico");
+  });
+
+  it("removes multiple italic underscore in same line", () => {
+    expect(stripMarkdownFormatting("_primeiro_ e _segundo_")).toBe("primeiro e segundo");
+  });
+
+  it("preserves underscore in snake_case", () => {
+    expect(stripMarkdownFormatting("variavel_nome")).toBe("variavel_nome");
+  });
+
+  it("preserves simple snake_case", () => {
+    expect(stripMarkdownFormatting("variavel_nome")).toBe("variavel_nome");
+  });
+
+  it("preserves unclosed underscore", () => {
+    expect(stripMarkdownFormatting("_sem fechar")).toBe("_sem fechar");
+  });
+
+  it("removes italic asterisk markers", () => {
+    expect(stripMarkdownFormatting("*texto em itálico*")).toBe("texto em itálico");
+  });
+
+  it("removes multiple italic asterisk in same line", () => {
+    expect(stripMarkdownFormatting("*primeiro* e *segundo*")).toBe("primeiro e segundo");
+  });
+
+  it("removes bold markers", () => {
+    expect(stripMarkdownFormatting("**texto em bold**")).toBe("texto em bold");
+  });
+
+  it("removes mixed italic and bold", () => {
+    expect(stripMarkdownFormatting("**bold** e _itálico_")).toBe("bold e itálico");
+  });
+
+  it("handles complex text with formatting", () => {
+    const input = "(_Será que queremos criar o mosquito?_)";
+    expect(stripMarkdownFormatting(input)).toBe("(Será que queremos criar o mosquito?)");
+  });
+
+  it("preserves math subscripts like v_0", () => {
+    expect(stripMarkdownFormatting("v_0 = 10 m/s")).toBe("v_0 = 10 m/s");
   });
 });

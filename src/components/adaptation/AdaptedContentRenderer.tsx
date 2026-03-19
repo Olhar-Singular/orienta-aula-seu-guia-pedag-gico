@@ -198,8 +198,10 @@ type Block =
 function preProcessContent(content: string): string {
   let processed = restoreCorruptedLatex(content);
 
-  // Strip bold markers early so block-level regexes work on clean text
+  // Strip bold and italic markers early so block-level regexes work on clean text
   processed = processed.replace(/\*\*/g, "");
+  processed = processed.replace(/_([^_\n]+)_/g, "$1");
+  processed = processed.replace(/\*([^*\n]+)\*/g, "$1");
 
   // Split numbered questions that are inline
   processed = processed.replace(
