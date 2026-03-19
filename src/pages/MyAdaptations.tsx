@@ -581,9 +581,9 @@ export default function MyAdaptations() {
 
                 <div>
                   <h4 className="text-sm font-semibold text-foreground mb-1">Atividade Original</h4>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted rounded-lg p-3">
-                    {viewItem.raw.original_activity}
-                  </p>
+                  <div className="bg-muted rounded-lg p-3">
+                    <AdaptedContentRenderer content={viewItem.raw.original_activity || ""} />
+                  </div>
                 </div>
 
                 {barriers.length > 0 && (
