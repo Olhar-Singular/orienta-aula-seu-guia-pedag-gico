@@ -15,6 +15,8 @@ const TYPE_LABELS: Record<string, string> = {
   resumo: "Resumo",
 };
 
+export type QuestionImageMap = Record<string, string[]>;
+
 export type AdaptationPDFProps = {
   schoolName?: string;
   teacherName?: string;
@@ -26,8 +28,8 @@ export type AdaptationPDFProps = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  imagesUniversal?: string[];
-  imagesDirected?: string[];
+  questionImagesUniversal?: QuestionImageMap;
+  questionImagesDirected?: QuestionImageMap;
 };
 
 export default function AdaptationPDF(props: AdaptationPDFProps) {
