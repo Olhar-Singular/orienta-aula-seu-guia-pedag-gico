@@ -23,6 +23,7 @@ import {
   replaceQuestionInAdaptedContent,
   type ParsedAdaptedQuestion,
 } from "@/lib/adaptedQuestions";
+import ContextIndicator from "./ContextIndicator";
 
 type Props = {
   data: WizardData;
@@ -170,7 +171,10 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
       }
 
       const result = await resp.json();
-      updateData({ result: result.adaptation });
+      updateData({
+        result: result.adaptation,
+        contextPillars: result.context_pillars || null,
+      });
 
       const mergedImages = await generateImagesForResult(accessToken);
       const universalImages = getDefaultQuestionImageMap(
@@ -297,6 +301,16 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
         <p className="text-sm text-muted-foreground">
           Adaptação para: <span className="font-medium text-foreground">{data.studentName}</span>
         </p>
+      )}
+
+      {data.contextPillars && (
+        <ContextIndicator
+          hasBarriers={data.contextPillars.hasBarriers}
+          hasPEI={data.contextPillars.hasPEI}
+          hasDocuments={data.contextPillars.hasDocuments}
+          hasChatHistory={data.contextPillars.hasChatHistory}
+          hasActivityContext={data.contextPillars.hasActivityContext}
+        />
       )}
 
       {renderQuestionSection(

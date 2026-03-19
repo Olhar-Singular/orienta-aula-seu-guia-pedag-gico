@@ -25,6 +25,14 @@ export type AdaptationResult = {
   implementation_tips: string[];
 };
 
+export type ContextPillars = {
+  hasBarriers: boolean;
+  hasPEI: boolean;
+  hasDocuments: boolean;
+  hasChatHistory: boolean;
+  hasActivityContext: boolean;
+};
+
 export type SelectedQuestion = {
   id: string;
   text: string;
@@ -49,6 +57,7 @@ export type WizardData = {
   adaptForWholeClass: boolean;
   observationNotes: string;
   result: AdaptationResult | null;
+  contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
 };
 
@@ -91,6 +100,7 @@ export default function AdaptationWizard() {
     adaptForWholeClass: false,
     observationNotes: "",
     result: null,
+    contextPillars: null,
     questionImages: { version_universal: {}, version_directed: {} },
   });
 
@@ -243,8 +253,9 @@ export default function AdaptationWizard() {
                   barriers: [],
                   adaptForWholeClass: false,
                   observationNotes: "",
-                  result: null,
-                  questionImages: { version_universal: {}, version_directed: {} },
+                    result: null,
+                    contextPillars: null,
+                    questionImages: { version_universal: {}, version_directed: {} },
                 });
               }} />
             )}

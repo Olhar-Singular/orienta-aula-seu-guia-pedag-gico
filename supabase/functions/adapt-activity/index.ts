@@ -12,6 +12,34 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Você é ISA (Inteligência de Suporte à Aprendizagem), uma especialista sênior em pedagogia inclusiva com formação em Design Universal para Aprendizagem (DUA/UDL), diferenciação curricular e acessibilidade educacional.
 
 ═══════════════════════════════════════
+METODOLOGIA DE INTEGRAÇÃO DE CONTEXTO
+═══════════════════════════════════════
+Antes de gerar qualquer adaptação, você DEVE integrar todos os pilares disponíveis:
+
+PILAR 1 — BARREIRAS IDENTIFICADAS
+- Use as barreiras observáveis informadas pelo professor
+- Consulte as barreiras cadastradas no perfil do aluno
+- Considere o histórico de adaptações anteriores
+
+PILAR 2 — DOCUMENTOS DE REFERÊNCIA
+- Se o PEI estiver disponível, siga suas diretrizes
+- Se houver laudos ou relatórios mencionados, considere-os
+- Respeite as orientações de profissionais especializados
+
+PILAR 3 — CONTEXTO DA AVALIAÇÃO
+- Analise o conteúdo cobrado e os objetivos pedagógicos
+- Preserve o nível cognitivo (Taxonomia de Bloom)
+- Mantenha equivalência avaliativa entre versões
+
+PILAR 4 — HISTÓRICO DE INTERAÇÕES
+- Se houver conversas anteriores, mantenha consistência
+- Evite contradizer orientações já fornecidas
+- Aproveite insights de discussões prévias
+
+Só prossiga para a geração da adaptação após cruzar todos os pilares
+simultaneamente, produzindo um contexto rico e fundamentado.
+
+═══════════════════════════════════════
 MISSÃO
 ═══════════════════════════════════════
 Adaptar atividades escolares para REMOVER BARREIRAS à aprendizagem, preservando rigorosamente os objetivos pedagógicos e o nível cognitivo original (Taxonomia de Bloom revisada).
@@ -395,6 +423,104 @@ serve(async (req) => {
       }
     }
 
+    // ─── PILAR 2: PEI do aluno ───
+    let peiContext = "";
+    if (student_id) {
+      const { data: peiData } = await userClient
+        .from("student_pei")
+        .select("student_profile, goals, curricular_adaptations, pedagogical_strategies, resources_and_support, review_schedule, additional_notes")
+        .eq("student_id", student_id)
+        .maybeSingle();
+
+      if (peiData) {
+        peiContext = `
+═══════════════════════════════════════
+PEI DO ALUNO (Plano Educacional Individualizado)
+═══════════════════════════════════════
+PERFIL DO ALUNO: ${peiData.student_profile || "Não preenchido"}
+METAS PEDAGÓGICAS: ${peiData.goals ? JSON.stringify(peiData.goals) : "Não definidas"}
+ADAPTAÇÕES CURRICULARES RECOMENDADAS: ${peiData.curricular_adaptations || "Não especificadas"}
+ESTRATÉGIAS PEDAGÓGICAS: ${peiData.pedagogical_strategies || "Não especificadas"}
+RECURSOS E SUPORTES NECESSÁRIOS: ${peiData.resources_and_support || "Não especificados"}
+CRONOGRAMA DE REVISÃO: ${peiData.review_schedule || "Não definido"}
+OBSERVAÇÕES ADICIONAIS: ${peiData.additional_notes || "Nenhuma"}`;
+      }
+    }
+
+    // ─── PILAR 2b: Documentos do aluno ───
+    let documentsContext = "";
+    if (student_id) {
+      const { data: studentFiles } = await userClient
+        .from("student_files")
+        .select("file_name, category, created_at")
+        .eq("student_id", student_id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (studentFiles && studentFiles.length > 0) {
+        const categorizedFiles = studentFiles.reduce((acc: Record<string, string[]>, file: any) => {
+          const cat = file.category || "outros";
+          if (!acc[cat]) acc[cat] = [];
+          acc[cat].push(file.file_name);
+          return acc;
+        }, {});
+
+        documentsContext = `\n═══════════════════════════════════════
+DOCUMENTOS DISPONÍVEIS DO ALUNO
+═══════════════════════════════════════`;
+        for (const [category, files] of Object.entries(categorizedFiles)) {
+          documentsContext += `\n${category.toUpperCase()}:`;
+          (files as string[]).forEach((f: string) => {
+            documentsContext += `\n- ${f}`;
+          });
+        }
+        documentsContext += `\nNOTA: Considere as informações que possam estar contidas nestes documentos ao adaptar.`;
+      }
+    }
+
+    // ─── PILAR 4: Histórico de chat relevante ───
+    let chatContext = "";
+    if (student_id) {
+      const { data: studentData2 } = await userClient
+        .from("class_students")
+        .select("name")
+        .eq("id", student_id)
+        .maybeSingle();
+
+      if (studentData2?.name) {
+        const { data: conversations } = await userClient
+          .from("chat_conversations")
+          .select("id, title, updated_at")
+          .eq("user_id", user.id)
+          .ilike("title", `%${studentData2.name}%`)
+          .order("updated_at", { ascending: false })
+          .limit(3);
+
+        if (conversations && conversations.length > 0) {
+          chatContext = `\n═══════════════════════════════════════
+CONVERSAS ANTERIORES RELEVANTES
+═══════════════════════════════════════`;
+          for (const conv of conversations) {
+            const { data: messages } = await userClient
+              .from("chat_messages")
+              .select("role, content")
+              .eq("conversation_id", conv.id)
+              .order("created_at", { ascending: true })
+              .limit(10);
+
+            if (messages && messages.length > 0) {
+              chatContext += `\n--- Conversa: ${conv.title} ---`;
+              messages.forEach((msg: any) => {
+                const role = msg.role === "user" ? "Professor" : "ISA";
+                const preview = msg.content.substring(0, 300);
+                chatContext += `\n[${role}]: ${preview}${msg.content.length > 300 ? "..." : ""}`;
+              });
+            }
+          }
+        }
+      }
+    }
+
     // Build the active barriers description
     const activeBarriersList = barriers
       .filter((b: any) => b.is_active !== false)
@@ -407,7 +533,20 @@ serve(async (req) => {
       .join("\n- ");
 
     // Build user prompt with full context
-    let userPrompt = `TIPO DE ATIVIDADE: ${sanitizedType}
+    let userPrompt = `═══════════════════════════════════════
+CONTEXTO COMPLETO PARA ADAPTAÇÃO
+═══════════════════════════════════════
+
+BASES UTILIZADAS NESTA ADAPTAÇÃO:
+1. ✓ Barreiras identificadas do aluno
+2. ${peiContext ? "✓" : "○"} PEI (Plano Educacional Individualizado)
+3. ${documentsContext ? "✓" : "○"} Documentos de referência (laudos, relatórios)
+4. ${chatContext ? "✓" : "○"} Histórico de conversas relevantes
+5. ✓ Contexto completo da avaliação
+
+═══════════════════════════════════════
+TIPO DE ATIVIDADE: ${sanitizedType}
+═══════════════════════════════════════
 
 BARREIRAS OBSERVÁVEIS DO ALUNO:
 - ${activeBarriersList}`;
@@ -421,6 +560,18 @@ ${sanitizedObservations}`;
       userPrompt += `\n\nCONTEXTO ENRIQUECIDO DO ALUNO:${studentContext}`;
     }
 
+    if (peiContext) {
+      userPrompt += `\n${peiContext}`;
+    }
+
+    if (documentsContext) {
+      userPrompt += `\n${documentsContext}`;
+    }
+
+    if (chatContext) {
+      userPrompt += `\n${chatContext}`;
+    }
+
     userPrompt += `\n\n═══════════════════════════════════════
 ATIVIDADE ORIGINAL PARA ADAPTAR:
 ═══════════════════════════════════════
@@ -431,11 +582,15 @@ ${sanitizedActivity}`;
     }
 
     userPrompt += `\n\nINSTRUÇÕES FINAIS:
-1. Gere a VERSÃO UNIVERSAL (acessível a todos) e a VERSÃO DIRECIONADA (específica para as barreiras indicadas)
-2. Liste as estratégias aplicadas
-3. Forneça justificativa pedagógica curta
-4. Inclua dicas de implementação prática
-5. Confirme a autonomia do profissional`;
+1. Cruze TODOS os pilares disponíveis acima para produzir a adaptação mais rica possível
+2. Se o PEI estiver disponível, siga as estratégias recomendadas nele
+3. Se houver documentos (laudos), considere as informações que possam estar contidas
+4. Se houver histórico de chat, mantenha consistência com orientações anteriores
+5. Gere a VERSÃO UNIVERSAL e a VERSÃO DIRECIONADA
+6. Liste as estratégias aplicadas com base nos pilares
+7. Forneça justificativa pedagógica fundamentada
+8. Inclua dicas de implementação prática
+9. Confirme a autonomia do profissional`;
 
     const SYSTEM_PROMPT_FINAL = SYSTEM_PROMPT;
 
@@ -544,6 +699,13 @@ ${sanitizedActivity}`;
         adaptation: adaptationResult,
         model_used: modelName,
         tokens_used: tokensUsed,
+        context_pillars: {
+          hasBarriers: true,
+          hasPEI: !!peiContext,
+          hasDocuments: !!documentsContext,
+          hasChatHistory: !!chatContext,
+          hasActivityContext: true,
+        },
         disclaimer: "Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
