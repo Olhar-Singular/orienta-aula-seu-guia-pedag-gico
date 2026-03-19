@@ -83,6 +83,11 @@ export function normalizeMathText(text: string): string {
     .replace(/\x09frac/g, "\\tfrac")
     .replace(/\x09ext/g, "\\text");
 
+  // Strip markdown bold and italic markers
+  result = result.replace(/\*\*/g, "");
+  result = result.replace(/_([^_\n]+)_/g, "$1");
+  result = result.replace(/\*([^*\n]+)\*/g, "$1");
+
   // Strip dollar-sign delimiters: $...$ → content
   result = result.replace(/\$([^$]+)\$/g, (_m, inner) => inner.trim());
 

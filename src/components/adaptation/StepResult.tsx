@@ -430,7 +430,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
           title={`${editingQuestion.title} • Questão ${editingQuestion.question.number}`}
           content={editingQuestion.question.text}
           initialOptions={editingQuestion.question.options}
-          images={questionImages[editingQuestion.field][editingQuestion.question.number] || []}
+          images={questionImages[editingQuestion.field]?.[editingQuestion.question.number] || []}
           activityContext={`Matéria: ${data.activityType || "Geral"}. Atividade: ${
             data.activityText?.slice(0, 200) || ""
           }`}
