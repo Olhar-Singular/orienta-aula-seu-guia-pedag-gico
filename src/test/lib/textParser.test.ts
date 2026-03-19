@@ -26,7 +26,13 @@ describe("normalizeMathText", () => {
   });
 
   it("handles multiple superscripts", () => {
-    expect(normalizeMathText("10⁻²")).toBe("10^-2");
+    expect(normalizeMathText("10⁻²")).toBe("10⁻²");
+  });
+
+  it("converts caret exponents to unicode superscripts", () => {
+    expect(normalizeMathText("0,8^2")).toBe("0,8²");
+    expect(normalizeMathText("0,5^{3}")).toBe("0,5³");
+    expect(normalizeMathText("10^(-2)")).toBe("10⁻²");
   });
 });
 
