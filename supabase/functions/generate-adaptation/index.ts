@@ -212,8 +212,6 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
       });
     }
 
-    // Deduct credit server-side (for streaming, deduct on successful start)
-    await deductCredit(admin, authData.user.id, "generate-adaptation");
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
