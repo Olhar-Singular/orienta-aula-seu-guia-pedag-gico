@@ -301,6 +301,24 @@ export default function AdaptationWizard() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Alert when leaving result step */}
+      <AlertDialog open={pendingBackTarget !== null} onOpenChange={(open) => { if (!open) setPendingBackTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Descartar resultado?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed">
+              Ao voltar para uma etapa anterior, o resultado gerado pela IA será descartado e você precisará gerar novamente ao avançar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBack}>
+              Sim, descartar e voltar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
