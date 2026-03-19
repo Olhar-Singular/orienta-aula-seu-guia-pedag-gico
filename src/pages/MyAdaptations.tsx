@@ -626,7 +626,7 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_universal || ""}
-                            questionImages={universalImageMap}
+                            questionImages={imageMap}
                           />
                         </div>
                       </div>
@@ -637,29 +637,10 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_directed || ""}
-                            questionImages={directedImageMap}
+                            questionImages={imageMap}
                           />
                         </div>
                       </div>
-
-                      {savedImages.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                            <ImageIcon className="w-4 h-4 text-primary" /> Imagens da Atividade
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {savedImages.map((url: string, i: number) => (
-                              <img
-                                key={i}
-                                src={url}
-                                alt={`Imagem ${i + 1}`}
-                                className="max-h-40 rounded-lg border border-border object-contain"
-                                crossOrigin="anonymous"
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
 
                       <div>
                         <h4 className="text-sm font-semibold text-foreground mb-1">Justificativa Pedagógica</h4>
