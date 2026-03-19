@@ -79,8 +79,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
-        imagesUniversal,
-        imagesDirected,
+        questionImagesUniversal,
+        questionImagesDirected,
       });
       toast({ title: "Arquivo Word exportado!" });
     } catch {
