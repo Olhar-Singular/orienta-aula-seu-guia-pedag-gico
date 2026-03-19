@@ -115,18 +115,18 @@ serve(async (req) => {
 
         userId = newUser.user.id;
 
-        // Wait briefly for trigger to create profile, then update
-        await new Promise((r) => setTimeout(r, 500));
-
-        // Upsert profile with full_name and email
+        // Create profile directly (trigger may not fire for admin-created users)
         const { error: profileErr } = await admin
           .from("profiles")
-          .upsert(
-            { user_id: userId, full_name: name, name, email },
-            { onConflict: "user_id" }
-          );
+          .insert({ user_id: userId, full_name: name, name, email });
+        
         if (profileErr) {
-          console.error("Profile upsert error:", profileErr);
+          // Profile may already exist from trigger, try update instead
+          console.log("Profile insert failed, trying update:", profileErr.message);
+          await admin
+            .from("profiles")
+            .update({ full_name: name, name, email })
+            .eq("user_id", userId);
         }
       }
 
