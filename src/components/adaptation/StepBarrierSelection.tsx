@@ -88,8 +88,15 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   }, [data.classId]);
 
   // Load barriers and student notes when student changes
+  // Skip if barriers are already populated (e.g. returning from step 4)
   useEffect(() => {
     if (!data.studentId) return;
+    if (data.barriers.length > 0) {
+      // Barriers already loaded, just ensure studentName is set
+      const student = students.find((s) => s.id === data.studentId);
+      if (student && !data.studentName) updateData({ studentName: student.name });
+      return;
+    }
 
     // Fetch student notes to pre-fill observations
     supabase
@@ -109,7 +116,6 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       .eq("is_active", true)
       .then(({ data: barriers }: { data: BarrierRow[] | null }) => {
         if (!barriers || barriers.length === 0) {
-          // Initialize with all barriers inactive
           const allBarriers: BarrierItem[] = BARRIER_DIMENSIONS.flatMap((dim) =>
             dim.barriers.map((b) => ({
               dimension: dim.key,
@@ -133,7 +139,6 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           }))
         );
         updateData({ barriers: allBarriers });
-        // Lock barriers if student has pre-defined ones
         if (barriers.length > 0) {
           setBarriersLocked(true);
         }
