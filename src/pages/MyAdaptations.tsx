@@ -600,22 +600,29 @@ export default function MyAdaptations() {
                 )}
 
                 {result && (() => {
-                  const savedImages: { image_url: string; question_number?: string }[] =
+                  const savedImages: { image_url: string; question_text?: string }[] =
                     Array.isArray(result.question_images) ? result.question_images : [];
 
-                  // Build per-question image map from saved data
-                  const buildImageMap = () => {
+                  // Re-map images by matching order to adapted questions
+                  // Same logic the wizard uses: image at index N → adapted question N
+                  const buildImageMap = (sectionContent: string) => {
                     const map: Record<string, string[]> = {};
-                    for (const qi of savedImages) {
-                      if (!qi.image_url) continue;
-                      const qNum = qi.question_number || "1";
-                      if (!map[qNum]) map[qNum] = [];
-                      map[qNum].push(qi.image_url);
-                    }
+                    if (savedImages.length === 0 || !sectionContent) return map;
+                    const parsedQs = parseAdaptedQuestions(sectionContent);
+                    if (parsedQs.length === 0) return map;
+
+                    savedImages.forEach((qi, index) => {
+                      if (!qi.image_url) return;
+                      const adaptedQ = parsedQs[index];
+                      if (!adaptedQ) return;
+                      if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
+                      map[adaptedQ.number].push(qi.image_url);
+                    });
                     return map;
                   };
 
-                  const imageMap = buildImageMap();
+                  const imageMapUniversal = buildImageMap(result.version_universal || "");
+                  const imageMapDirected = buildImageMap(result.version_directed || "");
 
                   return (
                     <>
@@ -626,7 +633,7 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_universal || ""}
-                            questionImages={imageMap}
+                            questionImages={imageMapUniversal}
                           />
                         </div>
                       </div>
@@ -637,7 +644,7 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_directed || ""}
-                            questionImages={imageMap}
+                            questionImages={imageMapDirected}
                           />
                         </div>
                       </div>
@@ -686,8 +693,8 @@ export default function MyAdaptations() {
                               strategiesApplied: result?.strategies_applied || [],
                               pedagogicalJustification: result?.pedagogical_justification || "",
                               implementationTips: result?.implementation_tips || [],
-                              questionImagesUniversal: imageMap,
-                              questionImagesDirected: imageMap,
+                              questionImagesUniversal: imageMapUniversal,
+                              questionImagesDirected: imageMapDirected,
                             });
                             toast.success("PDF exportado!");
                           } catch {
@@ -710,8 +717,8 @@ export default function MyAdaptations() {
                               strategiesApplied: result?.strategies_applied || [],
                               pedagogicalJustification: result?.pedagogical_justification || "",
                               implementationTips: result?.implementation_tips || [],
-                              questionImagesUniversal: imageMap,
-                              questionImagesDirected: imageMap,
+                              questionImagesUniversal: imageMapUniversal,
+                              questionImagesDirected: imageMapDirected,
                             });
                             toast.success("Word exportado!");
                           } catch {
