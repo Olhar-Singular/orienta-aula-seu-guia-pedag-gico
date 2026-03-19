@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
-import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap } from "./AdaptationWizard";
+import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap, SelectedQuestion } from "./AdaptationWizard";
 import {
   Loader2,
   RefreshCw,
