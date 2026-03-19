@@ -175,7 +175,7 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
 const ALT_LINE_REGEX = /^([a-eA-E])\)\s+(.+)/;
 // Detect numbered question/item lines: must start with number + "." + space + text starting with a letter/word
 // Avoids matching bare numbers or math like "= 42/48"
-const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*([A-Za-zÀ-ú"(].+)/;
+const QUESTION_LINE_REGEX = /^(\d+)[\.\)]\s*([A-Za-zÀ-ú"(].+)/;
 // Detect section-like headers (all caps or ending with :)
 const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
 // Detect markdown headers ## ...
