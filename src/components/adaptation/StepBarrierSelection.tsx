@@ -181,6 +181,9 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               adaptForWholeClass: checked,
               studentId: checked ? null : data.studentId,
               studentName: checked ? null : data.studentName,
+              result: null,
+              contextPillars: null,
+              questionImages: { version_universal: {}, version_directed: {} },
             })
           }
         />
