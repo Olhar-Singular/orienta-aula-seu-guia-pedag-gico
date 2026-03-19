@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Pencil, X } from "lucide-react";
 import katex from "katex";
+import TextBlockEditModal from "./TextBlockEditModal";
 import "katex/dist/katex.min.css";
 import {
   parseAdaptedQuestions,
@@ -359,16 +360,54 @@ export default function AdaptedContentRenderer({
   const parsedQuestions = parseAdaptedQuestions(content);
   const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
 
+  const [editingBlock, setEditingBlock] = useState<{ lines: string[]; type: "paragraph" | "bulletList" } | null>(null);
+
   const handleDeleteParagraph = (paragraphLines: string[]) => {
     if (!onContentChange) return;
     const lines = content.split("\n");
-    // Build the cleaned paragraph text to match against
     const targetTexts = new Set(paragraphLines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean));
     const filtered = lines.filter((line) => {
       const cleaned = line.replace(/\*\*/g, "").trim();
       return !targetTexts.has(cleaned);
     });
     onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+  };
+
+  const handleEditBlockSave = (newText: string) => {
+    if (!onContentChange || !editingBlock) return;
+    const lines = content.split("\n");
+    const targetTexts = editingBlock.lines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean);
+
+    // Find the first matching line index
+    let startIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const cleaned = lines[i].replace(/\*\*/g, "").trim();
+      if (cleaned === targetTexts[0]) {
+        startIdx = i;
+        break;
+      }
+    }
+
+    if (startIdx === -1) return;
+
+    // Count how many consecutive lines match
+    let matchCount = 0;
+    for (let i = 0; i < targetTexts.length && startIdx + i < lines.length; i++) {
+      const cleaned = lines[startIdx + i].replace(/\*\*/g, "").trim();
+      if (cleaned === targetTexts[i]) matchCount++;
+      else break;
+    }
+
+    const newLines = newText.split("\n").map((l) => {
+      if (editingBlock.type === "bulletList" && l.trim() && !l.trim().startsWith("- ") && !l.trim().startsWith("* ") && !l.trim().startsWith("• ")) {
+        return `- ${l.trim()}`;
+      }
+      return l;
+    });
+
+    lines.splice(startIdx, matchCount, ...newLines);
+    onContentChange(lines.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+    setEditingBlock(null);
   };
 
   return (
@@ -452,17 +491,43 @@ export default function AdaptedContentRenderer({
 
           case "bulletList":
             return (
-              <ul key={i} className="space-y-1.5 pl-5">
-                {block.items.map((item, j) => (
-                  <li
-                    key={j}
-                    className="flex items-start gap-2 text-[13px] text-foreground/90 leading-relaxed"
-                  >
-                    <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    <span>{parseInlineFormatting(item)}</span>
-                  </li>
-                ))}
-              </ul>
+              <div key={i} className="flex items-start gap-2 group">
+                <ul className="space-y-1.5 pl-5 flex-1">
+                  {block.items.map((item, j) => (
+                    <li
+                      key={j}
+                      className="flex items-start gap-2 text-[13px] text-foreground/90 leading-relaxed"
+                    >
+                      <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60" />
+                      <span>{parseInlineFormatting(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {onContentChange && (
+                  <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={() => setEditingBlock({ lines: block.items, type: "bulletList" })}
+                      aria-label="Editar lista"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteParagraph(block.items)}
+                      aria-label="Remover lista"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             );
 
           case "paragraph":
@@ -472,21 +537,40 @@ export default function AdaptedContentRenderer({
                   {parseInlineFormatting(block.lines.join(" "))}
                 </p>
                 {onContentChange && (
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteParagraph(block.lines)}
-                    aria-label="Remover parágrafo"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
+                  <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={() => setEditingBlock({ lines: block.lines, type: "paragraph" })}
+                      aria-label="Editar parágrafo"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteParagraph(block.lines)}
+                      aria-label="Remover parágrafo"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 )}
               </div>
             );
         }
       })}
+
+      <TextBlockEditModal
+        open={!!editingBlock}
+        onOpenChange={(open) => { if (!open) setEditingBlock(null); }}
+        initialText={editingBlock ? editingBlock.lines.join("\n") : ""}
+        onSave={handleEditBlockSave}
+      />
     </div>
   );
 }
