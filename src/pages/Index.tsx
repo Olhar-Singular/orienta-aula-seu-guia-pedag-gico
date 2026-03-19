@@ -101,9 +101,9 @@ export default function Index() {
                   Uma plataforma prática para transformar dificuldades observadas em sala de aula em estratégias de ensino adequadas.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <Link to="/cadastro">
+                  <Link to="/login">
                     <Button size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base px-8 shadow-glow">
-                      Testar agora <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                      Acessar plataforma <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </Link>
                   <Link to="/login">
