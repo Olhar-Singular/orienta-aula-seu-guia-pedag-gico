@@ -96,8 +96,12 @@ export default function TeacherManagement() {
   const [addLoading, setAddLoading] = useState(false);
 
   const handleAdd = async () => {
-    if (!addForm.name || !addForm.email) {
-      toast.error("Nome e e-mail são obrigatórios.");
+    if (!addForm.name || !addForm.email || !addForm.password) {
+      toast.error("Nome, e-mail e senha são obrigatórios.");
+      return;
+    }
+    if (addForm.password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     setAddLoading(true);
