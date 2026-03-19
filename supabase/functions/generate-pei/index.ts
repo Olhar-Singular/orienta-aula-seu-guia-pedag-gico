@@ -193,7 +193,7 @@ Preencha os campos usando a função fornecida.`;
     }
 
     // Deduct credit server-side
-    await deductCredit(admin, user!.id, "generate-pei");
+    await deductCredit(admin, user.id, "generate-pei");
 
     return new Response(JSON.stringify(peiResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
