@@ -16,19 +16,13 @@ vi.mock("@/hooks/useAuth", () => ({
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: vi.fn((table: string) => {
-      const chain = {
-        select: vi.fn().mockReturnValue(chain),
-        insert: vi.fn().mockReturnValue(chain),
-        delete: vi.fn().mockReturnValue(chain),
-        eq: vi.fn().mockReturnValue(chain),
-        neq: vi.fn().mockReturnValue(chain),
-        order: vi.fn().mockReturnValue(chain),
-        in: vi.fn().mockReturnValue(chain),
-        single: vi.fn().mockResolvedValue({ data: null, error: null }),
-        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-        then: vi.fn((resolve: any) => resolve({ data: [], error: null })),
-      };
+    from: vi.fn(() => {
+      const chain: any = {};
+      const methods = ["select", "insert", "delete", "eq", "neq", "order", "in"];
+      methods.forEach((m) => { chain[m] = vi.fn(() => chain); });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.then = vi.fn((resolve: any) => resolve({ data: [], error: null }));
       return chain;
     }),
     auth: {
