@@ -306,7 +306,7 @@ export default function Index() {
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
               <Link to="/login" className="hover:text-primary-foreground transition-colors">Entrar</Link>
-              <Link to="/cadastro" className="hover:text-primary-foreground transition-colors">Cadastrar</Link>
+              <Link to="/login" className="hover:text-primary-foreground transition-colors">Acessar</Link>
             </nav>
           </div>
           <p className="text-xs text-primary-foreground/40 text-center mt-6">
