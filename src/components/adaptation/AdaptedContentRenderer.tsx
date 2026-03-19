@@ -373,7 +373,7 @@ export default function AdaptedContentRenderer({
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 shrink-0"
-                      onClick={() => onEditQuestion(question)}
+                      onClick={() => onEditQuestion({ ...question, text: block.text })}
                       aria-label={`Editar questão ${block.number}`}
                     >
                       <Pencil className="w-3.5 h-3.5" />
