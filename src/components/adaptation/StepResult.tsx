@@ -190,14 +190,36 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
       });
 
       const mergedImages = await generateImagesForResult(accessToken);
-      const universalImages = getDefaultQuestionImageMap(
+
+      // Build per-question image maps using selectedQuestions order
+      const universalImages = buildQuestionImageMap(
         result.adaptation.version_universal,
-        mergedImages
+        data.selectedQuestions
       );
-      const directedImages = getDefaultQuestionImageMap(
+      const directedImages = buildQuestionImageMap(
         result.adaptation.version_directed,
-        mergedImages
+        data.selectedQuestions
       );
+
+      // Also add any AI-generated images (not from selectedQuestions) to the first visual-cue question
+      if (mergedImages.length > 0) {
+        const selectedUrls = new Set(data.selectedQuestions.map(q => q.image_url).filter(Boolean));
+        const aiGeneratedImages = mergedImages.filter(url => !selectedUrls.has(url));
+        if (aiGeneratedImages.length > 0) {
+          const universalParsed = parseAdaptedQuestions(result.adaptation.version_universal);
+          const visualQ = universalParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
+          if (visualQ) {
+            if (!universalImages[visualQ.number]) universalImages[visualQ.number] = [];
+            universalImages[visualQ.number].push(...aiGeneratedImages);
+          }
+          const directedParsed = parseAdaptedQuestions(result.adaptation.version_directed);
+          const visualQDir = directedParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
+          if (visualQDir) {
+            if (!directedImages[visualQDir.number]) directedImages[visualQDir.number] = [];
+            directedImages[visualQDir.number].push(...aiGeneratedImages);
+          }
+        }
+      }
 
       setQuestionImages({
         version_universal: universalImages,
