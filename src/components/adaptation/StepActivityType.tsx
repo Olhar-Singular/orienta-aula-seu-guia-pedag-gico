@@ -5,7 +5,7 @@ import type { ActivityType } from "./AdaptationWizard";
 
 const TYPES: { value: ActivityType; label: string; description: string; icon: typeof FileText }[] = [
   { value: "prova", label: "Prova", description: "Avaliação formal com questões", icon: FileText },
-  { value: "exercicio", label: "Exercício", description: "Atividade prática em sala", icon: PenTool },
+  { value: "exercicio", label: "Exercícios", description: "Atividade prática em sala", icon: PenTool },
   { value: "atividade_casa", label: "Atividade de Casa", description: "Tarefa para fazer em casa", icon: Home },
   { value: "trabalho", label: "Trabalho", description: "Projeto ou trabalho avaliativo", icon: Briefcase },
 ];
