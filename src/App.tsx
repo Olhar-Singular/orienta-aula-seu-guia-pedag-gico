@@ -5,11 +5,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Cadastro from "./pages/Cadastro";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
@@ -29,6 +29,7 @@ import ClassReport from "./pages/ClassReport";
 import Settings from "./pages/Settings";
 import BarrierSimulator from "./pages/BarrierSimulator";
 import SharedAdaptation from "./pages/SharedAdaptation";
+import TeacherManagement from "./pages/admin/TeacherManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,10 +45,10 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/cadastro" element={<Cadastro />} />
               <Route path="/recuperar-senha" element={<RecuperarSenha />} />
               <Route path="/reset-password" element={<ResetPassword />} />
-              {/* Legacy route redirect */}
+              {/* Redirect old registration routes to login */}
+              <Route path="/cadastro" element={<Navigate to="/login" replace />} />
               <Route path="/auth" element={<Navigate to="/login" replace />} />
               
               {/* Protected routes with shared Layout */}
@@ -68,6 +69,8 @@ const App = () => (
                 <Route path="/chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
                 <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
                 
+                {/* Admin routes */}
+                <Route path="/admin/professores" element={<AdminRoute><ErrorBoundary><TeacherManagement /></ErrorBoundary></AdminRoute>} />
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />

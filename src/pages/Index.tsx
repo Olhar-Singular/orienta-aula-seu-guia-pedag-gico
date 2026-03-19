@@ -75,9 +75,9 @@ export default function Index() {
             <Link to="/login">
               <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold">Entrar</Button>
             </Link>
-            <Link to="/cadastro">
+            <Link to="/login">
               <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-                Testar agora
+                Acessar plataforma
               </Button>
             </Link>
           </div>
@@ -101,9 +101,9 @@ export default function Index() {
                   Uma plataforma prática para transformar dificuldades observadas em sala de aula em estratégias de ensino adequadas.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <Link to="/cadastro">
+                  <Link to="/login">
                     <Button size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base px-8 shadow-glow">
-                      Testar agora <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                      Acessar plataforma <ArrowRight className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </Link>
                   <Link to="/login">
@@ -286,9 +286,9 @@ export default function Index() {
               <p className="text-primary-foreground/75 mb-8 max-w-md mx-auto">
                 Crie sua primeira adaptação em menos de 5 minutos. Gratuito para começar, sem cartão de crédito.
               </p>
-              <Link to="/cadastro">
+              <Link to="/login">
                 <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 font-semibold gap-2 text-base px-8 shadow-glow">
-                  Começar Gratuitamente <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  Acessar plataforma <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </Button>
               </Link>
             </div>
@@ -306,7 +306,7 @@ export default function Index() {
             </div>
             <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
               <Link to="/login" className="hover:text-primary-foreground transition-colors">Entrar</Link>
-              <Link to="/cadastro" className="hover:text-primary-foreground transition-colors">Cadastrar</Link>
+              <Link to="/login" className="hover:text-primary-foreground transition-colors">Acessar</Link>
             </nav>
           </div>
           <p className="text-xs text-primary-foreground/40 text-center mt-6">

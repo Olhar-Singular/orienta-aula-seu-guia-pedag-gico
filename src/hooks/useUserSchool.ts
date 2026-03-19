@@ -12,7 +12,7 @@ export function useUserSchool() {
 
       const { data, error } = await supabase
         .from("school_members")
-        .select("school_id, schools(name, code)")
+        .select("school_id, role, schools(name, code)")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -20,13 +20,14 @@ export function useUserSchool() {
       return data;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
   });
 
   return {
     schoolId: query.data?.school_id ?? null,
     schoolName: (query.data?.schools as any)?.name ?? null,
     schoolCode: (query.data?.schools as any)?.code ?? null,
+    memberRole: query.data?.role ?? null,
     isLoading: query.isLoading,
     hasSchool: !!query.data?.school_id,
   };

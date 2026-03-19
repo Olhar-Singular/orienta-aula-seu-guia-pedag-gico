@@ -1,8 +1,9 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, Users, BookOpen, Wand2, History, Settings, ScanSearch } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, Users, BookOpen, Wand2, History, Settings, ScanSearch, ShieldCheck } from "lucide-react";
 import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
 import { useNavigate } from "react-router-dom";
 import logoTransparentImg from "@/assets/logo-olho-transparent.png";
 
@@ -21,12 +22,20 @@ const navItems = [
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
+const adminItems = [
+  { path: "/admin/professores", label: "Gestão de Professores", icon: ShieldCheck },
+];
+
 export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { memberRole } = useUserSchool();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+
+  const isAdmin = memberRole === "admin";
+  const allNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
 
   const handleLogout = async () => {
     await signOut();
@@ -56,7 +65,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1" aria-label="Navegação do dashboard">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const active = item.path === "/dashboard"
               ? location.pathname === "/dashboard"
               : location.pathname.startsWith(item.path);
@@ -123,7 +132,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
               onClick={(e) => e.stopPropagation()}
               aria-label="Menu de navegação mobile"
             >
-              {navItems.map((item) => {
+              {allNavItems.map((item) => {
                 const active = item.path === "/dashboard"
                   ? location.pathname === "/dashboard"
                   : location.pathname.startsWith(item.path);
