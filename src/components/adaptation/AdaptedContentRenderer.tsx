@@ -465,9 +465,23 @@ export default function AdaptedContentRenderer({
 
           case "paragraph":
             return (
-              <p key={i} className="text-[13px] text-foreground/90 leading-relaxed">
-                {parseInlineFormatting(block.lines.join(" "))}
-              </p>
+              <div key={i} className="flex items-start gap-2 group">
+                <p className="text-[13px] text-foreground/90 leading-relaxed flex-1">
+                  {parseInlineFormatting(block.lines.join(" "))}
+                </p>
+                {onContentChange && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteParagraph(block.lines)}
+                    aria-label="Remover parágrafo"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             );
         }
       })}
