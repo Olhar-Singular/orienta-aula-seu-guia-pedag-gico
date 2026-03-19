@@ -111,6 +111,7 @@ export default function TeacherManagement() {
           action: "create",
           email: addForm.email.trim(),
           name: addForm.name.trim(),
+          password: addForm.password,
           school_id: schoolId,
           role: addForm.role,
         },
