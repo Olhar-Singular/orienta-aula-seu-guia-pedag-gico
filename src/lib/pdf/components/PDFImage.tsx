@@ -10,8 +10,17 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 8,
   },
-  image: {
-    maxHeight: 180,
+  imageSingle: {
+    maxWidth: "100%",
+    maxHeight: 260,
+    objectFit: "contain",
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: colors.border,
+  },
+  imageMulti: {
+    maxWidth: "48%",
+    maxHeight: 200,
     objectFit: "contain",
     borderRadius: 4,
     borderWidth: 0.5,
