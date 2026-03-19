@@ -25,6 +25,14 @@ export type AdaptationResult = {
   implementation_tips: string[];
 };
 
+export type ContextPillars = {
+  hasBarriers: boolean;
+  hasPEI: boolean;
+  hasDocuments: boolean;
+  hasChatHistory: boolean;
+  hasActivityContext: boolean;
+};
+
 export type SelectedQuestion = {
   id: string;
   text: string;
