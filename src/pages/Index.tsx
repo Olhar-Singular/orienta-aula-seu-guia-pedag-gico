@@ -124,6 +124,9 @@ export default function Index() {
                   alt="Ilustração de uma sala de aula inclusiva"
                   className="w-full max-w-lg mx-auto rounded-2xl shadow-2xl"
                   loading="eager"
+                  fetchPriority="high"
+                  width="1024"
+                  height="1024"
                 />
               </motion.div>
             </div>
