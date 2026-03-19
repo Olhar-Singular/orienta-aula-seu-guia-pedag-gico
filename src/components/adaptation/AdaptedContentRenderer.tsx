@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Pencil, X } from "lucide-react";
 import katex from "katex";
+import TextBlockEditModal from "./TextBlockEditModal";
 import "katex/dist/katex.min.css";
 import {
   parseAdaptedQuestions,
