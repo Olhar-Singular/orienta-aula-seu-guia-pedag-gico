@@ -181,6 +181,9 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               adaptForWholeClass: checked,
               studentId: checked ? null : data.studentId,
               studentName: checked ? null : data.studentName,
+              result: null,
+              contextPillars: null,
+              questionImages: { version_universal: {}, version_directed: {} },
             })
           }
         />
@@ -197,7 +200,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Select
               value={data.classId || ""}
               onValueChange={(v) =>
-                updateData({ classId: v, studentId: null, studentName: null, barriers: [] })
+                updateData({ classId: v, studentId: null, studentName: null, barriers: [], result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })
               }
             >
               <SelectTrigger>
@@ -214,7 +217,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Label className="mb-2 block">Aluno</Label>
             <Select
               value={data.studentId || ""}
-              onValueChange={(v) => updateData({ studentId: v })}
+              onValueChange={(v) => updateData({ studentId: v, result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })}
               disabled={!data.classId || loadingStudents}
             >
               <SelectTrigger>
