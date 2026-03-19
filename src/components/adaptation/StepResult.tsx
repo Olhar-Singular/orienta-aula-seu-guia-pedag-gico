@@ -258,7 +258,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     setQuestionImages((prev) => ({
       ...prev,
       [field]: {
-        ...prev[field],
+        ...(prev[field] || {}),
         [question.number]: payload.images,
       },
     }));
