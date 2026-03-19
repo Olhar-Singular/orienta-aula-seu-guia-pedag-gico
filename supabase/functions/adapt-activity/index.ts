@@ -344,35 +344,42 @@ serve(async (req) => {
     const sanitizedType = sanitize(activity_type, 100);
     const sanitizedObservations = observation_notes ? sanitize(observation_notes, 2000) : "";
 
-    // Build enriched context
+    // Build enriched context — use userClient (RLS-scoped) to prevent IDOR
     let studentContext = "";
     if (student_id) {
-      // Fetch student barrier history
-      const { data: studentBarriers } = await admin
-        .from("student_barriers")
-        .select("barrier_key, dimension, notes")
-        .eq("student_id", student_id)
-        .eq("is_active", true);
-
-      // Fetch student notes from profile
-      const { data: studentData } = await admin
+      // Verify caller has access to this student via RLS
+      const { data: studentData, error: studentErr } = await userClient
         .from("class_students")
         .select("name, notes")
         .eq("id", student_id)
         .single();
 
-      // Fetch recent adaptations for context
-      const { data: recentAdaptations } = await admin
+      if (studentErr || !studentData) {
+        return new Response(JSON.stringify({ error: "Aluno não encontrado ou sem permissão." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch barriers via userClient (RLS enforces ownership through class join)
+      const { data: studentBarriers } = await userClient
+        .from("student_barriers")
+        .select("barrier_key, dimension, notes")
+        .eq("student_id", student_id)
+        .eq("is_active", true);
+
+      // Fetch recent adaptations via userClient
+      const { data: recentAdaptations } = await userClient
         .from("adaptations_history")
         .select("activity_type, barriers_used, created_at")
         .eq("student_id", student_id)
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (studentData?.name) {
+      if (studentData.name) {
         studentContext += `\nNome do aluno: ${studentData.name}`;
       }
-      if (studentData?.notes) {
+      if (studentData.notes) {
         studentContext += `\nObservações fixas do perfil do aluno: ${studentData.notes}`;
       }
       if (studentBarriers && studentBarriers.length > 0) {

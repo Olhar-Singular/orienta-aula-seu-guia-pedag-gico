@@ -43,15 +43,19 @@ serve(async (req) => {
     const { student_id } = await req.json();
     if (!student_id) throw new Error("student_id obrigatório");
 
-    // Fetch student data
-    const { data: student } = await admin.from("class_students").select("*").eq("id", student_id).single();
-    if (!student) throw new Error("Aluno não encontrado");
+    // Fetch student data using userClient (RLS-scoped) to prevent IDOR
+    const { data: student, error: studentErr } = await userClient
+      .from("class_students")
+      .select("*")
+      .eq("id", student_id)
+      .single();
+    if (studentErr || !student) throw new Error("Aluno não encontrado ou sem permissão");
 
-    // Fetch barriers
-    const { data: barriers } = await admin.from("student_barriers").select("*").eq("student_id", student_id).eq("is_active", true);
+    // Fetch barriers via userClient (RLS enforces ownership)
+    const { data: barriers } = await userClient.from("student_barriers").select("*").eq("student_id", student_id).eq("is_active", true);
 
-    // Fetch recent adaptations
-    const { data: history } = await admin
+    // Fetch recent adaptations via userClient
+    const { data: history } = await userClient
       .from("adaptations_history")
       .select("original_activity, barriers_used, adaptation_result, created_at")
       .eq("student_id", student_id)
