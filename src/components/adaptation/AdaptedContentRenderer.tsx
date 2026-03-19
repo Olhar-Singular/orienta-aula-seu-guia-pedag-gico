@@ -491,17 +491,43 @@ export default function AdaptedContentRenderer({
 
           case "bulletList":
             return (
-              <ul key={i} className="space-y-1.5 pl-5">
-                {block.items.map((item, j) => (
-                  <li
-                    key={j}
-                    className="flex items-start gap-2 text-[13px] text-foreground/90 leading-relaxed"
-                  >
-                    <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60" />
-                    <span>{parseInlineFormatting(item)}</span>
-                  </li>
-                ))}
-              </ul>
+              <div key={i} className="flex items-start gap-2 group">
+                <ul className="space-y-1.5 pl-5 flex-1">
+                  {block.items.map((item, j) => (
+                    <li
+                      key={j}
+                      className="flex items-start gap-2 text-[13px] text-foreground/90 leading-relaxed"
+                    >
+                      <span className="shrink-0 mt-1.5 w-1.5 h-1.5 rounded-full bg-primary/60" />
+                      <span>{parseInlineFormatting(item)}</span>
+                    </li>
+                  ))}
+                </ul>
+                {onContentChange && (
+                  <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-primary"
+                      onClick={() => setEditingBlock({ lines: block.items, type: "bulletList" })}
+                      aria-label="Editar lista"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteParagraph(block.items)}
+                      aria-label="Remover lista"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             );
 
           case "paragraph":
