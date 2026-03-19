@@ -39,20 +39,9 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     toast({ title: "Adaptação salva no histórico!" });
   };
 
-  // Collect images per version: prefer edited/cropped versions over originals
-  const universalEdited = Object.values(data.questionImages.version_universal).flat();
-  const directedEdited = Object.values(data.questionImages.version_directed).flat();
-
-  // If no edited images exist for a version, fall back to original question images
-  const originalImageUrls = data.selectedQuestions?.filter((q) => q.image_url).map((q) => q.image_url as string) || [];
-
-  const imagesUniversal = universalEdited.length > 0
-    ? Array.from(new Set(universalEdited))
-    : (directedEdited.length > 0 ? [] : originalImageUrls);
-
-  const imagesDirected = directedEdited.length > 0
-    ? Array.from(new Set(directedEdited))
-    : [];
+  // Pass per-question image maps to exports
+  const questionImagesUniversal = data.questionImages.version_universal;
+  const questionImagesDirected = data.questionImages.version_directed;
 
   const handleExportPdf = async () => {
     setExportingPdf(true);
@@ -67,8 +56,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
-        imagesUniversal,
-        imagesDirected,
+        questionImagesUniversal,
+        questionImagesDirected,
       });
       toast({ title: "PDF exportado!" });
     } catch {
