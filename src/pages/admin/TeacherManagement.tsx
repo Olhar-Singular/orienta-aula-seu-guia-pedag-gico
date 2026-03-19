@@ -390,7 +390,7 @@ export default function TeacherManagement() {
           <DialogHeader>
             <DialogTitle>Adicionar Professor</DialogTitle>
             <DialogDescription>
-              O professor receberá um e-mail para definir sua senha de acesso.
+              Cadastre o professor com uma senha inicial de acesso.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
