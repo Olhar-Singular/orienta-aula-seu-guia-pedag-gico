@@ -303,6 +303,16 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
         </p>
       )}
 
+      {data.contextPillars && (
+        <ContextIndicator
+          hasBarriers={data.contextPillars.hasBarriers}
+          hasPEI={data.contextPillars.hasPEI}
+          hasDocuments={data.contextPillars.hasDocuments}
+          hasChatHistory={data.contextPillars.hasChatHistory}
+          hasActivityContext={data.contextPillars.hasActivityContext}
+        />
+      )}
+
       {renderQuestionSection(
         "Versão Universal (Design Universal)",
         <BookOpen className="w-4 h-4 text-primary" />,
