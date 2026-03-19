@@ -122,7 +122,7 @@ export default function TeacherManagement() {
       toast.success(
         data?.is_existing_user
           ? "Professor existente vinculado à escola!"
-          : "Professor cadastrado! Um e-mail de acesso foi enviado."
+          : "Professor cadastrado com sucesso!"
       );
       setAddOpen(false);
       setAddForm({ name: "", email: "", password: "", role: "teacher" });

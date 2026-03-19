@@ -137,25 +137,10 @@ serve(async (req) => {
         });
       }
 
-      // Generate password recovery link so teacher can set their password
-      const siteUrl = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://aula-wise-guide.lovable.app";
-      const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-        type: "recovery",
-        email,
-        options: {
-          redirectTo: `${siteUrl}/reset-password`,
-        },
-      });
-
-      if (linkErr) {
-        console.error("Generate link error:", linkErr);
-      }
-
       return new Response(
         JSON.stringify({
           success: true,
           user_id: userId,
-          recovery_link: linkData?.properties?.action_link || null,
           is_existing_user: !!existingUser,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -249,13 +234,6 @@ serve(async (req) => {
             school_id,
             user_id: userId,
             role: teacher.role === "admin" ? "admin" : "teacher",
-          });
-
-          // Generate recovery link
-          await admin.auth.admin.generateLink({
-            type: "recovery",
-            email: teacher.email,
-            options: { redirectTo: `${siteUrl}/reset-password` },
           });
 
           results.push({ email: teacher.email, success: true });
