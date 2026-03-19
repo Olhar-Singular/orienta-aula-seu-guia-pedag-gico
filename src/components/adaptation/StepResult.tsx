@@ -317,6 +317,10 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
                 question,
               })
             }
+            onContentChange={(newContent) => {
+              if (!data.result) return;
+              updateData({ result: { ...data.result, [field]: newContent } as AdaptationResult });
+            }}
           />
         </CardContent>
       </Card>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
@@ -19,6 +19,7 @@ type Props = {
   className?: string;
   questionImages?: Record<string, string[]>;
   onEditQuestion?: (question: ParsedAdaptedQuestion) => void;
+  onContentChange?: (newContent: string) => void;
 };
 
 /**
@@ -350,10 +351,23 @@ export default function AdaptedContentRenderer({
   className,
   questionImages,
   onEditQuestion,
+  onContentChange,
 }: Props) {
   const blocks = parseBlocks(content);
   const parsedQuestions = parseAdaptedQuestions(content);
   const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
+
+  const handleDeleteParagraph = (paragraphLines: string[]) => {
+    if (!onContentChange) return;
+    const lines = content.split("\n");
+    // Build the cleaned paragraph text to match against
+    const targetTexts = new Set(paragraphLines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean));
+    const filtered = lines.filter((line) => {
+      const cleaned = line.replace(/\*\*/g, "").trim();
+      return !targetTexts.has(cleaned);
+    });
+    onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+  };
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -451,9 +465,23 @@ export default function AdaptedContentRenderer({
 
           case "paragraph":
             return (
-              <p key={i} className="text-[13px] text-foreground/90 leading-relaxed">
-                {parseInlineFormatting(block.lines.join(" "))}
-              </p>
+              <div key={i} className="flex items-start gap-2 group">
+                <p className="text-[13px] text-foreground/90 leading-relaxed flex-1">
+                  {parseInlineFormatting(block.lines.join(" "))}
+                </p>
+                {onContentChange && (
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteParagraph(block.lines)}
+                    aria-label="Remover parágrafo"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
             );
         }
       })}
