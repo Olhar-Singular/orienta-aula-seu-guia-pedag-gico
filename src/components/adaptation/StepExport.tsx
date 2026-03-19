@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import type { WizardData } from "./AdaptationWizard";
 import { Save, FileText, FileDown, Copy, RotateCcw, Check, Share2, Link2, Loader2 } from "lucide-react";
@@ -10,6 +9,8 @@ import { exportToDocx } from "@/lib/exportDocx";
 import { generateShareToken } from "@/lib/shareToken";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
   data: WizardData;
@@ -19,8 +20,11 @@ type Props = {
 
 export default function StepExport({ data, onPrev, onRestart }: Props) {
   const { user } = useAuth();
+  const { schoolId } = useUserSchool();
+  const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedAdaptationId, setSavedAdaptationId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -33,10 +37,52 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${r.version_universal}\n\n---\n\nVERSÃO DIRECIONADA\n\n${r.version_directed}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
 
   const handleSaveHistory = async () => {
+    if (!user || saved) return;
     setSaving(true);
-    setSaved(true);
-    setSaving(false);
-    toast({ title: "Adaptação salva no histórico!" });
+
+    try {
+      const activeBarriers = data.barriers
+        .filter((b) => b.is_active)
+        .map((b) => ({
+          dimension: b.dimension,
+          barrier_key: b.barrier_key,
+          label: b.label,
+          notes: b.notes,
+        }));
+
+      const { data: inserted, error } = await supabase
+        .from("adaptations_history")
+        .insert({
+          teacher_id: user.id,
+          original_activity: data.activityText,
+          activity_type: data.activityType,
+          barriers_used: activeBarriers,
+          adaptation_result: r as any,
+          student_id: data.studentId || null,
+          class_id: data.classId || null,
+          school_id: schoolId || null,
+        })
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      setSavedAdaptationId(inserted.id);
+      setSaved(true);
+      toast({ title: "Adaptação salva no histórico!" });
+
+      // Invalidate queries so MyAdaptations reflects the new record
+      queryClient.invalidateQueries({ queryKey: ["adaptations-history-all"] });
+      queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
+    } catch (e: any) {
+      toast({
+        title: "Erro ao salvar",
+        description: e.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Pass per-question image maps to exports
@@ -103,19 +149,24 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
     setSharing(true);
 
     try {
-      // We need the adaptation_id from history. Try to find last saved one.
-      const { data: lastAdaptation } = await supabase
-        .from("adaptations_history")
-        .select("id")
-        .eq("teacher_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
+      // Use the ID we just saved, or find the latest one
+      let adaptationId = savedAdaptationId;
 
-      if (!lastAdaptation) {
-        toast({ title: "Salve a adaptação no histórico antes de compartilhar.", variant: "destructive" });
-        setSharing(false);
-        return;
+      if (!adaptationId) {
+        const { data: lastAdaptation } = await supabase
+          .from("adaptations_history")
+          .select("id")
+          .eq("teacher_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (!lastAdaptation) {
+          toast({ title: "Salve a adaptação no histórico antes de compartilhar.", variant: "destructive" });
+          setSharing(false);
+          return;
+        }
+        adaptationId = lastAdaptation.id;
       }
 
       const token = generateShareToken();
@@ -123,7 +174,7 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
       expiresAt.setDate(expiresAt.getDate() + 7);
 
       const { error } = await supabase.from("shared_adaptations").insert({
-        adaptation_id: lastAdaptation.id,
+        adaptation_id: adaptationId,
         token,
         expires_at: expiresAt.toISOString(),
         created_by: user.id,
@@ -158,12 +209,12 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card
-          className="cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-primary/20"
+          className={`cursor-pointer group hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-primary/20 ${saving ? "opacity-70 pointer-events-none" : ""}`}
           onClick={handleSaveHistory}
         >
           <CardContent className="flex flex-col items-center text-center gap-3 p-6">
             <div className={`p-4 rounded-xl transition-colors duration-300 ${saved ? "bg-primary text-primary-foreground shadow-md" : "bg-primary/10 text-primary group-hover:bg-primary/20"}`}>
-              {saved ? <Check className="w-7 h-7" /> : <Save className="w-7 h-7" />}
+              {saving ? <Loader2 className="w-7 h-7 animate-spin" /> : saved ? <Check className="w-7 h-7" /> : <Save className="w-7 h-7" />}
             </div>
             <div>
               <p className="font-semibold text-foreground text-base">
