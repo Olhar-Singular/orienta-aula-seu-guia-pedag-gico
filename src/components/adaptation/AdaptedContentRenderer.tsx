@@ -360,16 +360,54 @@ export default function AdaptedContentRenderer({
   const parsedQuestions = parseAdaptedQuestions(content);
   const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
 
+  const [editingBlock, setEditingBlock] = useState<{ lines: string[]; type: "paragraph" | "bulletList" } | null>(null);
+
   const handleDeleteParagraph = (paragraphLines: string[]) => {
     if (!onContentChange) return;
     const lines = content.split("\n");
-    // Build the cleaned paragraph text to match against
     const targetTexts = new Set(paragraphLines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean));
     const filtered = lines.filter((line) => {
       const cleaned = line.replace(/\*\*/g, "").trim();
       return !targetTexts.has(cleaned);
     });
     onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+  };
+
+  const handleEditBlockSave = (newText: string) => {
+    if (!onContentChange || !editingBlock) return;
+    const lines = content.split("\n");
+    const targetTexts = editingBlock.lines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean);
+
+    // Find the first matching line index
+    let startIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const cleaned = lines[i].replace(/\*\*/g, "").trim();
+      if (cleaned === targetTexts[0]) {
+        startIdx = i;
+        break;
+      }
+    }
+
+    if (startIdx === -1) return;
+
+    // Count how many consecutive lines match
+    let matchCount = 0;
+    for (let i = 0; i < targetTexts.length && startIdx + i < lines.length; i++) {
+      const cleaned = lines[startIdx + i].replace(/\*\*/g, "").trim();
+      if (cleaned === targetTexts[i]) matchCount++;
+      else break;
+    }
+
+    const newLines = newText.split("\n").map((l) => {
+      if (editingBlock.type === "bulletList" && l.trim() && !l.trim().startsWith("- ") && !l.trim().startsWith("* ") && !l.trim().startsWith("• ")) {
+        return `- ${l.trim()}`;
+      }
+      return l;
+    });
+
+    lines.splice(startIdx, matchCount, ...newLines);
+    onContentChange(lines.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+    setEditingBlock(null);
   };
 
   return (
