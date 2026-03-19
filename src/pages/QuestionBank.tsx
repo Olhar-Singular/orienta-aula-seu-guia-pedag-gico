@@ -662,7 +662,7 @@ export default function QuestionBank() {
                     setShowReviewPreview(true);
                   }}
                 >
-                  <Eye className="w-4 h-4 mr-1" /> Ver Prova
+                  <Eye className="w-4 h-4 mr-1" /> Ver Exercícios
                 </Button>
               )}
               <Button variant="outline" onClick={handleFinishReview}>
