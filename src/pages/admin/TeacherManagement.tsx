@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { UserPlus, Upload, Search, KeyRound, Pencil, Trash2, Loader2, Download, Users } from "lucide-react";
+import { UserPlus, Upload, Search, KeyRound, Pencil, Trash2, Loader2, Download, Users, Eye, EyeOff } from "lucide-react";
 
 interface Teacher {
   id: string;
