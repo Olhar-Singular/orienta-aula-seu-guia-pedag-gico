@@ -8,7 +8,7 @@ export type ParsedAdaptedQuestion = {
 };
 
 const ALT_LINE_REGEX = /^([a-eA-E])\)\s*(.+)/;
-const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*(.+)/;
+const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)](?!\d)\s*(?:\*{0,2})\s*(.+)/;
 
 const stripMarkdownBold = (value: string) => value.replace(/\*\*/g, "").trim();
 
