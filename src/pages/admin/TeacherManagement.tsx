@@ -414,6 +414,29 @@ export default function TeacherManagement() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="add-password">Senha *</Label>
+              <div className="relative">
+                <Input
+                  id="add-password"
+                  type={showPassword ? "text" : "password"}
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">O professor usará esta senha para o primeiro acesso.</p>
+            </div>
+            <div className="space-y-2">
               <Label>Cargo</Label>
               <RadioGroup value={addForm.role} onValueChange={(v) => setAddForm({ ...addForm, role: v })}>
                 <div className="flex items-center space-x-2">
