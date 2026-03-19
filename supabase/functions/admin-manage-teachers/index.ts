@@ -232,10 +232,18 @@ serve(async (req) => {
             }
             userId = newUser.user.id;
 
-            await admin
+            // Create profile (trigger may not fire for admin-created users)
+            const { error: profileErr } = await admin
               .from("profiles")
-              .update({ full_name: teacher.name, email: teacher.email })
-              .eq("user_id", userId);
+              .insert({ user_id: userId, full_name: teacher.name, name: teacher.name, email: teacher.email });
+            
+            if (profileErr) {
+              // Profile may already exist from trigger, try update instead
+              await admin
+                .from("profiles")
+                .update({ full_name: teacher.name, name: teacher.name, email: teacher.email })
+                .eq("user_id", userId);
+            }
           }
 
           await admin.from("school_members").insert({
