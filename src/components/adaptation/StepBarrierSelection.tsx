@@ -197,7 +197,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Select
               value={data.classId || ""}
               onValueChange={(v) =>
-                updateData({ classId: v, studentId: null, studentName: null, barriers: [] })
+                updateData({ classId: v, studentId: null, studentName: null, barriers: [], result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })
               }
             >
               <SelectTrigger>
