@@ -3,52 +3,133 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Título e Descrição -->
     <title>Olhar Singular — Adaptação de Atividades para Educação Inclusiva</title>
-    <meta name="description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis.">
+    <meta name="description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis." />
+
+    <!-- SEO Básico -->
     <meta name="author" content="Olhar Singular" />
+    <meta name="robots" content="index, follow" />
+    <meta name="googlebot" content="index, follow" />
     <link rel="canonical" href="https://olharsingular.com.br/" />
 
-    
-    
+    <!-- Idioma -->
+    <meta http-equiv="content-language" content="pt-BR" />
+    <link rel="alternate" hreflang="pt-BR" href="https://olharsingular.com.br/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://olharsingular.com.br/" />
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/Y8tXP08xPJaxFaFeH3PC01jWwqL2/social-images/social-1773682397717-logo_olho_png_transparente_1-removebg-preview.webp">
+    <meta property="og:title" content="Olhar Singular — Adaptação de Atividades para Educação Inclusiva" />
+    <meta property="og:description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis." />
+    <meta property="og:image" content="https://olharsingular.com.br/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:locale" content="pt_BR" />
     <meta property="og:site_name" content="Olhar Singular" />
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    
-    
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/Y8tXP08xPJaxFaFeH3PC01jWwqL2/social-images/social-1773682397717-logo_olho_png_transparente_1-removebg-preview.webp">
+    <meta name="twitter:title" content="Olhar Singular — Adaptação de Atividades para Educação Inclusiva" />
+    <meta name="twitter:description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis." />
+    <meta name="twitter:image" content="https://olharsingular.com.br/og-image.png" />
 
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0d7377" />
+    <meta name="msapplication-TileColor" content="#0d7377" />
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://pvqjooezhoomtpymfiea.supabase.co" />
+
+    <!-- Schema.org -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      "name": "Olhar Singular",
-      "description": "Ferramenta pedagógica que usa IA para adaptar atividades escolares com foco em barreiras observáveis, sem diagnóstico clínico.",
-      "url": "https://olharsingular.com.br",
-      "logo": "https://olharsingular.com.br/logo.png",
-      "sameAs": [],
-      "areaServed": {
-        "@type": "Country",
-        "name": "Brasil"
-      },
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "BRL",
-        "description": "Plano gratuito para começar"
-      }
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://olharsingular.com.br/#website",
+          "url": "https://olharsingular.com.br",
+          "name": "Olhar Singular",
+          "description": "Ferramenta pedagógica que usa IA para adaptar atividades escolares.",
+          "publisher": { "@id": "https://olharsingular.com.br/#organization" },
+          "inLanguage": "pt-BR"
+        },
+        {
+          "@type": "EducationalOrganization",
+          "@id": "https://olharsingular.com.br/#organization",
+          "name": "Olhar Singular",
+          "url": "https://olharsingular.com.br",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://olharsingular.com.br/logo.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "Ferramenta pedagógica que usa IA para adaptar atividades escolares com foco em barreiras observáveis, sem diagnóstico clínico.",
+          "areaServed": {
+            "@type": "Country",
+            "name": "Brasil"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://olharsingular.com.br/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "O Olhar Singular faz diagnóstico?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Não. A ferramenta trabalha exclusivamente com barreiras pedagógicas observáveis, sem qualquer tipo de diagnóstico clínico."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Preciso de laudo para usar?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Não. Você observa as dificuldades em sala e seleciona as barreiras. Nenhum documento clínico é necessário."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "A adaptação substitui o professor?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Nunca. Você é sempre o decisor final. Pode ajustar, ignorar ou complementar qualquer sugestão."
+              }
+            }
+          ]
+        },
+        {
+          "@type": "SoftwareApplication",
+          "name": "Olhar Singular",
+          "operatingSystem": "Web",
+          "applicationCategory": "EducationalApplication",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "BRL"
+          }
+        }
+      ]
     }
     </script>
-    <meta property="og:title" content="Olhar Singular — Adaptação de Atividades para Educação Inclusiva">
-  <meta name="twitter:title" content="Olhar Singular — Adaptação de Atividades para Educação Inclusiva">
-  <meta property="og:description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis.">
-  <meta name="twitter:description" content="Adapte atividades escolares para alunos neurodivergentes com IA pedagógica. Sem diagnóstico clínico, foco em barreiras observáveis.">
-</head>
+  </head>
 
   <body>
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md focus:text-sm focus:font-semibold">
+      Pular para o conteúdo principal
+    </a>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
