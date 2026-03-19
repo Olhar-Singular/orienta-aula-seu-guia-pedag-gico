@@ -65,7 +65,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
           </Link>
         </div>
         <nav className="flex-1 px-3 space-y-1" aria-label="Navegação do dashboard">
-          {navItems.map((item) => {
+          {allNavItems.map((item) => {
             const active = item.path === "/dashboard"
               ? location.pathname === "/dashboard"
               : location.pathname.startsWith(item.path);
