@@ -197,7 +197,7 @@ type Block =
  * This handles AI output like: "1. Question a) alt b) alt 2. Question..."
  */
 function preProcessContent(content: string): string {
-  let processed = content;
+  let processed = restoreCorruptedLatex(content);
 
   // Insert newline before numbered questions mid-text (e.g., "... text 1. Question")
   // but NOT after math operators/context (/, x, *, +, -, =, (, digits)
