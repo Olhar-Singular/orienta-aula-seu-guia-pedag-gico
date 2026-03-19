@@ -22,7 +22,8 @@ const styles = StyleSheet.create({
 
 // Match \frac{...}{...} or \tfrac{...}{...} or \dfrac{...}{...}
 const LATEX_FRAC_RE = /\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/g;
-// Match plain fractions like 7/8, 42/48, ?/48
+// Match plain fractions like 7/8, 42/48, ?/48 — but NOT decimals like 1.2/
+// Only match when numerator is NOT preceded by a dot (to avoid 0.5/3 splitting wrong)
 const PLAIN_FRAC_RE = /(^|[\s=,(;+\-])(\?|\d+)\s*\/\s*(\?|\d+)(?=[\s=,);.\-+:]|$)/g;
 
 type Segment = { type: "text"; content: string } | { type: "fraction"; num: string; den: string };
