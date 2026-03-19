@@ -55,7 +55,7 @@ const difficulties = [
 ];
 
 export default function StepActivityInput({ value, onChange, selectedQuestions, onSelectedQuestionsChange, onNext, onPrev }: Props) {
-  const [tab, setTab] = useState<Tab>("manual");
+  const [tab, setTab] = useState<Tab>(() => (selectedQuestions.length > 0 ? "banco" : "manual"));
   const [showBankModal, setShowBankModal] = useState(false);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [bankSearch, setBankSearch] = useState("");
@@ -72,6 +72,12 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
     { key: "manual", label: "Colar Texto", icon: Type },
     { key: "banco", label: "Banco de Questões", icon: Database },
   ];
+
+  useEffect(() => {
+    if (tab === "manual" && selectedQuestions.length > 0) {
+      onSelectedQuestionsChange([]);
+    }
+  }, [tab, selectedQuestions.length, onSelectedQuestionsChange]);
 
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
