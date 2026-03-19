@@ -536,6 +536,9 @@ ${sanitizedActivity}`;
       console.error("Failed to save adaptation history:", insertError);
     }
 
+    // Deduct credit server-side
+    await deductCredit(admin, user.id, "adapt-activity");
+
     return new Response(
       JSON.stringify({
         adaptation: adaptationResult,
