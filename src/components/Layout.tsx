@@ -30,8 +30,12 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { memberRole } = useUserSchool();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+
+  const isAdmin = memberRole === "admin";
+  const allNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
 
   const handleLogout = async () => {
     await signOut();
