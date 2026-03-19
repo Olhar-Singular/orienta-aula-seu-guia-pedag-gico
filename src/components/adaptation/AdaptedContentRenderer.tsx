@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
