@@ -10,15 +10,40 @@ import {
   MOCK_BARRIER_ANALYSIS,
   MOCK_ACTIVITY_TEXT,
 } from "./fixtures";
-import { createSupabaseMock, mockAuthHook, mockSubscriptionHook, createTestWrapper } from "./helpers";
+import { mockAuthHook, mockSubscriptionHook, createTestWrapper, createChainableQuery } from "./helpers";
 import { buildRadarData, type DetectedBarrier } from "@/pages/BarrierSimulator";
 
-// ─── Mocks ───
-const supabaseMock = createSupabaseMock({ profiles: MOCK_PROFILE });
+// ─── Mocks (inline to avoid hoisting issues) ───
+const mockFunctionsInvoke = vi.fn();
 
-vi.mock("@/hooks/useAuth", () => mockAuthHook());
-vi.mock("@/hooks/useSubscription", () => mockSubscriptionHook());
-vi.mock("@/integrations/supabase/client", () => supabaseMock);
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: MOCK_USER,
+    session: { access_token: "tok", refresh_token: "ref", user: MOCK_USER },
+    loading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}));
+vi.mock("@/hooks/useSubscription", () => ({
+  useSubscription: () => ({ loading: false }),
+}));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: vi.fn((table: string) => {
+      if (table === "profiles") return createChainableQuery(MOCK_PROFILE);
+      return createChainableQuery(null);
+    }),
+    functions: { invoke: mockFunctionsInvoke },
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
+      updateUser: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
 
 // Mock recharts
 vi.mock("recharts", () => ({
@@ -35,7 +60,7 @@ import BarrierSimulator from "@/pages/BarrierSimulator";
 describe("Flow: Barrier Simulator → Analyze → Result", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    supabaseMock.supabase.functions.invoke.mockResolvedValue({
+    mockFunctionsInvoke.mockResolvedValue({
       data: MOCK_BARRIER_ANALYSIS,
       error: null,
     });
@@ -78,7 +103,7 @@ describe("Flow: Barrier Simulator → Analyze → Result", () => {
     fireEvent.click(getByText("Analisar Barreiras"));
 
     await waitFor(() => {
-      expect(supabaseMock.supabase.functions.invoke).toHaveBeenCalledWith(
+      expect(mockFunctionsInvoke).toHaveBeenCalledWith(
         "analyze-barriers",
         { body: { activity_text: MOCK_ACTIVITY_TEXT } }
       );
@@ -110,11 +135,11 @@ describe("Radar chart data transformation", () => {
   it("calculates correct weighted scores", () => {
     const data = buildRadarData(barriers);
     const proc = data.find((d) => d.dimension === "Processamento");
-    expect(proc?.score).toBe(3); // alta = 3
+    expect(proc?.score).toBe(3);
     const aten = data.find((d) => d.dimension === "Atenção");
-    expect(aten?.score).toBe(2); // media = 2
+    expect(aten?.score).toBe(2);
     const expr = data.find((d) => d.dimension === "Expressão");
-    expect(expr?.score).toBe(1); // baixa = 1
+    expect(expr?.score).toBe(1);
   });
 
   it("returns zero scores for dimensions without barriers", () => {
@@ -140,6 +165,6 @@ describe("Radar chart data transformation", () => {
     ];
     const data = buildRadarData(maxBarriers);
     const proc = data.find((d) => d.dimension === "Processamento");
-    expect(proc?.score).toBe(12); // 4 * 3
+    expect(proc?.score).toBe(12);
   });
 });

@@ -5,26 +5,50 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import {
   MOCK_USER,
+  MOCK_SESSION,
   MOCK_PROFILE,
-  MOCK_CLASS,
   MOCK_CLASSES,
-  MOCK_STUDENT,
   MOCK_STUDENTS,
   MOCK_STUDENT_BARRIERS,
 } from "./fixtures";
-import { createSupabaseMock, mockAuthHook, mockSubscriptionHook, createTestWrapper } from "./helpers";
+import { createTestWrapper, createChainableQuery } from "./helpers";
 
-// ─── Mocks ───
-const supabaseMock = createSupabaseMock({
-  profiles: MOCK_PROFILE,
-  classes: MOCK_CLASSES,
-  class_students: MOCK_STUDENTS,
-  student_barriers: MOCK_STUDENT_BARRIERS,
+// ─── Inline mocks to avoid hoisting issues ───
+const mockFrom = vi.fn((table: string) => {
+  const data: Record<string, any> = {
+    profiles: MOCK_PROFILE,
+    classes: MOCK_CLASSES,
+    class_students: MOCK_STUDENTS,
+    student_barriers: MOCK_STUDENT_BARRIERS,
+  };
+  return createChainableQuery(data[table] ?? null);
 });
 
-vi.mock("@/hooks/useAuth", () => mockAuthHook());
-vi.mock("@/hooks/useSubscription", () => mockSubscriptionHook());
-vi.mock("@/integrations/supabase/client", () => supabaseMock);
+vi.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    user: MOCK_USER,
+    session: MOCK_SESSION,
+    loading: false,
+    signUp: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: any) => children,
+}));
+vi.mock("@/hooks/useSubscription", () => ({
+  useSubscription: () => ({ loading: false }),
+}));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: mockFrom,
+    functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+    auth: {
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: MOCK_SESSION } })),
+      updateUser: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}));
 
 // ─── Imports (after mocks) ───
 import Dashboard from "@/pages/Dashboard";
@@ -69,11 +93,10 @@ describe("Flow: Dashboard → Classes → Student Barriers", () => {
     const Wrapper = createTestWrapper("/dashboard/turmas");
     render(<Classes />, { wrapper: Wrapper });
 
-    expect(supabaseMock.supabase.from).toHaveBeenCalledWith("classes");
+    expect(mockFrom).toHaveBeenCalledWith("classes");
   });
 
   it("validates class creation requires a name", () => {
-    // Pure logic test: creating a class without a name should be prevented
     const name = "";
     const canCreate = name.trim().length > 0;
     expect(canCreate).toBe(false);

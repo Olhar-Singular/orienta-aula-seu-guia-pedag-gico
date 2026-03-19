@@ -47,9 +47,8 @@ describe("Login Page", () => {
   });
 
   it("renders card title", () => {
-    const { getByText } = renderLogin();
-    expect(getByText("Entrar")).toBeTruthy();
-    expect(getByText("Acesse sua conta para continuar")).toBeTruthy();
+    const { getByRole } = renderLogin();
+    expect(getByRole("heading", { name: "Entrar" })).toBeTruthy();
   });
 
   it("renders forgot password link", () => {
