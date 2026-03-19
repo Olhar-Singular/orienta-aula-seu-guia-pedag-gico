@@ -138,8 +138,8 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
 
-  // Strip ALL ** markers — the AI should not be using bold markdown
-  let cleaned = text.replace(/\*\*/g, "");
+  // Bold markers already stripped in preProcessContent
+  let cleaned = text;
 
   // First, handle $...$ delimited LaTeX blocks — render them directly
   const dollarParts = cleaned.split(/\$([^$]+)\$/g);
