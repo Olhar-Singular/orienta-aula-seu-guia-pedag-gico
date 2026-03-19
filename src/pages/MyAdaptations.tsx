@@ -472,6 +472,7 @@ export default function MyAdaptations() {
                     <AdaptedContentRenderer
                       content={editFields.version_universal}
                       onEditQuestion={handleQuestionEdit("version_universal", "Versão Universal")}
+                      onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_universal: newContent }))}
                     />
                   </div>
                 </div>
