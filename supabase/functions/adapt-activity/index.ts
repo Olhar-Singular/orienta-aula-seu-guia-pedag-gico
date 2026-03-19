@@ -699,6 +699,13 @@ ${sanitizedActivity}`;
         adaptation: adaptationResult,
         model_used: modelName,
         tokens_used: tokensUsed,
+        context_pillars: {
+          hasBarriers: true,
+          hasPEI: !!peiContext,
+          hasDocuments: !!documentsContext,
+          hasChatHistory: !!chatContext,
+          hasActivityContext: true,
+        },
         disclaimer: "Ferramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
