@@ -115,11 +115,19 @@ serve(async (req) => {
 
         userId = newUser.user.id;
 
-        // Update profile with full_name and email
-        await admin
+        // Wait briefly for trigger to create profile, then update
+        await new Promise((r) => setTimeout(r, 500));
+
+        // Upsert profile with full_name and email
+        const { error: profileErr } = await admin
           .from("profiles")
-          .update({ full_name: name, email })
-          .eq("user_id", userId);
+          .upsert(
+            { user_id: userId, full_name: name, name, email },
+            { onConflict: "user_id" }
+          );
+        if (profileErr) {
+          console.error("Profile upsert error:", profileErr);
+        }
       }
 
       // Add to school
