@@ -43,7 +43,7 @@ serve(async (req) => {
 
     // ─── CREATE SINGLE TEACHER ───
     if (action === "create") {
-      const { email, name, school_id, role } = body;
+      const { email, name, school_id, role, password } = body;
 
       if (!email || !name || !school_id) {
         return new Response(JSON.stringify({ error: "Campos obrigatórios: email, name, school_id" }), {
