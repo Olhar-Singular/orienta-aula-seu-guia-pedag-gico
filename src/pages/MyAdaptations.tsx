@@ -600,20 +600,22 @@ export default function MyAdaptations() {
                 )}
 
                 {result && (() => {
-                  const savedImages: string[] = Array.isArray(result.question_images)
-                    ? result.question_images.map((qi: any) => qi.image_url).filter(Boolean)
-                    : [];
+                  const savedImages: { image_url: string; question_number?: string }[] =
+                    Array.isArray(result.question_images) ? result.question_images : [];
 
-                  const buildImageMap = (content: string) => {
-                    if (savedImages.length === 0) return {};
-                    const questions = parseAdaptedQuestions(content || "");
-                    if (questions.length === 0) return {};
-                    const lastQ = questions[questions.length - 1];
-                    return { [lastQ.number]: savedImages };
+                  // Build per-question image map from saved data
+                  const buildImageMap = () => {
+                    const map: Record<string, string[]> = {};
+                    for (const qi of savedImages) {
+                      if (!qi.image_url) continue;
+                      const qNum = qi.question_number || "1";
+                      if (!map[qNum]) map[qNum] = [];
+                      map[qNum].push(qi.image_url);
+                    }
+                    return map;
                   };
 
-                  const universalImageMap = buildImageMap(result.version_universal);
-                  const directedImageMap = buildImageMap(result.version_directed);
+                  const imageMap = buildImageMap();
 
                   return (
                     <>
