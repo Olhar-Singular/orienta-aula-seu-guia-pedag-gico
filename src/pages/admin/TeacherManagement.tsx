@@ -90,8 +90,9 @@ export default function TeacherManagement() {
           email: profile?.email ?? null,
           full_name: profile?.full_name ?? profile?.name ?? profile?.email?.split("@")[0] ?? null,
           role: m.role,
-        joined_at: m.joined_at,
-      })) as Teacher[];
+          joined_at: m.joined_at,
+        };
+      }) as Teacher[];
     },
     enabled: !!schoolId,
   });
