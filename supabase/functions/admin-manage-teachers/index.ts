@@ -90,11 +90,13 @@ serve(async (req) => {
 
         userId = existingUser.id;
 
-        // Update profile name if needed
+        // Ensure profile exists/updated
         await admin
           .from("profiles")
-          .update({ full_name: name })
-          .eq("user_id", userId);
+          .upsert(
+            { user_id: userId, full_name: name, name, email: existingUser.email ?? email },
+            { onConflict: "user_id" }
+          );
       } else {
         // Create new user with provided password or temp password
         const userPassword = password || crypto.randomUUID();
