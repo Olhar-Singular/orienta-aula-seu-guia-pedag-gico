@@ -351,10 +351,23 @@ export default function AdaptedContentRenderer({
   className,
   questionImages,
   onEditQuestion,
+  onContentChange,
 }: Props) {
   const blocks = parseBlocks(content);
   const parsedQuestions = parseAdaptedQuestions(content);
   const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
+
+  const handleDeleteParagraph = (paragraphLines: string[]) => {
+    if (!onContentChange) return;
+    const lines = content.split("\n");
+    // Build the cleaned paragraph text to match against
+    const targetTexts = new Set(paragraphLines.map((l) => l.replace(/\*\*/g, "").trim()).filter(Boolean));
+    const filtered = lines.filter((line) => {
+      const cleaned = line.replace(/\*\*/g, "").trim();
+      return !targetTexts.has(cleaned);
+    });
+    onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+  };
 
   return (
     <div className={cn("space-y-3", className)}>
