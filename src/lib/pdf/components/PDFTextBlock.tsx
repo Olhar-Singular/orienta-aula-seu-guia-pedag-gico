@@ -7,6 +7,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 11,
     lineHeight: 1.6,
+    fontFamily: "Helvetica",
     color: colors.text,
     marginBottom: 4,
   },
