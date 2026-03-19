@@ -90,7 +90,7 @@ describe("Flow: Dashboard → Classes → Student Barriers", () => {
     const Wrapper = createTestWrapper("/dashboard/turmas");
     const { getByText } = render(<Classes />, { wrapper: Wrapper });
 
-    expect(getByText("Turmas")).toBeTruthy();
+    expect(getByText("Minhas Turmas")).toBeTruthy();
   });
 
   it("calls supabase.from('classes') on Classes page mount", () => {
