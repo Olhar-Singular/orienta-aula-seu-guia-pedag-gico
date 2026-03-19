@@ -214,7 +214,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Label className="mb-2 block">Aluno</Label>
             <Select
               value={data.studentId || ""}
-              onValueChange={(v) => updateData({ studentId: v })}
+              onValueChange={(v) => updateData({ studentId: v, result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })}
               disabled={!data.classId || loadingStudents}
             >
               <SelectTrigger>
