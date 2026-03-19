@@ -41,6 +41,16 @@ type Props = {
   onPrev: () => void;
 };
 
+const buildBarrierTemplate = (): BarrierItem[] =>
+  BARRIER_DIMENSIONS.flatMap((dim) =>
+    dim.barriers.map((barrier) => ({
+      dimension: dim.key,
+      barrier_key: barrier.key,
+      label: barrier.label,
+      is_active: false,
+    }))
+  );
+
 export default function StepBarrierSelection({ data, updateData, onNext, onPrev }: Props) {
   const { user } = useAuth();
   const [classes, setClasses] = useState<ClassRow[]>([]);
@@ -87,80 +97,62 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       });
   }, [data.classId]);
 
-  // Load barriers and student notes when student changes
-  // Skip if barriers are already populated (e.g. returning from step 4)
+  // Load barriers and notes for the selected student.
+  // Keep local edits when returning from a later step (barriers already in state).
   useEffect(() => {
     if (!data.studentId) return;
-    if (data.barriers.length > 0) {
-      // Barriers already loaded, just ensure studentName is set
-      const student = students.find((s) => s.id === data.studentId);
-      if (student && !data.studentName) updateData({ studentName: student.name });
-      return;
+
+    const selectedStudent = students.find((s) => s.id === data.studentId);
+    if (selectedStudent && data.studentName !== selectedStudent.name) {
+      updateData({ studentName: selectedStudent.name });
     }
 
-    // Fetch student notes to pre-fill observations
-    supabase
-      .from("class_students")
-      .select("notes")
-      .eq("id", data.studentId)
-      .single()
-      .then(({ data: studentData }) => {
-        if (studentData?.notes && !data.observationNotes) {
-          updateData({ observationNotes: studentData.notes });
-        }
-      });
+    if (data.barriers.length > 0) return;
 
-    (supabase.from as any)("student_barriers")
-      .select("barrier_key, dimension, is_active, notes")
-      .eq("student_id", data.studentId)
-      .eq("is_active", true)
-      .then(({ data: barriers }: { data: BarrierRow[] | null }) => {
-        if (!barriers || barriers.length === 0) {
-          const allBarriers: BarrierItem[] = BARRIER_DIMENSIONS.flatMap((dim) =>
-            dim.barriers.map((b) => ({
-              dimension: dim.key,
-              barrier_key: b.key,
-              label: b.label,
-              is_active: false,
-            }))
-          );
-          updateData({ barriers: allBarriers });
-          return;
-        }
-        const activeKeys = new Set(barriers.map((b: BarrierRow) => b.barrier_key));
-        const notesMap = new Map(barriers.map((b: BarrierRow) => [b.barrier_key, b.notes || undefined]));
-        const allBarriers: BarrierItem[] = BARRIER_DIMENSIONS.flatMap((dim) =>
-          dim.barriers.map((b) => ({
-            dimension: dim.key,
-            barrier_key: b.key,
-            label: b.label,
-            is_active: activeKeys.has(b.key),
-            notes: notesMap.get(b.key),
-          }))
-        );
-        updateData({ barriers: allBarriers });
-        if (barriers.length > 0) {
-          setBarriersLocked(true);
-        }
-        const student = students.find((s) => s.id === data.studentId);
-        if (student) updateData({ studentName: student.name });
+    let cancelled = false;
+    const studentId = data.studentId;
+
+    const hydrateStudentContext = async () => {
+      const [studentResponse, barriersResponse] = await Promise.all([
+        supabase.from("class_students").select("notes").eq("id", studentId).single(),
+        (supabase.from as any)("student_barriers")
+          .select("barrier_key, dimension, is_active, notes")
+          .eq("student_id", studentId)
+          .eq("is_active", true),
+      ]);
+
+      if (cancelled) return;
+
+      const persistedBarriers = (barriersResponse.data as BarrierRow[] | null) || [];
+      const activeKeys = new Set(persistedBarriers.map((b) => b.barrier_key));
+      const notesMap = new Map(persistedBarriers.map((b) => [b.barrier_key, b.notes || undefined]));
+
+      const mergedBarriers: BarrierItem[] = buildBarrierTemplate().map((item) => ({
+        ...item,
+        is_active: activeKeys.has(item.barrier_key),
+        notes: notesMap.get(item.barrier_key),
+      }));
+
+      updateData({
+        barriers: mergedBarriers,
+        observationNotes: studentResponse.data?.notes || "",
       });
-  }, [data.studentId]);
+      setBarriersLocked(persistedBarriers.length > 0);
+    };
+
+    hydrateStudentContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data.studentId, data.barriers.length, data.studentName, students, updateData]);
 
   // Initialize barriers for whole class mode
   useEffect(() => {
     if (data.adaptForWholeClass && data.barriers.length === 0) {
-      const allBarriers: BarrierItem[] = BARRIER_DIMENSIONS.flatMap((dim) =>
-        dim.barriers.map((b) => ({
-          dimension: dim.key,
-          barrier_key: b.key,
-          label: b.label,
-          is_active: false,
-        }))
-      );
-      updateData({ barriers: allBarriers });
+      updateData({ barriers: buildBarrierTemplate() });
     }
-  }, [data.adaptForWholeClass]);
+  }, [data.adaptForWholeClass, data.barriers.length, updateData]);
 
   const toggleBarrier = (key: string) => {
     updateData({
@@ -184,8 +176,11 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
           onCheckedChange={(checked) =>
             updateData({
               adaptForWholeClass: checked,
-              studentId: checked ? null : data.studentId,
-              studentName: checked ? null : data.studentName,
+              classId: checked ? null : data.classId,
+              studentId: null,
+              studentName: null,
+              barriers: [],
+              observationNotes: "",
               result: null,
               contextPillars: null,
               questionImages: { version_universal: {}, version_directed: {} },
@@ -205,7 +200,16 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Select
               value={data.classId || ""}
               onValueChange={(v) =>
-                updateData({ classId: v, studentId: null, studentName: null, barriers: [], result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })
+                updateData({
+                  classId: v,
+                  studentId: null,
+                  studentName: null,
+                  barriers: [],
+                  observationNotes: "",
+                  result: null,
+                  contextPillars: null,
+                  questionImages: { version_universal: {}, version_directed: {} },
+                })
               }
             >
               <SelectTrigger>
@@ -222,7 +226,17 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             <Label className="mb-2 block">Aluno</Label>
             <Select
               value={data.studentId || ""}
-              onValueChange={(v) => updateData({ studentId: v, result: null, contextPillars: null, questionImages: { version_universal: {}, version_directed: {} } })}
+              onValueChange={(v) =>
+                updateData({
+                  studentId: v,
+                  studentName: students.find((s) => s.id === v)?.name || null,
+                  barriers: [],
+                  observationNotes: "",
+                  result: null,
+                  contextPillars: null,
+                  questionImages: { version_universal: {}, version_directed: {} },
+                })
+              }
               disabled={!data.classId || loadingStudents}
             >
               <SelectTrigger>
