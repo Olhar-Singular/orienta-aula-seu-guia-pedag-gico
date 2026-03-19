@@ -75,21 +75,24 @@ export default function TeacherManagement() {
       const userIds = members.map((m) => m.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, email")
+        .select("user_id, full_name, name, email")
         .in("user_id", userIds);
 
       const profileMap = new Map(
         (profiles || []).map((p) => [p.user_id, p])
       );
 
-      return members.map((m) => ({
-        id: m.id,
-        user_id: m.user_id,
-        email: profileMap.get(m.user_id)?.email ?? null,
-        full_name: profileMap.get(m.user_id)?.full_name ?? null,
-        role: m.role,
-        joined_at: m.joined_at,
-      })) as Teacher[];
+      return members.map((m) => {
+        const profile = profileMap.get(m.user_id);
+        return {
+          id: m.id,
+          user_id: m.user_id,
+          email: profile?.email ?? null,
+          full_name: profile?.full_name ?? profile?.name ?? profile?.email?.split("@")[0] ?? null,
+          role: m.role,
+          joined_at: m.joined_at,
+        };
+      }) as Teacher[];
     },
     enabled: !!schoolId,
   });

@@ -90,11 +90,13 @@ serve(async (req) => {
 
         userId = existingUser.id;
 
-        // Update profile name if needed
+        // Ensure profile exists/updated
         await admin
           .from("profiles")
-          .update({ full_name: name })
-          .eq("user_id", userId);
+          .upsert(
+            { user_id: userId, full_name: name, name, email: existingUser.email ?? email },
+            { onConflict: "user_id" }
+          );
       } else {
         // Create new user with provided password or temp password
         const userPassword = password || crypto.randomUUID();
@@ -217,6 +219,14 @@ serve(async (req) => {
               continue;
             }
             userId = existing.id;
+
+            // Ensure profile exists/updated for existing user
+            await admin
+              .from("profiles")
+              .upsert(
+                { user_id: userId, full_name: teacher.name, name: teacher.name, email: teacher.email },
+                { onConflict: "user_id" }
+              );
           } else {
             const tempPassword = crypto.randomUUID();
             const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
@@ -232,18 +242,13 @@ serve(async (req) => {
             }
             userId = newUser.user.id;
 
-            // Create profile (trigger may not fire for admin-created users)
-            const { error: profileErr } = await admin
+            // Ensure profile exists/updated for new user
+            await admin
               .from("profiles")
-              .insert({ user_id: userId, full_name: teacher.name, name: teacher.name, email: teacher.email });
-            
-            if (profileErr) {
-              // Profile may already exist from trigger, try update instead
-              await admin
-                .from("profiles")
-                .update({ full_name: teacher.name, name: teacher.name, email: teacher.email })
-                .eq("user_id", userId);
-            }
+              .upsert(
+                { user_id: userId, full_name: teacher.name, name: teacher.name, email: teacher.email },
+                { onConflict: "user_id" }
+              );
           }
 
           await admin.from("school_members").insert({
