@@ -48,6 +48,9 @@ vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: any) => children,
 }));
 
+// Mock scrollIntoView for jsdom
+Element.prototype.scrollIntoView = vi.fn();
+
 import Chat from "@/pages/Chat";
 
 function renderPage() {

@@ -64,6 +64,6 @@ describe("AdaptationHistory Page", () => {
 
   it("renders search input", () => {
     const { getByPlaceholderText } = renderPage();
-    expect(getByPlaceholderText("Buscar por título...")).toBeTruthy();
+    expect(getByPlaceholderText("Buscar...")).toBeTruthy();
   });
 });

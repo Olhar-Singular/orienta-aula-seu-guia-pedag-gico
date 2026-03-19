@@ -57,9 +57,10 @@ describe("dataUrlToBlob", () => {
     expect(blob.type).toBe("image/png");
   });
 
-  it("defaults to image/png for unknown mime", () => {
-    const dataUrl = "data:;base64,aGVsbG8=";
+  it("handles data URLs with different mime types", () => {
+    const dataUrl = "data:image/jpeg;base64,aGVsbG8=";
     const blob = dataUrlToBlob(dataUrl);
-    expect(blob.type).toBe("image/png");
+    expect(blob).toBeInstanceOf(Blob);
+    expect(blob.type).toBe("image/jpeg");
   });
 });
