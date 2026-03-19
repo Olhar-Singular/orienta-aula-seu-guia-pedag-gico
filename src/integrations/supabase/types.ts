@@ -834,6 +834,7 @@ export type Database = {
     }
     Functions: {
       get_credits_used: { Args: { p_user_id: string }; Returns: number }
+      get_school_id_by_code: { Args: { _code: string }; Returns: string }
       get_shared_adaptation: {
         Args: { p_token: string }
         Returns: {
