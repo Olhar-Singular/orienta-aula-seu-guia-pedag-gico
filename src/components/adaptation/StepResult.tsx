@@ -37,17 +37,30 @@ type EditableField = "version_universal" | "version_directed";
 const VISUAL_CUE_REGEX =
   /\b(figura|imagem|gráfico|grafico|diagrama|esquema|mapa|ilustração|ilustracao|tabela)\b/i;
 
-const getDefaultQuestionImageMap = (
+/**
+ * Build a question→images map by matching each selectedQuestion (by order)
+ * to the corresponding adapted question number.
+ * Image from selectedQuestion[0] → adapted question 1, etc.
+ */
+const buildQuestionImageMap = (
   sectionContent: string,
-  images: string[]
+  selectedQuestions: SelectedQuestion[]
 ): QuestionImageMap => {
   const parsedQuestions = parseAdaptedQuestions(sectionContent);
-  if (parsedQuestions.length === 0 || images.length === 0) return {};
+  if (parsedQuestions.length === 0 || selectedQuestions.length === 0) return {};
 
-  const lastQuestion = parsedQuestions[parsedQuestions.length - 1];
-  return {
-    [lastQuestion.number]: images,
-  };
+  const map: QuestionImageMap = {};
+
+  selectedQuestions.forEach((sq, index) => {
+    if (!sq.image_url) return;
+    // Match by order: selectedQuestion index → adapted question at same index
+    const adaptedQ = parsedQuestions[index];
+    if (!adaptedQ) return;
+    if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
+    map[adaptedQ.number].push(sq.image_url);
+  });
+
+  return map;
 };
 
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
