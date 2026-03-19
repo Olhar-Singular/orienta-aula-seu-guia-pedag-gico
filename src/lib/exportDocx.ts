@@ -240,8 +240,8 @@ export async function exportToDocx(data: DocxExportData) {
     for (const imgUrl of urls) {
       const imgData = await fetchImageAsBuffer(imgUrl);
       if (imgData) {
-        const maxWidth = 500;
-        const scale = Math.min(1, maxWidth / imgData.width);
+        const maxWidth = 400;
+        const scale = Math.min(0.8, maxWidth / imgData.width);
         const w = Math.round(imgData.width * scale);
         const h = Math.round(imgData.height * scale);
         paragraphs.push(new Paragraph({
