@@ -11,5 +11,6 @@ export function generateSchoolCode(): string {
 }
 
 export function isValidSchoolCode(code: string): boolean {
-  return /^[A-Z2-9]{6}$/.test(code);
+  // Only uppercase letters (excluding ambiguous O, I) and digits 2-9
+  return /^[ABCDEFGHJKLMNPQRSTUVWXYZ2-9]{6}$/.test(code);
 }

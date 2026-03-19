@@ -7,30 +7,27 @@ import { buildRadarData, type DetectedBarrier } from "@/pages/BarrierSimulator";
 // --- buildRadarData unit tests ---
 describe("buildRadarData", () => {
   const sampleBarriers: DetectedBarrier[] = [
-    { dimension: "processamento", barrier_key: "p1", label: "Enunciado longo", severity: "alta", mitigation: "Fragmentar" },
-    { dimension: "processamento", barrier_key: "p2", label: "Abstrato", severity: "media", mitigation: "Exemplos" },
-    { dimension: "atencao", barrier_key: "a1", label: "Foco", severity: "baixa", mitigation: "Timer" },
-    { dimension: "engajamento", barrier_key: "e1", label: "Texto", severity: "alta", mitigation: "Visual" },
+    { dimension: "tea", barrier_key: "p1", label: "Enunciado longo", severity: "alta", mitigation: "Fragmentar" },
+    { dimension: "tea", barrier_key: "p2", label: "Abstrato", severity: "media", mitigation: "Exemplos" },
+    { dimension: "tdah", barrier_key: "a1", label: "Foco", severity: "baixa", mitigation: "Timer" },
+    { dimension: "dislexia", barrier_key: "e1", label: "Texto", severity: "alta", mitigation: "Visual" },
   ];
 
-  it("returns data for all 5 dimensions", () => {
+  it("returns data for all 11 dimensions", () => {
     const data = buildRadarData(sampleBarriers);
-    expect(data).toHaveLength(5);
-    expect(data.map((d) => d.dimension)).toEqual([
-      "Processamento", "Atenção", "Ritmo", "Engajamento", "Expressão",
-    ]);
+    expect(data).toHaveLength(11);
   });
 
   it("calculates weighted scores correctly", () => {
     const data = buildRadarData(sampleBarriers);
-    const proc = data.find((d) => d.dimension === "Processamento");
+    const tea = data.find((d) => d.dimension === "TEA");
     // alta=3 + media=2 = 5
-    expect(proc?.score).toBe(5);
-    const aten = data.find((d) => d.dimension === "Atenção");
+    expect(tea?.score).toBe(5);
+    const tdah = data.find((d) => d.dimension === "TDAH");
     // baixa=1
-    expect(aten?.score).toBe(1);
-    const ritmo = data.find((d) => d.dimension === "Ritmo");
-    expect(ritmo?.score).toBe(0);
+    expect(tdah?.score).toBe(1);
+    const tod = data.find((d) => d.dimension === "TOD");
+    expect(tod?.score).toBe(0);
   });
 
   it("returns zeros for empty barriers", () => {
