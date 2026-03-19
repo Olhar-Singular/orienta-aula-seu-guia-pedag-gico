@@ -710,7 +710,7 @@ export default function MyAdaptations() {
                         strategiesApplied: result?.strategies_applied || [],
                         pedagogicalJustification: result?.pedagogical_justification || "",
                         implementationTips: result?.implementation_tips || [],
-                        imagesUniversal: savedImages,
+                        // For saved adaptations, we don't have per-question mapping, so skip images
                       });
                       toast.success("PDF exportado!");
                     } catch {
@@ -736,7 +736,7 @@ export default function MyAdaptations() {
                         strategiesApplied: result?.strategies_applied || [],
                         pedagogicalJustification: result?.pedagogical_justification || "",
                         implementationTips: result?.implementation_tips || [],
-                        imagesUniversal: savedImages,
+                        // For saved adaptations, we don't have per-question mapping, so skip images
                       });
                       toast.success("Word exportado!");
                     } catch {

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
-import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap } from "./AdaptationWizard";
+import type { WizardData, AdaptationResult, SectionQuestionImages, QuestionImageMap, SelectedQuestion } from "./AdaptationWizard";
 import {
   Loader2,
   RefreshCw,
@@ -37,17 +37,30 @@ type EditableField = "version_universal" | "version_directed";
 const VISUAL_CUE_REGEX =
   /\b(figura|imagem|gráfico|grafico|diagrama|esquema|mapa|ilustração|ilustracao|tabela)\b/i;
 
-const getDefaultQuestionImageMap = (
+/**
+ * Build a question→images map by matching each selectedQuestion (by order)
+ * to the corresponding adapted question number.
+ * Image from selectedQuestion[0] → adapted question 1, etc.
+ */
+const buildQuestionImageMap = (
   sectionContent: string,
-  images: string[]
+  selectedQuestions: SelectedQuestion[]
 ): QuestionImageMap => {
   const parsedQuestions = parseAdaptedQuestions(sectionContent);
-  if (parsedQuestions.length === 0 || images.length === 0) return {};
+  if (parsedQuestions.length === 0 || selectedQuestions.length === 0) return {};
 
-  const lastQuestion = parsedQuestions[parsedQuestions.length - 1];
-  return {
-    [lastQuestion.number]: images,
-  };
+  const map: QuestionImageMap = {};
+
+  selectedQuestions.forEach((sq, index) => {
+    if (!sq.image_url) return;
+    // Match by order: selectedQuestion index → adapted question at same index
+    const adaptedQ = parsedQuestions[index];
+    if (!adaptedQ) return;
+    if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
+    map[adaptedQ.number].push(sq.image_url);
+  });
+
+  return map;
 };
 
 export default function StepResult({ data, updateData, onNext, onPrev }: Props) {
@@ -177,14 +190,36 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
       });
 
       const mergedImages = await generateImagesForResult(accessToken);
-      const universalImages = getDefaultQuestionImageMap(
+
+      // Build per-question image maps using selectedQuestions order
+      const universalImages = buildQuestionImageMap(
         result.adaptation.version_universal,
-        mergedImages
+        data.selectedQuestions
       );
-      const directedImages = getDefaultQuestionImageMap(
+      const directedImages = buildQuestionImageMap(
         result.adaptation.version_directed,
-        mergedImages
+        data.selectedQuestions
       );
+
+      // Also add any AI-generated images (not from selectedQuestions) to the first visual-cue question
+      if (mergedImages.length > 0) {
+        const selectedUrls = new Set(data.selectedQuestions.map(q => q.image_url).filter(Boolean));
+        const aiGeneratedImages = mergedImages.filter(url => !selectedUrls.has(url));
+        if (aiGeneratedImages.length > 0) {
+          const universalParsed = parseAdaptedQuestions(result.adaptation.version_universal);
+          const visualQ = universalParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
+          if (visualQ) {
+            if (!universalImages[visualQ.number]) universalImages[visualQ.number] = [];
+            universalImages[visualQ.number].push(...aiGeneratedImages);
+          }
+          const directedParsed = parseAdaptedQuestions(result.adaptation.version_directed);
+          const visualQDir = directedParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
+          if (visualQDir) {
+            if (!directedImages[visualQDir.number]) directedImages[visualQDir.number] = [];
+            directedImages[visualQDir.number].push(...aiGeneratedImages);
+          }
+        }
+      }
 
       setQuestionImages({
         version_universal: universalImages,

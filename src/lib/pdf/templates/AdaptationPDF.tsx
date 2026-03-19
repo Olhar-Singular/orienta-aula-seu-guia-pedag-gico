@@ -15,6 +15,8 @@ const TYPE_LABELS: Record<string, string> = {
   resumo: "Resumo",
 };
 
+export type QuestionImageMap = Record<string, string[]>;
+
 export type AdaptationPDFProps = {
   schoolName?: string;
   teacherName?: string;
@@ -26,8 +28,8 @@ export type AdaptationPDFProps = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  imagesUniversal?: string[];
-  imagesDirected?: string[];
+  questionImagesUniversal?: QuestionImageMap;
+  questionImagesDirected?: QuestionImageMap;
 };
 
 export default function AdaptationPDF(props: AdaptationPDFProps) {
@@ -50,6 +52,51 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
     </View>
   );
 
+  // Helper to render text with inline images per question
+  const renderSectionWithImages = (text: string, qImages?: QuestionImageMap) => {
+    if (!qImages || Object.keys(qImages).length === 0) {
+      return <PDFTextBlock text={text} />;
+    }
+
+    // Split text by question boundaries and insert images after each question
+    const lines = text.split("\n");
+    const segments: { lines: string[]; questionNumber?: string }[] = [];
+    let currentLines: string[] = [];
+    let currentQNum: string | undefined;
+
+    const QUESTION_RE = /^(?:\*{0,2})(\d+)[\.\)]\s/;
+
+    for (const line of lines) {
+      const qMatch = line.trim().match(QUESTION_RE);
+      if (qMatch) {
+        // Flush previous segment
+        if (currentLines.length > 0) {
+          segments.push({ lines: [...currentLines], questionNumber: currentQNum });
+        }
+        currentLines = [line];
+        currentQNum = qMatch[1];
+      } else {
+        currentLines.push(line);
+      }
+    }
+    if (currentLines.length > 0) {
+      segments.push({ lines: [...currentLines], questionNumber: currentQNum });
+    }
+
+    return (
+      <>
+        {segments.map((seg, i) => (
+          <View key={i}>
+            <PDFTextBlock text={seg.lines.join("\n")} />
+            {seg.questionNumber && qImages[seg.questionNumber] && qImages[seg.questionNumber].length > 0 && (
+              <PDFImage urls={qImages[seg.questionNumber]} />
+            )}
+          </View>
+        ))}
+      </>
+    );
+  };
+
   return (
     <Document title="Atividade Adaptada" author={props.teacherName || "Olhar Singular"}>
       {/* Page 1: Versão Universal */}
@@ -57,10 +104,7 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
         <PDFHeader headerParts={headerParts} />
         {titleBlock}
         <PDFSection title="Versão Universal (Design Universal para Aprendizagem)">
-          <PDFTextBlock text={props.versionUniversal} />
-          {props.imagesUniversal && props.imagesUniversal.length > 0 && (
-            <PDFImage urls={props.imagesUniversal} />
-          )}
+          {renderSectionWithImages(props.versionUniversal, props.questionImagesUniversal)}
         </PDFSection>
         <PDFFooter />
       </Page>
@@ -69,10 +113,7 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
       <Page size="A4" style={baseStyles.page} wrap>
         <PDFHeader headerParts={headerParts} />
         <PDFSection title="Versão Direcionada">
-          <PDFTextBlock text={props.versionDirected} />
-          {props.imagesDirected && props.imagesDirected.length > 0 && (
-            <PDFImage urls={props.imagesDirected} />
-          )}
+          {renderSectionWithImages(props.versionDirected, props.questionImagesDirected)}
         </PDFSection>
         <PDFFooter />
       </Page>

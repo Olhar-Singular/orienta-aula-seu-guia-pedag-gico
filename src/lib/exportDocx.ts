@@ -1,5 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Footer, ImageRun, Math as DocxMath, MathRun, MathFraction, PageBreak } from "docx";
 
+export type QuestionImageMap = Record<string, string[]>;
+
 export type DocxExportData = {
   schoolName?: string;
   teacherName?: string;
@@ -11,8 +13,8 @@ export type DocxExportData = {
   strategiesApplied: string[];
   pedagogicalJustification: string;
   implementationTips: string[];
-  imagesUniversal?: string[];
-  imagesDirected?: string[];
+  questionImagesUniversal?: QuestionImageMap;
+  questionImagesDirected?: QuestionImageMap;
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -256,8 +258,51 @@ export async function exportToDocx(data: DocxExportData) {
     return paragraphs;
   }
 
-  const universalImageParagraphs = await fetchImageParagraphs(data.imagesUniversal || []);
-  const directedImageParagraphs = await fetchImageParagraphs(data.imagesDirected || []);
+  // Build paragraphs with per-question images inserted inline
+  const QUESTION_RE = /^(?:\*{0,2})(\d+)[\.\)]\s/;
+
+  async function textToParagraphsWithImages(
+    text: string,
+    qImages?: QuestionImageMap
+  ): Promise<Paragraph[]> {
+    const lines = text.split("\n");
+    const result: Paragraph[] = [];
+    let currentQNum: string | undefined;
+
+    for (const rawLine of lines) {
+      const line = normalizeLatexForDocx(rawLine);
+      const qMatch = rawLine.trim().match(QUESTION_RE);
+
+      // If we hit a new question, flush images for the previous question
+      if (qMatch) {
+        if (currentQNum && qImages?.[currentQNum]) {
+          const imgs = await fetchImageParagraphs(qImages[currentQNum]);
+          result.push(...imgs);
+        }
+        currentQNum = qMatch[1];
+      }
+
+      const children = parseLineWithFractions(line);
+      result.push(new Paragraph({ children }));
+    }
+
+    // Flush images for the last question
+    if (currentQNum && qImages?.[currentQNum]) {
+      const imgs = await fetchImageParagraphs(qImages[currentQNum]);
+      result.push(...imgs);
+    }
+
+    return result;
+  }
+
+  const universalParagraphs = await textToParagraphsWithImages(
+    data.versionUniversal,
+    data.questionImagesUniversal
+  );
+  const directedParagraphs = await textToParagraphsWithImages(
+    data.versionDirected,
+    data.questionImagesDirected
+  );
 
   const doc = new Document({
     sections: [
@@ -284,14 +329,12 @@ export async function exportToDocx(data: DocxExportData) {
           new Paragraph({ text: "" }),
           // Universal
           new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
-          ...textToParagraphs(data.versionUniversal),
-          ...universalImageParagraphs,
+          ...universalParagraphs,
           // Page break before Directed version
           new Paragraph({ children: [new PageBreak()] }),
           // Directed
           new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
-          ...textToParagraphs(data.versionDirected),
-          ...directedImageParagraphs,
+          ...directedParagraphs,
           // Page break before Strategies/Justification/Tips
           new Paragraph({ children: [new PageBreak()] }),
           // Strategies

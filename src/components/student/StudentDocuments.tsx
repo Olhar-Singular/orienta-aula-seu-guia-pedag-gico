@@ -339,7 +339,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
                     strategiesApplied: result.strategies_applied || [],
                     pedagogicalJustification: result.pedagogical_justification || "",
                     implementationTips: result.implementation_tips || [],
-                    imagesUniversal: savedImages,
+                    // For saved adaptations, per-question mapping not available
                   });
                   toast.success("PDF exportado!");
                 } catch {
