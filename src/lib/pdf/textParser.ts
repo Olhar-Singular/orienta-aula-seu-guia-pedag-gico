@@ -74,6 +74,29 @@ const SUB_RE = new RegExp(`[${Object.keys(SUBSCRIPT_MAP).join("")}]+`, "g");
 
 export function normalizeMathText(text: string): string {
   let result = text;
+
+  // Restore corrupted LaTeX from JSON streaming
+  result = result
+    .replace(/\x0Crac/g, "\\frac")
+    .replace(/\x0C/g, "\\f")
+    .replace(/\x08inom/g, "\\binom")
+    .replace(/\x09frac/g, "\\tfrac")
+    .replace(/\x09ext/g, "\\text");
+
+  // Strip dollar-sign delimiters: $...$ → content
+  result = result.replace(/\$([^$]+)\$/g, (_m, inner) => inner.trim());
+
+  // Convert \frac{a}{b}, \tfrac{a}{b}, \dfrac{a}{b} → a/b
+  result = result.replace(/\\[tdf]?frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => `${num.trim()}/${den.trim()}`);
+
+  // Convert LaTeX operators to readable symbols
+  result = result.replace(/\\div\b/g, "÷");
+  result = result.replace(/\\times\b/g, "×");
+  result = result.replace(/\\cdot\b/g, "·");
+  result = result.replace(/\\pm\b/g, "±");
+  result = result.replace(/\\sqrt\{([^{}]+)\}/g, "√($1)");
+  result = result.replace(/\\text\{([^{}]+)\}/g, "$1");
+
   // Replace sequences of superscript chars → ^(digits)
   result = result.replace(SUPER_RE, (match) => {
     const converted = [...match].map((c) => SUPERSCRIPT_MAP[c] ?? c).join("");
@@ -86,7 +109,7 @@ export function normalizeMathText(text: string): string {
   });
   // Normalize common problematic Unicode symbols
   result = result.replace(/×/g, " x ");
-  result = result.replace(/÷/g, " / ");
+  result = result.replace(/÷/g, " ÷ ");
   result = result.replace(/±/g, "+/-");
   result = result.replace(/≠/g, "!=");
   result = result.replace(/≤/g, "<=");
