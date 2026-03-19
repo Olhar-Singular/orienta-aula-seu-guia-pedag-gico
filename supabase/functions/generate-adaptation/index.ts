@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkCredits, deductCredit } from "../_shared/checkCredits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,6 +141,10 @@ serve(async (req) => {
     const newWindow = !windowStart || windowStart <= hourAgo ? now.toISOString() : rl!.window_start;
     await admin.from("rate_limits").upsert({ user_id: authData.user.id, request_count: newCount, window_start: newWindow });
 
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, authData.user.id, "generate-adaptation", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
+
     const { messages, context, action } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -209,6 +214,9 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Deduct credit server-side (for streaming, deduct on successful start)
+    await deductCredit(admin, authData.user.id, "generate-adaptation");
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

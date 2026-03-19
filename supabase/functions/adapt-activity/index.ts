@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
+import { checkCredits, deductCredit } from "../_shared/checkCredits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -321,6 +322,10 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, user.id, "adapt-activity", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
+
     const body = await req.json();
     const {
       original_activity,
@@ -344,35 +349,42 @@ serve(async (req) => {
     const sanitizedType = sanitize(activity_type, 100);
     const sanitizedObservations = observation_notes ? sanitize(observation_notes, 2000) : "";
 
-    // Build enriched context
+    // Build enriched context — use userClient (RLS-scoped) to prevent IDOR
     let studentContext = "";
     if (student_id) {
-      // Fetch student barrier history
-      const { data: studentBarriers } = await admin
-        .from("student_barriers")
-        .select("barrier_key, dimension, notes")
-        .eq("student_id", student_id)
-        .eq("is_active", true);
-
-      // Fetch student notes from profile
-      const { data: studentData } = await admin
+      // Verify caller has access to this student via RLS
+      const { data: studentData, error: studentErr } = await userClient
         .from("class_students")
         .select("name, notes")
         .eq("id", student_id)
         .single();
 
-      // Fetch recent adaptations for context
-      const { data: recentAdaptations } = await admin
+      if (studentErr || !studentData) {
+        return new Response(JSON.stringify({ error: "Aluno não encontrado ou sem permissão." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fetch barriers via userClient (RLS enforces ownership through class join)
+      const { data: studentBarriers } = await userClient
+        .from("student_barriers")
+        .select("barrier_key, dimension, notes")
+        .eq("student_id", student_id)
+        .eq("is_active", true);
+
+      // Fetch recent adaptations via userClient
+      const { data: recentAdaptations } = await userClient
         .from("adaptations_history")
         .select("activity_type, barriers_used, created_at")
         .eq("student_id", student_id)
         .order("created_at", { ascending: false })
         .limit(5);
 
-      if (studentData?.name) {
+      if (studentData.name) {
         studentContext += `\nNome do aluno: ${studentData.name}`;
       }
-      if (studentData?.notes) {
+      if (studentData.notes) {
         studentContext += `\nObservações fixas do perfil do aluno: ${studentData.notes}`;
       }
       if (studentBarriers && studentBarriers.length > 0) {
@@ -523,6 +535,9 @@ ${sanitizedActivity}`;
     if (insertError) {
       console.error("Failed to save adaptation history:", insertError);
     }
+
+    // Deduct credit server-side
+    await deductCredit(admin, user.id, "adapt-activity");
 
     return new Response(
       JSON.stringify({

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkCredits, deductCredit } from "../_shared/checkCredits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, supabaseKey);
 
+    // Server-side credit check
+    const creditCheck = await checkCredits(admin, user!.id, "generate-pei", corsHeaders);
+    if (!creditCheck.ok) return creditCheck.response!;
+
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -43,15 +48,19 @@ serve(async (req) => {
     const { student_id } = await req.json();
     if (!student_id) throw new Error("student_id obrigatório");
 
-    // Fetch student data
-    const { data: student } = await admin.from("class_students").select("*").eq("id", student_id).single();
-    if (!student) throw new Error("Aluno não encontrado");
+    // Fetch student data using userClient (RLS-scoped) to prevent IDOR
+    const { data: student, error: studentErr } = await userClient
+      .from("class_students")
+      .select("*")
+      .eq("id", student_id)
+      .single();
+    if (studentErr || !student) throw new Error("Aluno não encontrado ou sem permissão");
 
-    // Fetch barriers
-    const { data: barriers } = await admin.from("student_barriers").select("*").eq("student_id", student_id).eq("is_active", true);
+    // Fetch barriers via userClient (RLS enforces ownership)
+    const { data: barriers } = await userClient.from("student_barriers").select("*").eq("student_id", student_id).eq("is_active", true);
 
-    // Fetch recent adaptations
-    const { data: history } = await admin
+    // Fetch recent adaptations via userClient
+    const { data: history } = await userClient
       .from("adaptations_history")
       .select("original_activity, barriers_used, adaptation_result, created_at")
       .eq("student_id", student_id)
@@ -182,6 +191,9 @@ Preencha os campos usando a função fornecida.`;
         status: "pendente",
       }));
     }
+
+    // Deduct credit server-side
+    await deductCredit(admin, user!.id, "generate-pei");
 
     return new Response(JSON.stringify(peiResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
