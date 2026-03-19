@@ -60,6 +60,15 @@ export default function Classes() {
 
   const deleteClass = useMutation({
     mutationFn: async (id: string) => {
+      // Check if class has students
+      const { count, error: countErr } = await supabase
+        .from("class_students")
+        .select("id", { count: "exact", head: true })
+        .eq("class_id", id);
+      if (countErr) throw countErr;
+      if (count && count > 0) {
+        throw new Error(`Esta turma possui ${count} aluno(s). Remova todos os alunos antes de excluir a turma.`);
+      }
       const { error } = await supabase.from("classes").delete().eq("id", id);
       if (error) throw error;
     },
@@ -67,7 +76,7 @@ export default function Classes() {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
       toast.success("Turma removida.");
     },
-    onError: () => toast.error("Erro ao remover turma."),
+    onError: (err: Error) => toast.error(err.message || "Erro ao remover turma."),
   });
 
   return (
