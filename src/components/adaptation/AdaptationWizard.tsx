@@ -253,8 +253,9 @@ export default function AdaptationWizard() {
                   barriers: [],
                   adaptForWholeClass: false,
                   observationNotes: "",
-                  result: null,
-                  questionImages: { version_universal: {}, version_directed: {} },
+                    result: null,
+                    contextPillars: null,
+                    questionImages: { version_universal: {}, version_directed: {} },
                 });
               }} />
             )}
