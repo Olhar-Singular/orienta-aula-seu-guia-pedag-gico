@@ -71,8 +71,6 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const tabs: { key: Tab; label: string; icon: typeof Type }[] = [
     { key: "manual", label: "Colar Texto", icon: Type },
     { key: "banco", label: "Banco de Questões", icon: Database },
-    { key: "arquivo", label: "Upload de Arquivo", icon: FileUp },
-    { key: "imagem", label: "Recortar Imagem", icon: Crop },
   ];
 
   const fetchBankQuestions = useCallback(async () => {
