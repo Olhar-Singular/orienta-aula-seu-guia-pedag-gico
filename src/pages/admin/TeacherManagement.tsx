@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { UserPlus, Upload, Search, KeyRound, Pencil, Trash2, Loader2, Download, Users } from "lucide-react";
+import { UserPlus, Upload, Search, KeyRound, Pencil, Trash2, Loader2, Download, Users, Eye, EyeOff } from "lucide-react";
 
 interface Teacher {
   id: string;
@@ -91,12 +91,17 @@ export default function TeacherManagement() {
   });
 
   // ─── ADD TEACHER ───
-  const [addForm, setAddForm] = useState({ name: "", email: "", role: "teacher" });
+  const [addForm, setAddForm] = useState({ name: "", email: "", password: "", role: "teacher" });
+  const [showPassword, setShowPassword] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
 
   const handleAdd = async () => {
-    if (!addForm.name || !addForm.email) {
-      toast.error("Nome e e-mail são obrigatórios.");
+    if (!addForm.name || !addForm.email || !addForm.password) {
+      toast.error("Nome, e-mail e senha são obrigatórios.");
+      return;
+    }
+    if (addForm.password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
     setAddLoading(true);
@@ -106,6 +111,7 @@ export default function TeacherManagement() {
           action: "create",
           email: addForm.email.trim(),
           name: addForm.name.trim(),
+          password: addForm.password,
           school_id: schoolId,
           role: addForm.role,
         },
@@ -119,7 +125,7 @@ export default function TeacherManagement() {
           : "Professor cadastrado! Um e-mail de acesso foi enviado."
       );
       setAddOpen(false);
-      setAddForm({ name: "", email: "", role: "teacher" });
+      setAddForm({ name: "", email: "", password: "", role: "teacher" });
       queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao cadastrar professor.");
@@ -384,7 +390,7 @@ export default function TeacherManagement() {
           <DialogHeader>
             <DialogTitle>Adicionar Professor</DialogTitle>
             <DialogDescription>
-              O professor receberá um e-mail para definir sua senha de acesso.
+              Cadastre o professor com uma senha inicial de acesso.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -406,6 +412,29 @@ export default function TeacherManagement() {
                 onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                 placeholder="maria@escola.com"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-password">Senha *</Label>
+              <div className="relative">
+                <Input
+                  id="add-password"
+                  type={showPassword ? "text" : "password"}
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  placeholder="Mínimo 6 caracteres"
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">O professor usará esta senha para o primeiro acesso.</p>
             </div>
             <div className="space-y-2">
               <Label>Cargo</Label>

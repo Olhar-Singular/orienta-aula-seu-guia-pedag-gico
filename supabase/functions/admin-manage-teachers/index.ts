@@ -43,7 +43,7 @@ serve(async (req) => {
 
     // ─── CREATE SINGLE TEACHER ───
     if (action === "create") {
-      const { email, name, school_id, role } = body;
+      const { email, name, school_id, role, password } = body;
 
       if (!email || !name || !school_id) {
         return new Response(JSON.stringify({ error: "Campos obrigatórios: email, name, school_id" }), {
@@ -96,11 +96,11 @@ serve(async (req) => {
           .update({ full_name: name })
           .eq("user_id", userId);
       } else {
-        // Create new user (with email auto-confirmed)
-        const tempPassword = crypto.randomUUID();
+        // Create new user with provided password or temp password
+        const userPassword = password || crypto.randomUUID();
         const { data: newUser, error: createErr } = await admin.auth.admin.createUser({
           email,
-          password: tempPassword,
+          password: userPassword,
           email_confirm: true,
           user_metadata: { name },
         });
