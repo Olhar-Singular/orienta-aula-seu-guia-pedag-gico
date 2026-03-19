@@ -644,7 +644,7 @@ export default function MyAdaptations() {
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
                             content={result.version_directed || ""}
-                            questionImages={imageMap}
+                            questionImages={imageMapDirected}
                           />
                         </div>
                       </div>
