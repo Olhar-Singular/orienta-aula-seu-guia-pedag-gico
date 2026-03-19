@@ -183,7 +183,7 @@ function SchoolTab() {
       if (fErr || !schoolId) throw new Error("Código não encontrado");
       const { error: mErr } = await supabase.from("school_members").insert({ school_id: schoolId, user_id: user!.id });
       if (mErr) throw mErr;
-      return school;
+      return { id: schoolId };
     },
     onSuccess: () => {
       toast.success("Você entrou na escola!");
