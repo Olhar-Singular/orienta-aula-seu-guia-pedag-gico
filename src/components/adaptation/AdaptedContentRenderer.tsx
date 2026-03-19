@@ -138,8 +138,8 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
   let key = 0;
 
-  // Strip ALL ** markers — the AI should not be using bold markdown
-  let cleaned = text.replace(/\*\*/g, "");
+  // Bold markers already stripped in preProcessContent
+  let cleaned = text;
 
   // First, handle $...$ delimited LaTeX blocks — render them directly
   const dollarParts = cleaned.split(/\$([^$]+)\$/g);
@@ -175,7 +175,7 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
 const ALT_LINE_REGEX = /^([a-eA-E])\)\s+(.+)/;
 // Detect numbered question/item lines: must start with number + "." + space + text starting with a letter/word
 // Avoids matching bare numbers or math like "= 42/48"
-const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)]\s*(?:\*{0,2})\s*([A-Za-zÀ-ú"(].+)/;
+const QUESTION_LINE_REGEX = /^(\d+)[\.\)]\s*([A-Za-zÀ-ú"(].+)/;
 // Detect section-like headers (all caps or ending with :)
 const HEADER_REGEX = /^([A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ\s]{4,}):?\s*$/;
 // Detect markdown headers ## ...
@@ -196,14 +196,31 @@ type Block =
  */
 function preProcessContent(content: string): string {
   let processed = restoreCorruptedLatex(content);
+
+  // Strip bold markers early so block-level regexes work on clean text
+  processed = processed.replace(/\*\*/g, "");
+
+  // Split numbered questions that are inline
   processed = processed.replace(
-    /([^\n\/x*+\-=()\d])(\s+)(\*{0,2}\d+\.\s+[A-Za-zÀ-ú])/g,
+    /([^\n\/x*+\-=()\d])(\s+)(\d+[\.\)]\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
+  // Split alternatives that are inline
   processed = processed.replace(
     /([^\n\/x*+\-=()\d])(\s+)([a-eA-E]\)\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
+  // Split bullet items (* item, - item, • item) that are inline
+  processed = processed.replace(
+    /([^\n])(\s+)([*\-•]\s+[A-Za-zÀ-ú])/g,
+    "$1\n$3"
+  );
+  // Convert "Passo N:" / "Etapa N:" style labels to recognisable headers
+  processed = processed.replace(
+    /^([*\-•]\s+)?(Passo|Etapa)\s+(\d+)\s*[:\-–]\s*/gim,
+    "$3. "
+  );
+
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
   return processed;
 }
