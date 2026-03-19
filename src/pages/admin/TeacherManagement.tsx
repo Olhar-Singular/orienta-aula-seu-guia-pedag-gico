@@ -125,7 +125,7 @@ export default function TeacherManagement() {
           : "Professor cadastrado! Um e-mail de acesso foi enviado."
       );
       setAddOpen(false);
-      setAddForm({ name: "", email: "", role: "teacher" });
+      setAddForm({ name: "", email: "", password: "", role: "teacher" });
       queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao cadastrar professor.");
