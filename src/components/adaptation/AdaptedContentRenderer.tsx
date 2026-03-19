@@ -103,12 +103,11 @@ const FORMULA_REGEX =
  */
 function restoreCorruptedLatex(text: string): string {
   return text
-    .replace(/\x0Crac/g, "\\frac")       // \f + rac → \frac
+    .replace(/\x0Crac/g, "\\frac")       // form feed + rac → \frac
     .replace(/\x0C/g, "\\f")             // any remaining form feeds
-    .replace(/\tsqrt/g, "\\tsqrt")        // \t + sqrt (unlikely but safe)
-    .replace(/\binom/g, "\\binom")        // \b + inom → \binom  
-    .replace(/\right/g, "\\right")        // \r + ight → \right (if not already newline)
-    .replace(/\not/g, "\\not");           // \n + ot → \not
+    .replace(/\x08inom/g, "\\binom")     // backspace + inom → \binom
+    .replace(/\x09frac/g, "\\tfrac")     // tab + frac → \tfrac
+    .replace(/\x09ext/g, "\\text");      // tab + ext → \text
 }
 
 function KaTeXInline({ formula }: { formula: string }) {
