@@ -64,7 +64,7 @@ export default function TeacherManagement() {
       if (!schoolId) return [];
       const { data, error } = await supabase
         .from("school_members")
-        .select("id, user_id, role, joined_at, profiles!inner(full_name, email)")
+        .select("id, user_id, role, joined_at, profiles(full_name, email)")
         .eq("school_id", schoolId)
         .order("joined_at", { ascending: false });
 

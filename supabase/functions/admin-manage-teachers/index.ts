@@ -115,11 +115,19 @@ serve(async (req) => {
 
         userId = newUser.user.id;
 
-        // Update profile with full_name and email
-        await admin
+        // Create profile directly (trigger may not fire for admin-created users)
+        const { error: profileErr } = await admin
           .from("profiles")
-          .update({ full_name: name, email })
-          .eq("user_id", userId);
+          .insert({ user_id: userId, full_name: name, name, email });
+        
+        if (profileErr) {
+          // Profile may already exist from trigger, try update instead
+          console.log("Profile insert failed, trying update:", profileErr.message);
+          await admin
+            .from("profiles")
+            .update({ full_name: name, name, email })
+            .eq("user_id", userId);
+        }
       }
 
       // Add to school
