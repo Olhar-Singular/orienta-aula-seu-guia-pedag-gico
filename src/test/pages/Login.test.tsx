@@ -40,10 +40,10 @@ function renderLogin() {
 
 describe("Login Page", () => {
   it("renders login form with email and password fields", () => {
-    const { getByLabelText, getByText } = renderLogin();
+    const { getByLabelText, getByRole } = renderLogin();
     expect(getByLabelText("E-mail")).toBeInTheDocument();
     expect(getByLabelText("Senha")).toBeInTheDocument();
-    expect(getByText("Entrar")).toBeInTheDocument();
+    expect(getByRole("button", { name: "Entrar" })).toBeInTheDocument();
   });
 
   it("renders card title", () => {
