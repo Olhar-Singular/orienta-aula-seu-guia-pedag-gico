@@ -100,6 +100,7 @@ export default function AdaptationWizard() {
     adaptForWholeClass: false,
     observationNotes: "",
     result: null,
+    contextPillars: null,
     questionImages: { version_universal: {}, version_directed: {} },
   });
 
