@@ -666,67 +666,66 @@ export default function MyAdaptations() {
                           </ul>
                         </div>
                       )}
+                      <div className="flex flex-wrap gap-2 pt-4 border-t">
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const text = `Versão Universal:\n${result?.version_universal || ""}\n\nVersão Direcionada:\n${result?.version_directed || ""}\n\nJustificativa:\n${result?.pedagogical_justification || ""}`;
+                          navigator.clipboard.writeText(text);
+                          toast.success("Conteúdo copiado!");
+                        }}>
+                          <Copy className="w-4 h-4 mr-1" /> Copiar
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
+                          setExportingPdf(true);
+                          try {
+                            await exportToPdf({
+                              studentName: viewItem.student_name || undefined,
+                              activityType: viewItem.raw.activity_type || undefined,
+                              date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
+                              versionUniversal: result?.version_universal || "",
+                              versionDirected: result?.version_directed || "",
+                              strategiesApplied: result?.strategies_applied || [],
+                              pedagogicalJustification: result?.pedagogical_justification || "",
+                              implementationTips: result?.implementation_tips || [],
+                              questionImagesUniversal: imageMap,
+                              questionImagesDirected: imageMap,
+                            });
+                            toast.success("PDF exportado!");
+                          } catch {
+                            toast.error("Erro ao gerar PDF");
+                          }
+                          setExportingPdf(false);
+                        }}>
+                          {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
+                          {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
+                        </Button>
+                        <Button variant="outline" size="sm" disabled={exportingDocx} onClick={async () => {
+                          setExportingDocx(true);
+                          try {
+                            await exportToDocx({
+                              studentName: viewItem.student_name || undefined,
+                              activityType: viewItem.raw.activity_type || undefined,
+                              date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
+                              versionUniversal: result?.version_universal || "",
+                              versionDirected: result?.version_directed || "",
+                              strategiesApplied: result?.strategies_applied || [],
+                              pedagogicalJustification: result?.pedagogical_justification || "",
+                              implementationTips: result?.implementation_tips || [],
+                              questionImagesUniversal: imageMap,
+                              questionImagesDirected: imageMap,
+                            });
+                            toast.success("Word exportado!");
+                          } catch {
+                            toast.error("Erro ao gerar Word");
+                          }
+                          setExportingDocx(false);
+                        }}>
+                          {exportingDocx ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
+                          {exportingDocx ? "Gerando Word..." : "Exportar Word"}
+                        </Button>
+                      </div>
                     </>
                   );
                 })()}
-
-                <div className="flex flex-wrap gap-2 pt-4 border-t">
-                  <Button variant="outline" size="sm" onClick={() => {
-                    const text = `Versão Universal:\n${result?.version_universal || ""}\n\nVersão Direcionada:\n${result?.version_directed || ""}\n\nJustificativa:\n${result?.pedagogical_justification || ""}`;
-                    navigator.clipboard.writeText(text);
-                    toast.success("Conteúdo copiado!");
-                  }}>
-                    <Copy className="w-4 h-4 mr-1" /> Copiar
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={exportingPdf} onClick={async () => {
-                    setExportingPdf(true);
-                    try {
-                      await exportToPdf({
-                        studentName: viewItem.student_name || undefined,
-                        activityType: viewItem.raw.activity_type || undefined,
-                        date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
-                        versionUniversal: result?.version_universal || "",
-                        versionDirected: result?.version_directed || "",
-                        strategiesApplied: result?.strategies_applied || [],
-                        pedagogicalJustification: result?.pedagogical_justification || "",
-                        implementationTips: result?.implementation_tips || [],
-                        questionImagesUniversal: imageMap,
-                        questionImagesDirected: imageMap,
-                      });
-                      toast.success("PDF exportado!");
-                    } catch {
-                      toast.error("Erro ao gerar PDF");
-                    }
-                    setExportingPdf(false);
-                  }}>
-                    {exportingPdf ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Printer className="w-4 h-4 mr-1" />}
-                    {exportingPdf ? "Gerando PDF..." : "Exportar PDF"}
-                  </Button>
-                  <Button variant="outline" size="sm" disabled={exportingDocx} onClick={async () => {
-                    setExportingDocx(true);
-                    try {
-                      await exportToDocx({
-                        studentName: viewItem.student_name || undefined,
-                        activityType: viewItem.raw.activity_type || undefined,
-                        date: new Date(viewItem.created_at).toLocaleDateString("pt-BR"),
-                        versionUniversal: result?.version_universal || "",
-                        versionDirected: result?.version_directed || "",
-                        strategiesApplied: result?.strategies_applied || [],
-                        pedagogicalJustification: result?.pedagogical_justification || "",
-                        implementationTips: result?.implementation_tips || [],
-                        questionImagesUniversal: imageMap,
-                        questionImagesDirected: imageMap,
-                      });
-                      toast.success("Word exportado!");
-                    } catch {
-                      toast.error("Erro ao gerar Word");
-                    }
-                    setExportingDocx(false);
-                  }}>
-                    {exportingDocx ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <FileDown className="w-4 h-4 mr-1" />}
-                    {exportingDocx ? "Gerando Word..." : "Exportar Word"}
-                  </Button>
-                </div>
               </div>
             );
           })()}
