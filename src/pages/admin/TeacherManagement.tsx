@@ -62,18 +62,31 @@ export default function TeacherManagement() {
     queryKey: ["school-teachers", schoolId],
     queryFn: async () => {
       if (!schoolId) return [];
-      const { data, error } = await supabase
+      const { data: members, error } = await supabase
         .from("school_members")
-        .select("id, user_id, role, joined_at, profiles(full_name, email)")
+        .select("id, user_id, role, joined_at")
         .eq("school_id", schoolId)
         .order("joined_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []).map((m: any) => ({
+      if (!members || members.length === 0) return [];
+
+      // Fetch profiles separately since there's no FK relationship
+      const userIds = members.map((m) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email")
+        .in("user_id", userIds);
+
+      const profileMap = new Map(
+        (profiles || []).map((p) => [p.user_id, p])
+      );
+
+      return members.map((m) => ({
         id: m.id,
         user_id: m.user_id,
-        email: m.profiles?.email,
-        full_name: m.profiles?.full_name,
+        email: profileMap.get(m.user_id)?.email ?? null,
+        full_name: profileMap.get(m.user_id)?.full_name ?? null,
         role: m.role,
         joined_at: m.joined_at,
       })) as Teacher[];
