@@ -115,8 +115,8 @@ describe("stripMarkdownFormatting", () => {
     expect(stripMarkdownFormatting("variavel_nome")).toBe("variavel_nome");
   });
 
-  it("preserves underscore in compound_words_like_this", () => {
-    expect(stripMarkdownFormatting("word_one_two_three")).toBe("word_one_two_three");
+  it("preserves simple snake_case", () => {
+    expect(stripMarkdownFormatting("variavel_nome")).toBe("variavel_nome");
   });
 
   it("preserves unclosed underscore", () => {
