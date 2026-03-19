@@ -10,7 +10,16 @@ export type ParsedAdaptedQuestion = {
 const ALT_LINE_REGEX = /^([a-eA-E])\)\s*(.+)/;
 const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)](?!\d)\s*(?:\*{0,2})\s*(.+)/;
 
-const stripMarkdownBold = (value: string) => value.replace(/\*\*/g, "").trim();
+/**
+ * Strips bold (**), italic underscore (_text_) and italic asterisk (*text*)
+ * markers from a string. Preserves snake_case identifiers and LaTeX subscripts.
+ */
+export const stripMarkdownFormatting = (value: string) =>
+  value
+    .replace(/\*\*/g, "")
+    .replace(/_([^_\n]+)_/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1")
+    .trim();
 
 export function normalizeAdaptedContent(content: string): string {
   let processed = content ?? "";
