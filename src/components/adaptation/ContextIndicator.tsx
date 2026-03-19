@@ -40,7 +40,7 @@ export default function ContextIndicator({
           <p.icon className="w-3 h-3" />
           {p.label}
           {p.active ? (
-            <CheckCircle2 className="w-3 h-3 text-green-500" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
           ) : (
             <Circle className="w-3 h-3 opacity-30" />
           )}
