@@ -193,28 +193,18 @@ type Block =
 /**
  * Pre-process content to insert line breaks before numbered questions and alternatives
  * that are inline (not already on their own line).
- * This handles AI output like: "1. Question a) alt b) alt 2. Question..."
  */
 function preProcessContent(content: string): string {
   let processed = restoreCorruptedLatex(content);
-
-  // Insert newline before numbered questions mid-text (e.g., "... text 1. Question")
-  // but NOT after math operators/context (/, x, *, +, -, =, (, digits)
   processed = processed.replace(
     /([^\n\/x*+\-=()\d])(\s+)(\*{0,2}\d+\.\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
-
-  // Insert newline before alternatives mid-text, only for a-e (standard answers)
-  // and NOT when preceded by math operators like x, *, (, digits
   processed = processed.replace(
     /([^\n\/x*+\-=()\d])(\s+)([a-eA-E]\)\s+[A-Za-zÀ-ú])/g,
     "$1\n$3"
   );
-
-  // Convert markdown headers to our format
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
-
   return processed;
 }
 
@@ -225,6 +215,7 @@ function parseBlocks(content: string): Block[] {
   let currentParagraph: string[] = [];
   let currentAlts: { letter: string; text: string }[] = [];
   let currentBullets: string[] = [];
+  let currentQuestion: { number: string; textLines: string[] } | null = null;
 
   const flushParagraph = () => {
     if (currentParagraph.length > 0) {
@@ -247,72 +238,91 @@ function parseBlocks(content: string): Block[] {
     }
   };
 
+  const flushQuestion = () => {
+    if (currentQuestion) {
+      blocks.push({
+        type: "question",
+        number: currentQuestion.number,
+        text: currentQuestion.textLines.join("\n"),
+      });
+      currentQuestion = null;
+    }
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (!trimmed || trimmed === "---") {
       flushAlts();
       flushBullets();
+      flushQuestion();
       flushParagraph();
       continue;
     }
 
-    // Check for markdown header
     const mdMatch = trimmed.match(MD_HEADER_REGEX);
     if (mdMatch) {
       flushAlts();
       flushBullets();
+      flushQuestion();
       flushParagraph();
       blocks.push({ type: "header", text: mdMatch[1].replace(/:$/, "") });
       continue;
     }
 
-    // Check for all-caps header
     const headerMatch = trimmed.match(HEADER_REGEX);
     if (headerMatch) {
       flushAlts();
       flushBullets();
+      flushQuestion();
       flushParagraph();
       blocks.push({ type: "header", text: trimmed.replace(/:$/, "") });
       continue;
     }
 
-    // Check for numbered question
     const qMatch = trimmed.match(QUESTION_LINE_REGEX);
     if (qMatch) {
       flushAlts();
       flushBullets();
+      flushQuestion();
       flushParagraph();
-      blocks.push({ type: "question", number: qMatch[1], text: qMatch[2] });
+      currentQuestion = { number: qMatch[1], textLines: [qMatch[2]] };
       continue;
     }
 
-    // Check for alternative
     const altMatch = trimmed.match(ALT_LINE_REGEX);
     if (altMatch) {
+      flushQuestion();
       flushBullets();
       flushParagraph();
       currentAlts.push({ letter: altMatch[1].toLowerCase(), text: altMatch[2] });
       continue;
     }
 
-    // Check for bullet list item
     const bulletMatch = trimmed.match(BULLET_REGEX);
     if (bulletMatch) {
       flushAlts();
+      flushQuestion();
       flushParagraph();
       currentBullets.push(bulletMatch[1]);
       continue;
     }
 
-    // Regular text
+    // Regular text — if inside a question context, accumulate as continuation
+    if (currentQuestion && currentAlts.length === 0) {
+      currentQuestion.textLines.push(trimmed);
+      continue;
+    }
+
     flushAlts();
     flushBullets();
+    flushQuestion();
     currentParagraph.push(trimmed);
   }
 
   flushAlts();
   flushBullets();
+  flushQuestion();
   flushParagraph();
 
   return blocks;
