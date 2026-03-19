@@ -1,6 +1,16 @@
 import { useState, useCallback } from "react";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import StepActivityType from "./StepActivityType";
 import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
@@ -104,9 +114,27 @@ export default function AdaptationWizard() {
     questionImages: { version_universal: {}, version_directed: {} },
   });
 
+  const [pendingBackTarget, setPendingBackTarget] = useState<number | null>(null);
+
   const updateData = useCallback((partial: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...partial }));
   }, []);
+
+  const clearResult = useCallback(() => {
+    setData((prev) => ({
+      ...prev,
+      result: null,
+      contextPillars: null,
+      questionImages: { version_universal: {}, version_directed: {} },
+    }));
+  }, []);
+
+  const navigateTo = useCallback((target: number) => {
+    setDirection(target > step ? 1 : -1);
+    setStep(target);
+    announce(`Passo ${target + 1} de ${STEPS.length}: ${STEPS[target].description}`);
+  }, [step]);
+
   const next = useCallback(() => {
     setDirection(1);
     setStep((s) => {
@@ -116,22 +144,32 @@ export default function AdaptationWizard() {
     });
   }, []);
 
+  const requestBack = useCallback((target: number) => {
+    // If currently on step 3 (Result) or 4 (Export) and going to an earlier step,
+    // and there is a generated result, show confirmation dialog
+    if (step >= 3 && target < 3 && data.result) {
+      setPendingBackTarget(target);
+      return;
+    }
+    navigateTo(target);
+  }, [step, data.result, navigateTo]);
+
   const prev = useCallback(() => {
-    setDirection(-1);
-    setStep((s) => {
-      const newStep = Math.max(s - 1, 0);
-      announce(`Passo ${newStep + 1} de ${STEPS.length}: ${STEPS[newStep].description}`);
-      return newStep;
-    });
-  }, []);
+    requestBack(step - 1);
+  }, [step, requestBack]);
 
   const goTo = (s: number) => {
     if (s < step) {
-      setDirection(-1);
-      setStep(s);
-      announce(`Passo ${s + 1} de ${STEPS.length}: ${STEPS[s].description}`);
+      requestBack(s);
     }
   };
+
+  const confirmBack = useCallback(() => {
+    if (pendingBackTarget === null) return;
+    clearResult();
+    navigateTo(pendingBackTarget);
+    setPendingBackTarget(null);
+  }, [pendingBackTarget, clearResult, navigateTo]);
 
   return (
     <div className="space-y-6">
@@ -263,6 +301,24 @@ export default function AdaptationWizard() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Alert when leaving result step */}
+      <AlertDialog open={pendingBackTarget !== null} onOpenChange={(open) => { if (!open) setPendingBackTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Descartar resultado?</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed">
+              Ao voltar para uma etapa anterior, o resultado gerado pela IA será descartado e você precisará gerar novamente ao avançar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBack}>
+              Sim, descartar e voltar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
