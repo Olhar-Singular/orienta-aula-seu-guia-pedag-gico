@@ -939,6 +939,12 @@ export default function QuestionBank() {
           imageUrl={previewImageUrl}
           title="Prévia da imagem da questão"
         />
+        <FilePreviewModal
+          open={showReviewPreview}
+          onOpenChange={setShowReviewPreview}
+          file={uploadFile}
+          mode={reviewPreviewMode}
+        />
       </>
     );
   }
