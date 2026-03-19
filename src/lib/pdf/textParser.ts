@@ -119,12 +119,7 @@ export function normalizeMathText(text: string): string {
   // Clean up any remaining backslash commands that weren't caught
   result = result.replace(/\\[a-zA-Z]+\{([^{}]*)\}/g, "$1");
 
-  // Replace sequences of superscript chars → ^(digits)
-  result = result.replace(SUPER_RE, (match) => {
-    const converted = [...match].map((c) => SUPERSCRIPT_MAP[c] ?? c).join("");
-    return `^${converted}`;
-  });
-  // Replace sequences of subscript chars → _(digits)
+  // Subscript chars → _(digits) (keep as ASCII, no unicode needed)
   result = result.replace(SUB_RE, (match) => {
     const converted = [...match].map((c) => SUBSCRIPT_MAP[c] ?? c).join("");
     return `_${converted}`;
