@@ -171,6 +171,7 @@ serve(async (req) => {
     messages.push({ role: "user", content: contentParts });
 
     // Call AI Gateway
+    const extractStartTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
