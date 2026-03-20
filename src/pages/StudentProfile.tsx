@@ -14,6 +14,7 @@ import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 import StudentDocuments from "@/components/student/StudentDocuments";
 import StudentPeiReport from "@/components/student/StudentPeiReport";
+import StudentAdaptations from "@/components/student/StudentAdaptations";
 
 const MAX_NOTES_LENGTH = 1000;
 
