@@ -441,8 +441,39 @@ export default function MyAdaptations() {
           )}
 
           {editing && viewItem?.source === "wizard" && (() => {
+            const result = viewItem?.raw?.adaptation_result as any;
+
+            const getEditImageMap = (field: "version_universal" | "version_directed"): Record<string, string[]> => {
+              // Use edit-time state if available
+              const editMap = editQuestionImages[field];
+              if (editMap && Object.keys(editMap).length > 0) return editMap;
+
+              // Try new per-section format
+              const key = field === "version_universal" ? "question_images_universal" : "question_images_directed";
+              if (result?.[key] && typeof result[key] === "object") return result[key];
+
+              // Fallback: legacy question_images array
+              if (!Array.isArray(result?.question_images)) return {};
+              const map: Record<string, string[]> = {};
+              const parsedQs = parseAdaptedQuestions(result?.[field] || "");
+              result.question_images.forEach((qi: any, index: number) => {
+                if (!qi.image_url) return;
+                const adaptedQ = parsedQs[index];
+                if (!adaptedQ) return;
+                if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
+                map[adaptedQ.number].push(qi.image_url);
+              });
+              return map;
+            };
+
             const handleQuestionEdit = (field: "version_universal" | "version_directed", title: string) =>
               (question: ParsedAdaptedQuestion) => {
+                // Pre-load images for this field if not yet loaded
+                const imageMap = getEditImageMap(field);
+                setEditQuestionImages(prev => ({
+                  ...prev,
+                  [field]: { ...imageMap, ...prev[field] },
+                }));
                 setEditingQuestion({ field, title, question });
               };
 
@@ -456,6 +487,14 @@ export default function MyAdaptations() {
                 options: payload.questionType === "objetiva" ? payload.options : [],
                 trailingLines: question.trailingLines,
               });
+              // Update images for this question
+              setEditQuestionImages(prev => ({
+                ...prev,
+                [field]: {
+                  ...(prev[field] || {}),
+                  [question.number]: payload.images,
+                },
+              }));
               setEditFields((f) => ({ ...f, [field]: updatedContent }));
               setEditingQuestion(null);
             };
