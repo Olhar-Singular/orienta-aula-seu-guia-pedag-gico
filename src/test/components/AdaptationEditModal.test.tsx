@@ -48,7 +48,7 @@ describe("AdaptationEditModal", () => {
   it("calls onSave with correct payload when saved", () => {
     const onSave = vi.fn();
     render(<AdaptationEditModal {...defaultProps} onSave={onSave} />);
-    fireEvent.click(screen.getByText("Salvar"));
+    fireEvent.click(screen.getByText("Salvar Alterações"));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
         text: "Qual é a resposta?",
@@ -65,7 +65,7 @@ describe("AdaptationEditModal", () => {
   it("defaults to dissertativa when no options provided", () => {
     const onSave = vi.fn();
     render(<AdaptationEditModal {...defaultProps} onSave={onSave} />);
-    fireEvent.click(screen.getByText("Salvar"));
+    fireEvent.click(screen.getByText("Salvar Alterações"));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ questionType: "dissertativa", options: [] })
     );
@@ -80,7 +80,7 @@ describe("AdaptationEditModal", () => {
         onSave={onSave}
       />
     );
-    fireEvent.click(screen.getByText("Salvar"));
+    fireEvent.click(screen.getByText("Salvar Alterações"));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({ questionType: "objetiva" })
     );
@@ -89,7 +89,7 @@ describe("AdaptationEditModal", () => {
   it("shows error toast when saving with empty text", () => {
     const onSave = vi.fn();
     render(<AdaptationEditModal {...defaultProps} content="" onSave={onSave} />);
-    fireEvent.click(screen.getByText("Salvar"));
+    fireEvent.click(screen.getByText("Salvar Alterações"));
     expect(onSave).not.toHaveBeenCalled();
   });
 
