@@ -41,7 +41,7 @@ describe("AdaptationEditModal", () => {
 
   it("shows content in textarea", () => {
     render(<AdaptationEditModal {...defaultProps} />);
-    const textarea = screen.getByPlaceholderText("Escreva o enunciado da questão...");
+    const textarea = screen.getByPlaceholderText(/Digite o enunciado/);
     expect(textarea).toHaveValue("Qual é a resposta?");
   });
 
