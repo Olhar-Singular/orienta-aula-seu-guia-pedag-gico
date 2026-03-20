@@ -409,9 +409,8 @@ export default function MyAdaptations() {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setViewItem(item); startEditing(item); }}>
                       <Pencil className="w-4 h-4 text-primary" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={duplicating === item.id} onClick={() => handleDuplicate(item)}>
-                      {duplicating === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
-                    </Button>
+
+
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(item)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
