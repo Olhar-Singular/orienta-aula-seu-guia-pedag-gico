@@ -182,6 +182,9 @@ function joinFormulaLines(rawLines: string[]): string[] {
       continue;
     }
 
+    // Don't try to join horizontal rules or bullet-like lines
+    const isCurrentRule = /^[\-=_\*]{3,}$/.test(current) || /^[\-\•\*]\s+/.test(current);
+
     // Keep joining while current line ends with an operator or open paren
     while (i + 1 < rawLines.length) {
       const next = rawLines[i + 1].trim();
