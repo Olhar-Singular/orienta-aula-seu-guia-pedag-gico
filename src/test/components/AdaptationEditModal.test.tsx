@@ -95,7 +95,7 @@ describe("AdaptationEditModal", () => {
 
   it("renders image section", () => {
     render(<AdaptationEditModal {...defaultProps} />);
-    expect(screen.getByText("Imagens")).toBeInTheDocument();
+    expect(screen.getByText("Imagens (opcional)")).toBeInTheDocument();
   });
 
   it("shows existing images", () => {
