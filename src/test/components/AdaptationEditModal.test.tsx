@@ -111,7 +111,7 @@ describe("AdaptationEditModal", () => {
 
   it("allows changing text content", () => {
     render(<AdaptationEditModal {...defaultProps} />);
-    const textarea = screen.getByPlaceholderText("Escreva o enunciado da questão...");
+    const textarea = screen.getByPlaceholderText(/Digite o enunciado/);
     fireEvent.change(textarea, { target: { value: "Novo enunciado" } });
     expect(textarea).toHaveValue("Novo enunciado");
   });
