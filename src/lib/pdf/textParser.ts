@@ -137,6 +137,8 @@ export function normalizeMathText(text: string): string {
   result = result.replace(/≤/g, "<=");
   result = result.replace(/≥/g, ">=");
   result = result.replace(/·/g, ".");
+  // Remove any remaining unmatched dollar signs
+  result = result.replace(/\$/g, "");
   return result;
 }
 
