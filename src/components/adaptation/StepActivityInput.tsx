@@ -100,7 +100,12 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   }, [bankSearch, filterSubject, filterDifficulty]);
 
   useEffect(() => {
-    if (showBankModal) fetchBankQuestions();
+    if (!showBankModal) return;
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      fetchBankQuestions();
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
   }, [showBankModal, fetchBankQuestions]);
 
   const toggleQuestion = (id: string) => {
