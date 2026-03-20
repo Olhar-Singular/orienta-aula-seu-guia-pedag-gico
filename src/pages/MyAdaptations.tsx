@@ -562,7 +562,7 @@ export default function MyAdaptations() {
                     title={`${editingQuestion.title} • Questão ${editingQuestion.question.number}`}
                     content={editingQuestion.question.text}
                     initialOptions={editingQuestion.question.options}
-                    images={[]}
+                    images={editQuestionImages[editingQuestion.field]?.[editingQuestion.question.number] || []}
                     activityContext={editFields.original_activity?.slice(0, 200) || ""}
                     onSave={handleQuestionSave}
                   />
