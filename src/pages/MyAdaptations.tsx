@@ -583,6 +583,7 @@ export default function MyAdaptations() {
                   <div className="bg-secondary/50 rounded-lg p-3">
                     <AdaptedContentRenderer
                       content={editFields.version_directed}
+                      questionImages={getEditImageMap("version_directed")}
                       onEditQuestion={handleQuestionEdit("version_directed", "Versão Direcionada")}
                       onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_directed: newContent }))}
                     />
