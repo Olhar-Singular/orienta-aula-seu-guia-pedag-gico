@@ -201,6 +201,12 @@ export default function StudentProfile() {
           </motion.div>
         </TabsContent>
 
+        <TabsContent value="adaptacoes" className="mt-4">
+          {alunoId && (
+            <StudentAdaptations studentId={alunoId} studentName={student?.name || "Aluno"} />
+          )}
+        </TabsContent>
+
         <TabsContent value="documentos" className="mt-4">
           {alunoId && (
             <StudentDocuments studentId={alunoId} studentName={student?.name || "Aluno"} />
