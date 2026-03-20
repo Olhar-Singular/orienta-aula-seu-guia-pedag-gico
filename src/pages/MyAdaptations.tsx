@@ -229,6 +229,8 @@ export default function MyAdaptations() {
           version_universal: editFields.version_universal,
           version_directed: editFields.version_directed,
           pedagogical_justification: editFields.pedagogical_justification,
+          question_images_universal: editQuestionImages.version_universal || currentResult.question_images_universal || {},
+          question_images_directed: editQuestionImages.version_directed || currentResult.question_images_directed || {},
         };
         const { error } = await supabase
           .from("adaptations_history")
