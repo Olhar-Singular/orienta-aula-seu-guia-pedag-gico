@@ -665,34 +665,17 @@ ${sanitizedActivity}`;
       }
     }
 
-    // Include question images in the result so they're available in history
+    // Include question images in the result so frontend can use them
     const resultWithImages = {
       ...adaptationResult,
       question_images: Array.isArray(question_images) ? question_images : [],
     };
 
-    // Save to adaptations_history
-    const { error: insertError } = await admin.from("adaptations_history").insert({
-      teacher_id: user.id,
-      student_id: student_id || null,
-      class_id: class_id || null,
-      original_activity: sanitizedActivity,
-      activity_type: sanitizedType,
-      barriers_used: barriers,
-      adaptation_result: resultWithImages,
-      model_used: modelName,
-      tokens_used: tokensUsed,
-      school_id: school_id || null,
-    });
-
-    if (insertError) {
-      console.error("Failed to save adaptation history:", insertError);
-    }
-
+    // NOTE: Save is handled by the frontend (StepExport) to avoid duplicates
 
     return new Response(
       JSON.stringify({
-        adaptation: adaptationResult,
+        adaptation: resultWithImages,
         model_used: modelName,
         tokens_used: tokensUsed,
         context_pillars: {

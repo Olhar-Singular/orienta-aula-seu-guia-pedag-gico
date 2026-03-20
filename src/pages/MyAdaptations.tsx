@@ -64,6 +64,10 @@ export default function MyAdaptations() {
     title: string;
     question: ParsedAdaptedQuestion;
   } | null>(null);
+  const [editQuestionImages, setEditQuestionImages] = useState<Record<string, Record<string, string[]>>>({
+    version_universal: {},
+    version_directed: {},
+  });
   // Edit mode state
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,6 +95,8 @@ export default function MyAdaptations() {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   // Wizard adaptations (new flow)
@@ -105,6 +111,8 @@ export default function MyAdaptations() {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   // Unify into a single list
@@ -197,6 +205,7 @@ export default function MyAdaptations() {
 
   const cancelEditing = () => {
     setEditing(false);
+    setEditQuestionImages({ version_universal: {}, version_directed: {} });
   };
 
   const handleSaveEdit = async () => {
@@ -221,6 +230,8 @@ export default function MyAdaptations() {
           version_universal: editFields.version_universal,
           version_directed: editFields.version_directed,
           pedagogical_justification: editFields.pedagogical_justification,
+          question_images_universal: editQuestionImages.version_universal || currentResult.question_images_universal || {},
+          question_images_directed: editQuestionImages.version_directed || currentResult.question_images_directed || {},
         };
         const { error } = await supabase
           .from("adaptations_history")
@@ -250,17 +261,19 @@ export default function MyAdaptations() {
           },
         });
       } else {
-        const currentResult = (viewItem.raw.adaptation_result as any) || {};
+        const currentResult2 = (viewItem.raw.adaptation_result as any) || {};
         setViewItem({
           ...viewItem,
           raw: {
             ...viewItem.raw,
             original_activity: editFields.original_activity,
             adaptation_result: {
-              ...currentResult,
+              ...currentResult2,
               version_universal: editFields.version_universal,
               version_directed: editFields.version_directed,
               pedagogical_justification: editFields.pedagogical_justification,
+              question_images_universal: editQuestionImages.version_universal || currentResult2.question_images_universal || {},
+              question_images_directed: editQuestionImages.version_directed || currentResult2.question_images_directed || {},
             },
           },
         });
@@ -433,8 +446,39 @@ export default function MyAdaptations() {
           )}
 
           {editing && viewItem?.source === "wizard" && (() => {
+            const result = viewItem?.raw?.adaptation_result as any;
+
+            const getEditImageMap = (field: "version_universal" | "version_directed"): Record<string, string[]> => {
+              // Use edit-time state if available
+              const editMap = editQuestionImages[field];
+              if (editMap && Object.keys(editMap).length > 0) return editMap;
+
+              // Try new per-section format
+              const key = field === "version_universal" ? "question_images_universal" : "question_images_directed";
+              if (result?.[key] && typeof result[key] === "object") return result[key];
+
+              // Fallback: legacy question_images array
+              if (!Array.isArray(result?.question_images)) return {};
+              const map: Record<string, string[]> = {};
+              const parsedQs = parseAdaptedQuestions(result?.[field] || "");
+              result.question_images.forEach((qi: any, index: number) => {
+                if (!qi.image_url) return;
+                const adaptedQ = parsedQs[index];
+                if (!adaptedQ) return;
+                if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
+                map[adaptedQ.number].push(qi.image_url);
+              });
+              return map;
+            };
+
             const handleQuestionEdit = (field: "version_universal" | "version_directed", title: string) =>
               (question: ParsedAdaptedQuestion) => {
+                // Pre-load images for this field if not yet loaded
+                const imageMap = getEditImageMap(field);
+                setEditQuestionImages(prev => ({
+                  ...prev,
+                  [field]: { ...imageMap, ...prev[field] },
+                }));
                 setEditingQuestion({ field, title, question });
               };
 
@@ -448,6 +492,14 @@ export default function MyAdaptations() {
                 options: payload.questionType === "objetiva" ? payload.options : [],
                 trailingLines: question.trailingLines,
               });
+              // Update images for this question
+              setEditQuestionImages(prev => ({
+                ...prev,
+                [field]: {
+                  ...(prev[field] || {}),
+                  [question.number]: payload.images,
+                },
+              }));
               setEditFields((f) => ({ ...f, [field]: updatedContent }));
               setEditingQuestion(null);
             };
@@ -515,7 +567,7 @@ export default function MyAdaptations() {
                     title={`${editingQuestion.title} • Questão ${editingQuestion.question.number}`}
                     content={editingQuestion.question.text}
                     initialOptions={editingQuestion.question.options}
-                    images={[]}
+                    images={editQuestionImages[editingQuestion.field]?.[editingQuestion.question.number] || []}
                     activityContext={editFields.original_activity?.slice(0, 200) || ""}
                     onSave={handleQuestionSave}
                   />
@@ -602,18 +654,16 @@ export default function MyAdaptations() {
                 )}
 
                 {result && (() => {
-                  const savedImages: { image_url: string; question_text?: string }[] =
-                    Array.isArray(result.question_images) ? result.question_images : [];
+                  // Build image map: prefer new per-section format, fallback to legacy
+                  const getImageMap = (field: "version_universal" | "version_directed"): Record<string, string[]> => {
+                    const key = field === "version_universal" ? "question_images_universal" : "question_images_directed";
+                    if (result?.[key] && typeof result[key] === "object") return result[key];
 
-                  // Re-map images by matching order to adapted questions
-                  // Same logic the wizard uses: image at index N → adapted question N
-                  const buildImageMap = (sectionContent: string) => {
+                    // Fallback: legacy question_images array
+                    if (!Array.isArray(result?.question_images)) return {};
                     const map: Record<string, string[]> = {};
-                    if (savedImages.length === 0 || !sectionContent) return map;
-                    const parsedQs = parseAdaptedQuestions(sectionContent);
-                    if (parsedQs.length === 0) return map;
-
-                    savedImages.forEach((qi, index) => {
+                    const parsedQs = parseAdaptedQuestions(result?.[field] || "");
+                    result.question_images.forEach((qi: any, index: number) => {
                       if (!qi.image_url) return;
                       const adaptedQ = parsedQs[index];
                       if (!adaptedQ) return;
@@ -623,8 +673,8 @@ export default function MyAdaptations() {
                     return map;
                   };
 
-                  const imageMapUniversal = buildImageMap(result.version_universal || "");
-                  const imageMapDirected = buildImageMap(result.version_directed || "");
+                  const imageMapUniversal = getImageMap("version_universal");
+                  const imageMapDirected = getImageMap("version_directed");
 
                   return (
                     <>
