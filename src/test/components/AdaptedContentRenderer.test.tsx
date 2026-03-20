@@ -50,7 +50,7 @@ describe("AdaptedContentRenderer", () => {
     const content = "1. Veja a imagem\na) Sim\nb) Não";
     const images = { "1": ["https://example.com/img.png"] };
     render(<AdaptedContentRenderer content={content} questionImages={images} />);
-    const img = screen.getByAlt("Imagem da questão 1");
+    const img = screen.getByRole("img", { name: "Imagem da questão 1" });
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("src", "https://example.com/img.png");
   });
