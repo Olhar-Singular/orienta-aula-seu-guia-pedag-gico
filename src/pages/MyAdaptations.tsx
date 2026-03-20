@@ -569,6 +569,7 @@ export default function MyAdaptations() {
                   <div className="bg-secondary/50 rounded-lg p-3">
                     <AdaptedContentRenderer
                       content={editFields.version_universal}
+                      questionImages={getEditImageMap("version_universal")}
                       onEditQuestion={handleQuestionEdit("version_universal", "Versão Universal")}
                       onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_universal: newContent }))}
                     />
