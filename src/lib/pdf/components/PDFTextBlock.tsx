@@ -68,13 +68,15 @@ const styles = StyleSheet.create({
   },
   formula: {
     fontFamily: "Courier",
-    fontSize: 10.5,
+    fontSize: 11,
     backgroundColor: "#f5f5f5",
-    padding: "3 6",
+    padding: "6 12",
     borderRadius: 3,
-    marginBottom: 4,
+    marginTop: 4,
+    marginBottom: 6,
     color: colors.text,
     letterSpacing: 0.3,
+    textAlign: "center" as const,
   },
   instruction: {
     fontSize: 11,

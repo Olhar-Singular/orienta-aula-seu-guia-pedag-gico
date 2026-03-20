@@ -285,12 +285,16 @@ export function parseActivityText(text: string): ParsedElement[] {
       const num = qMatch[1];
       const rest = (qMatch[2] || "").trim();
 
-      elements.push({
-        type: "question-number",
-        content: rest ? `${num}. ${rest}` : `${num}.`,
-        metadata: { number: num },
-      });
-      continue;
+      // Skip if the "text" is actually a formula fragment (e.g., "x (1,2² - 3/4)")
+      const isFormulaFragment = /^[a-z]\s*[\(\[×÷+\-=²³]/.test(rest) && rest.length < 40;
+      if (!isFormulaFragment) {
+        elements.push({
+          type: "question-number",
+          content: rest ? `${num}. ${rest}` : `${num}.`,
+          metadata: { number: num },
+        });
+        continue;
+      }
     }
 
     // 7. Bullet list
