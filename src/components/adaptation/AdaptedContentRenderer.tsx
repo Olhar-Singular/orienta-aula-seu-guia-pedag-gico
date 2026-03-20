@@ -480,7 +480,7 @@ export default function AdaptedContentRenderer({
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteQuestion(block.number)}
+                          onClick={() => setDeleteQuestionNumber(block.number)}
                           aria-label={`Excluir questão ${block.number}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
