@@ -76,6 +76,7 @@ serve(async (req) => {
 
     // Messages may contain multimodal content (text + image_url)
     // Forward them as-is to the vision-capable model
+    const chatStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
