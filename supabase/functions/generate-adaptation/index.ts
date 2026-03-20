@@ -183,7 +183,7 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemContent },
           ...(messages || []),
