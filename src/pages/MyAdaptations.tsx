@@ -64,6 +64,10 @@ export default function MyAdaptations() {
     title: string;
     question: ParsedAdaptedQuestion;
   } | null>(null);
+  const [editQuestionImages, setEditQuestionImages] = useState<Record<string, Record<string, string[]>>>({
+    version_universal: {},
+    version_directed: {},
+  });
   // Edit mode state
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
