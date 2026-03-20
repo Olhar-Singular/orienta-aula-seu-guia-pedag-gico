@@ -187,8 +187,12 @@ function joinFormulaLines(rawLines: string[]): string[] {
       const next = rawLines[i + 1].trim();
       if (!next) break;
 
-      const endsWithOperator = /[+\-×÷=\(\[,\/\\]$/.test(current);
-      const nextStartsWithContinuation = /^[+\-×÷=\)\]\.,\d]/.test(next);
+      // Don't join bullet items (- text), horizontal rules (---), or header-like lines
+      const isBulletOrRule = /^[\-\•\*]\s+/.test(next) || /^[\-=_\*]{3,}$/.test(next);
+      if (isBulletOrRule) break;
+
+      const endsWithOperator = /[+×÷=\(\[,\/\\]$/.test(current) || /[+\-]\s*$/.test(current);
+      const nextStartsWithContinuation = /^[+×÷=\)\]\.,]/.test(next) || /^\d+[\)\]]/.test(next);
 
       if (endsWithOperator || nextStartsWithContinuation) {
         current = current + " " + next;
