@@ -215,6 +215,8 @@ serve(async (req) => {
       model: "google/gemini-2.5-flash",
       input_tokens: aiData.usage?.prompt_tokens || 0,
       output_tokens: aiData.usage?.completion_tokens || 0,
+      prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? JSON.stringify(messages) : undefined,
+      response_text: (aiData.usage?.completion_tokens || 0) === 0 ? aiData.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments : undefined,
       request_duration_ms: Date.now() - extractStartTime,
       status: "success",
       metadata: { file_name: pdfFileName },

@@ -217,6 +217,7 @@ export type Database = {
           request_duration_ms: number | null
           school_id: string | null
           status: string | null
+          tokens_source: string | null
           total_tokens: number
           user_id: string
         }
@@ -236,6 +237,7 @@ export type Database = {
           request_duration_ms?: number | null
           school_id?: string | null
           status?: string | null
+          tokens_source?: string | null
           total_tokens?: number
           user_id: string
         }
@@ -255,6 +257,7 @@ export type Database = {
           request_duration_ms?: number | null
           school_id?: string | null
           status?: string | null
+          tokens_source?: string | null
           total_tokens?: number
           user_id?: string
         }

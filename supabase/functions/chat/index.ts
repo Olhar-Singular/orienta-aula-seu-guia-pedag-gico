@@ -77,23 +77,57 @@ serve(async (req) => {
     // Messages may contain multimodal content (text + image_url)
     // Forward them as-is to the vision-capable model
     const chatStartTime = Date.now();
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...(messages || []),
+          ],
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      const isTimeout = fetchErr?.name === "AbortError";
+      logAiUsage({
+        user_id: authData.user.id,
+        action_type: "chat",
         model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          ...(messages || []),
-        ],
-        stream: true,
-      }),
-    });
+        prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
+        request_duration_ms: Date.now() - chatStartTime,
+        status: isTimeout ? "timeout" : "error",
+        error_message: isTimeout ? "Timeout after 60s" : fetchErr?.message,
+        metadata: { streaming: true },
+      }).catch(() => {});
+      throw new Error(isTimeout ? "A IA demorou demais." : "Falha na conexão com a IA.");
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
+      const t = await response.text();
+      console.error("AI error:", response.status, t);
+      logAiUsage({
+        user_id: authData.user.id,
+        action_type: "chat",
+        model: "google/gemini-2.5-flash",
+        prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
+        request_duration_ms: Date.now() - chatStartTime,
+        status: "error",
+        error_message: `HTTP ${response.status}: ${t.slice(0, 200)}`,
+        metadata: { streaming: true, http_status: response.status },
+      }).catch(() => {});
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,21 +138,17 @@ serve(async (req) => {
           status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
       return new Response(JSON.stringify({ error: "Erro ao conectar com a IA." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Log chat AI usage (streaming — tokens estimated)
-    const estInputTokens = Math.ceil((SYSTEM_PROMPT.length + JSON.stringify(messages || []).length) / 4);
     logAiUsage({
       user_id: authData.user.id,
       action_type: "chat",
       model: "google/gemini-2.5-flash",
-      input_tokens: estInputTokens,
-      output_tokens: 0,
+      prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
       request_duration_ms: Date.now() - chatStartTime,
       status: "success",
       metadata: { streaming: true },

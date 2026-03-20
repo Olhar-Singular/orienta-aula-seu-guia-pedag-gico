@@ -178,23 +178,57 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
     console.log("Processing request:", { action, hasContext: !!context, messageCount: messages?.length });
 
     const aiStartTime = Date.now();
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+    let response: Response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [
+            { role: "system", content: systemContent },
+            ...(messages || []),
+          ],
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      const isTimeout = fetchErr?.name === "AbortError";
+      logAiUsage({
+        user_id: authData.user.id,
+        action_type: "adaptation_wizard",
         model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemContent },
-          ...(messages || []),
-        ],
-        stream: true,
-      }),
-    });
+        prompt_text: systemContent,
+        request_duration_ms: Date.now() - aiStartTime,
+        status: isTimeout ? "timeout" : "error",
+        error_message: isTimeout ? "Timeout after 90s" : fetchErr?.message,
+        metadata: { streaming: true, action: action || "generate" },
+      }).catch(() => {});
+      throw new Error(isTimeout ? "A IA demorou demais para responder." : "Falha na conexão com a IA.");
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
+      const t = await response.text();
+      console.error("AI gateway error:", response.status, t);
+      logAiUsage({
+        user_id: authData.user.id,
+        action_type: "adaptation_wizard",
+        model: "google/gemini-2.5-pro",
+        prompt_text: systemContent,
+        request_duration_ms: Date.now() - aiStartTime,
+        status: "error",
+        error_message: `HTTP ${response.status}: ${t.slice(0, 200)}`,
+        metadata: { streaming: true, action: action || "generate", http_status: response.status },
+      }).catch(() => {});
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
           status: 429,
@@ -207,23 +241,18 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "Erro ao conectar com a IA." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-
     // Log AI usage for streaming (tokens estimated from input, output unknown)
-    const estimatedInputTokens = Math.ceil((systemContent.length + JSON.stringify(messages || []).length) / 4);
     logAiUsage({
       user_id: authData.user.id,
       action_type: "adaptation_wizard",
       model: "google/gemini-2.5-pro",
-      input_tokens: estimatedInputTokens,
-      output_tokens: 0,
+      prompt_text: systemContent + JSON.stringify(messages || []),
       request_duration_ms: Date.now() - aiStartTime,
       status: "success",
       metadata: { streaming: true, action: action || "generate" },

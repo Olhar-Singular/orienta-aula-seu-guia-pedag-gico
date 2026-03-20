@@ -6,6 +6,12 @@ interface Props {
   summary: AiUsageSummary;
 }
 
+function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString("pt-BR");
+}
+
 export function UsageSummaryCards({ summary }: Props) {
   const errorRate = summary.total_requests > 0
     ? ((summary.error_count / summary.total_requests) * 100).toFixed(1)
@@ -14,8 +20,8 @@ export function UsageSummaryCards({ summary }: Props) {
   const cards = [
     {
       title: "Total de Tokens",
-      value: summary.total_tokens.toLocaleString("pt-BR"),
-      subtitle: `${summary.total_input_tokens.toLocaleString("pt-BR")} entrada · ${summary.total_output_tokens.toLocaleString("pt-BR")} saída`,
+      value: formatNumber(summary.total_tokens),
+      subtitle: `${formatNumber(summary.total_input_tokens)} entrada · ${formatNumber(summary.total_output_tokens)} saída`,
       icon: Brain,
       iconClass: "text-primary",
     },
@@ -28,7 +34,9 @@ export function UsageSummaryCards({ summary }: Props) {
     },
     {
       title: "Tempo Médio",
-      value: `${Math.round(summary.avg_duration_ms)}ms`,
+      value: summary.avg_duration_ms > 1000
+        ? `${(summary.avg_duration_ms / 1000).toFixed(1)}s`
+        : `${Math.round(summary.avg_duration_ms)}ms`,
       subtitle: "por requisição",
       icon: Clock,
       iconClass: "text-violet-600",
@@ -51,7 +59,7 @@ export function UsageSummaryCards({ summary }: Props) {
               <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
               <card.icon className={`w-5 h-5 ${card.iconClass}`} />
             </div>
-            <p className="text-2xl font-bold tracking-tight">{card.value}</p>
+            <p className="text-2xl font-bold tracking-tight tabular-nums">{card.value}</p>
             <p className="text-xs text-muted-foreground mt-1">{card.subtitle}</p>
           </CardContent>
         </Card>
