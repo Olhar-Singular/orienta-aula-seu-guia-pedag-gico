@@ -79,6 +79,17 @@ b) Falso`;
     expect(result).toHaveLength(1);
     expect(result[0].text).toContain("3.14");
   });
+
+  it("keeps denominator-like lines as math continuation, not a new question", () => {
+    const content = `5) \\times (1,2^2 - 3/
+4) \\div 0,3$`;
+    const result = parseAdaptedQuestions(content);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].number).toBe("5");
+    expect(result[0].text).toContain("3/");
+    expect(result[0].text).toContain("4) \\div 0,3$");
+  });
 });
 
 describe("normalizeAdaptedContent – LaTeX preservation", () => {
@@ -92,6 +103,12 @@ describe("normalizeAdaptedContent – LaTeX preservation", () => {
     const input = "1. Calcule x² 2. Calcule x³";
     const result = normalizeAdaptedContent(input);
     expect(result).toContain("\n2.");
+  });
+
+  it("does not split fraction-denominator pattern like 3/ 4)", () => {
+    const input = "5) \\times (1,2^2 - 3/ 4) \\div 0,3$";
+    const result = normalizeAdaptedContent(input);
+    expect(result).not.toContain("3/\n4)");
   });
 });
 
@@ -129,5 +146,27 @@ b) B`;
     expect(result).toContain("1. Leia o texto:");
     expect(result).toContain("Responda abaixo:");
     expect(result).toContain("a) C");
+  });
+
+  it("does not duplicate expression lines on repeated saves", () => {
+    const content = `5) \\times (1,2^2 - 3/
+4) \\div 0,3$`;
+
+    const once = replaceQuestionInAdaptedContent(content, {
+      number: "5",
+      text: `\\times (1,2^2 - 3/
+4) \\div 0,3$`,
+      options: [],
+    });
+
+    const twice = replaceQuestionInAdaptedContent(once, {
+      number: "5",
+      text: `\\times (1,2^2 - 3/
+4) \\div 0,3$`,
+      options: [],
+    });
+
+    const occurrences = (twice.match(/5\. \\times/g) || []).length;
+    expect(occurrences).toBe(1);
   });
 });
