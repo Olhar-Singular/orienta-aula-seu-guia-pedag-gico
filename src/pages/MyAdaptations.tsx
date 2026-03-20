@@ -37,6 +37,25 @@ function barrierLabel(key: string): string {
   return key;
 }
 
+/** Escapes HTML entities to prevent XSS in document.write contexts. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Copies text to clipboard with error handling for restrictive contexts. */
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    toast.success("Conteúdo copiado!");
+  } catch {
+    toast.error("Não foi possível copiar. Tente selecionar o texto manualmente.");
+  }
+}
+
 type UnifiedAdaptation = {
   id: string;
   source: "legacy" | "wizard";
@@ -56,6 +75,8 @@ export default function MyAdaptations() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [duplicating, setDuplicating] = useState<string | null>(null);
   const [viewItem, setViewItem] = useState<UnifiedAdaptation | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
@@ -152,28 +173,42 @@ export default function MyAdaptations() {
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    const table = deleteTarget.source === "legacy" ? "adaptations" : "adaptations_history";
-    const { error } = await supabase.from(table).delete().eq("id", deleteTarget.id);
-    if (error) {
-      toast.error("Erro ao excluir.");
-    } else {
+    setDeleting(true);
+    try {
+      const table = deleteTarget.source === "legacy" ? "adaptations" : "adaptations_history";
+      const { error } = await supabase.from(table).delete().eq("id", deleteTarget.id);
+      if (error) throw error;
       toast.success("Adaptação excluída!");
       queryClient.invalidateQueries({ queryKey: ["adaptations-legacy"] });
       queryClient.invalidateQueries({ queryKey: ["adaptations-history-all"] });
       queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
+      setDeleteTarget(null);
+    } catch {
+      toast.error("Erro ao excluir.");
+    } finally {
+      setDeleting(false);
     }
-    setDeleteTarget(null);
   };
 
   const handleDuplicate = async (item: UnifiedAdaptation) => {
-    if (item.source === "legacy") {
-      const { id, created_at, ...rest } = item.raw;
-      const { error } = await supabase.from("adaptations").insert(rest);
-      if (error) toast.error("Erro ao duplicar.");
-      else {
-        toast.success("Adaptação duplicada!");
+    setDuplicating(item.id);
+    try {
+      if (item.source === "legacy") {
+        const { id, created_at, ...rest } = item.raw;
+        const { error } = await supabase.from("adaptations").insert(rest);
+        if (error) throw error;
         queryClient.invalidateQueries({ queryKey: ["adaptations-legacy"] });
+      } else {
+        const { id, created_at, class_students, classes, ...rest } = item.raw;
+        const { error } = await supabase.from("adaptations_history").insert(rest);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: ["adaptations-history-all"] });
       }
+      toast.success("Adaptação duplicada!");
+    } catch {
+      toast.error("Erro ao duplicar.");
+    } finally {
+      setDuplicating(null);
     }
   };
 
@@ -189,7 +224,7 @@ export default function MyAdaptations() {
         original_activity: "",
       });
     } else {
-      const result = item.raw.adaptation_result as any;
+      const result = (item.raw?.adaptation_result as Record<string, any>) ?? {};
       setEditFields({
         adapted_text: "",
         teacher_guidance: "",
@@ -209,11 +244,12 @@ export default function MyAdaptations() {
   };
 
   const handleSaveEdit = async () => {
-    if (!viewItem) return;
+    const currentViewItem = viewItem; // Capture reference to avoid race condition
+    if (!currentViewItem) return;
     setSaving(true);
 
     try {
-      if (viewItem.source === "legacy") {
+      if (currentViewItem.source === "legacy") {
         const { error } = await supabase
           .from("adaptations")
           .update({
@@ -221,10 +257,10 @@ export default function MyAdaptations() {
             teacher_guidance: editFields.teacher_guidance,
             justification: editFields.justification,
           })
-          .eq("id", viewItem.id);
+          .eq("id", currentViewItem.id);
         if (error) throw error;
       } else {
-        const currentResult = (viewItem.raw.adaptation_result as any) || {};
+        const currentResult = (currentViewItem?.raw?.adaptation_result as Record<string, any>) ?? {};
         const updatedResult = {
           ...currentResult,
           version_universal: editFields.version_universal,
@@ -239,7 +275,7 @@ export default function MyAdaptations() {
             original_activity: editFields.original_activity,
             adaptation_result: updatedResult,
           })
-          .eq("id", viewItem.id);
+          .eq("id", currentViewItem.id);
         if (error) throw error;
       }
 
@@ -250,22 +286,22 @@ export default function MyAdaptations() {
       queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
 
       // Update the viewItem in-place so the dialog reflects changes
-      if (viewItem.source === "legacy") {
+      if (currentViewItem.source === "legacy") {
         setViewItem({
-          ...viewItem,
+          ...currentViewItem,
           raw: {
-            ...viewItem.raw,
+            ...currentViewItem.raw,
             adapted_text: editFields.adapted_text,
             teacher_guidance: editFields.teacher_guidance,
             justification: editFields.justification,
           },
         });
       } else {
-        const currentResult2 = (viewItem.raw.adaptation_result as any) || {};
+        const currentResult2 = (currentViewItem?.raw?.adaptation_result as Record<string, any>) ?? {};
         setViewItem({
-          ...viewItem,
+          ...currentViewItem,
           raw: {
-            ...viewItem.raw,
+            ...currentViewItem.raw,
             original_activity: editFields.original_activity,
             adaptation_result: {
               ...currentResult2,
@@ -286,8 +322,21 @@ export default function MyAdaptations() {
   };
 
   const handleCloseView = () => {
+    if (editing) {
+      const hasChanges = viewItem?.source === "legacy"
+        ? editFields.adapted_text !== (viewItem?.raw?.adapted_text || "") ||
+          editFields.teacher_guidance !== (viewItem?.raw?.teacher_guidance || "") ||
+          editFields.justification !== (viewItem?.raw?.justification || "")
+        : editFields.version_universal !== ((viewItem?.raw?.adaptation_result as any)?.version_universal || "") ||
+          editFields.version_directed !== ((viewItem?.raw?.adaptation_result as any)?.version_directed || "");
+
+      if (hasChanges && !confirm("Você tem alterações não salvas. Deseja sair?")) {
+        return;
+      }
+    }
     setViewItem(null);
     setEditing(false);
+    setEditQuestionImages({ version_universal: {}, version_directed: {} });
   };
 
   return (
@@ -360,11 +409,9 @@ export default function MyAdaptations() {
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setViewItem(item); startEditing(item); }}>
                       <Pencil className="w-4 h-4 text-primary" />
                     </Button>
-                    {item.source === "legacy" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDuplicate(item)}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={duplicating === item.id} onClick={() => handleDuplicate(item)}>
+                      {duplicating === item.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Copy className="w-4 h-4" />}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget(item)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -446,7 +493,7 @@ export default function MyAdaptations() {
           )}
 
           {editing && viewItem?.source === "wizard" && (() => {
-            const result = viewItem?.raw?.adaptation_result as any;
+            const result = (viewItem?.raw?.adaptation_result as Record<string, any>) ?? {};
 
             const getEditImageMap = (field: "version_universal" | "version_directed"): Record<string, string[]> => {
               // Use edit-time state if available
@@ -598,15 +645,14 @@ export default function MyAdaptations() {
               <div className="flex flex-wrap gap-2 pt-4 border-t">
                 <Button variant="outline" size="sm" onClick={() => {
                   const text = `Atividade: ${viewItem.raw.adapted_text || ""}\nOrientações: ${viewItem.raw.teacher_guidance || ""}\nJustificativa: ${viewItem.raw.justification || ""}`;
-                  navigator.clipboard.writeText(text);
-                  toast.success("Conteúdo copiado!");
+                  copyToClipboard(text);
                 }}>
                   <Copy className="w-4 h-4 mr-1" /> Copiar
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => {
                   const w = window.open("", "_blank");
                   if (w) {
-                    w.document.write(`<html><head><title>${viewItem.raw.topic}</title><style>body{font-family:sans-serif;padding:2rem;line-height:1.6}h1{font-size:1.2rem}h2{font-size:1rem;margin-top:1.5rem}pre{white-space:pre-wrap}</style></head><body><h1>${viewItem.raw.topic} — ${viewItem.raw.grade}</h1><p>${viewItem.raw.subject} · ${viewItem.raw.type}</p><h2>Atividade</h2><pre>${viewItem.raw.adapted_text || "—"}</pre><h2>Orientações</h2><pre>${viewItem.raw.teacher_guidance || "—"}</pre><h2>Justificativa</h2><pre>${viewItem.raw.justification || "—"}</pre></body></html>`);
+                    w.document.write(`<html><head><title>${escapeHtml(viewItem.raw.topic || "")}</title><style>body{font-family:sans-serif;padding:2rem;line-height:1.6}h1{font-size:1.2rem}h2{font-size:1rem;margin-top:1.5rem}pre{white-space:pre-wrap}</style></head><body><h1>${escapeHtml(viewItem.raw.topic || "")} — ${escapeHtml(viewItem.raw.grade || "")}</h1><p>${escapeHtml(viewItem.raw.subject || "")} · ${escapeHtml(viewItem.raw.type || "")}</p><h2>Atividade</h2><pre>${escapeHtml(viewItem.raw.adapted_text || "—")}</pre><h2>Orientações</h2><pre>${escapeHtml(viewItem.raw.teacher_guidance || "—")}</pre><h2>Justificativa</h2><pre>${escapeHtml(viewItem.raw.justification || "—")}</pre></body></html>`);
                     w.document.close();
                     w.print();
                   }
@@ -619,7 +665,7 @@ export default function MyAdaptations() {
 
           {/* VIEW MODE - Wizard */}
           {!editing && viewItem?.source === "wizard" && (() => {
-            const result = viewItem.raw.adaptation_result as any;
+            const result = (viewItem?.raw?.adaptation_result as Record<string, any>) ?? {};
             const barriers = viewItem.barriers;
             return (
               <div className="space-y-4">
@@ -703,7 +749,9 @@ export default function MyAdaptations() {
 
                       <div>
                         <h4 className="text-sm font-semibold text-foreground mb-1">Justificativa Pedagógica</h4>
-                        <p className="text-sm text-muted-foreground">{result.pedagogical_justification}</p>
+                        <div className="text-sm text-muted-foreground">
+                          <AdaptedContentRenderer content={result.pedagogical_justification || ""} />
+                        </div>
                       </div>
                       {result.strategies_applied && (
                         <div>
@@ -728,8 +776,7 @@ export default function MyAdaptations() {
                       <div className="flex flex-wrap gap-2 pt-4 border-t">
                         <Button variant="outline" size="sm" onClick={() => {
                           const text = `Versão Universal:\n${result?.version_universal || ""}\n\nVersão Direcionada:\n${result?.version_directed || ""}\n\nJustificativa:\n${result?.pedagogical_justification || ""}`;
-                          navigator.clipboard.writeText(text);
-                          toast.success("Conteúdo copiado!");
+                          copyToClipboard(text);
                         }}>
                           <Copy className="w-4 h-4 mr-1" /> Copiar
                         </Button>
@@ -799,8 +846,11 @@ export default function MyAdaptations() {
             <DialogDescription>Esta ação não pode ser desfeita. A adaptação será removida permanentemente.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleDelete}>Excluir</Button>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+              {deleting ? "Excluindo..." : "Excluir"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
