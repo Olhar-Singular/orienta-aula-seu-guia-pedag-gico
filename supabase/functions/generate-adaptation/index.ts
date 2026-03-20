@@ -177,6 +177,7 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
 
     console.log("Processing request:", { action, hasContext: !!context, messageCount: messages?.length });
 
+    const aiStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
