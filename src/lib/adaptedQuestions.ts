@@ -25,11 +25,28 @@ export const stripMarkdownFormatting = (value: string) =>
 export function normalizeAdaptedContent(content: string): string {
   let processed = content ?? "";
 
-  processed = processed.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3");
+  // Insert line breaks before inline question markers, but never inside fractions like 3/ 4)
+  processed = processed.replace(/([^\n\/])(\s+)(\*{0,2}\d+[\.\)](?!\d)\s)/g, "$1\n$3");
   processed = processed.replace(/([^\n])(\s+)([a-eA-E]\)\s)/g, "$1\n$3");
   processed = processed.replace(/^#{1,3}\s+(.+)$/gm, "$1:");
 
   return processed;
+}
+
+function isLikelyMathContinuation(line: string, previousLine: string, hasCurrentQuestion: boolean): boolean {
+  if (!hasCurrentQuestion) return false;
+  if (!QUESTION_MARKER_RE.test(line)) return false;
+
+  const rest = line.replace(QUESTION_MARKER_RE, "").trim();
+  const prev = previousLine.trim();
+
+  // Typical split expression pattern: previous line ends with operator/fraction slash
+  const prevEndsWithMathToken = /[\/+\-×÷=\\]$/.test(prev);
+
+  // Continuation line starts with LaTeX command or operator/punctuation
+  const restStartsWithMathToken = /^[\\+\-×÷=)\],.]/.test(rest);
+
+  return prevEndsWithMathToken || restStartsWithMathToken;
 }
 
 export function parseAdaptedQuestions(content: string): ParsedAdaptedQuestion[] {
