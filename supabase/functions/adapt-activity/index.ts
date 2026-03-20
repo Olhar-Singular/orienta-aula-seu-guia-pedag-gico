@@ -596,26 +596,81 @@ ${sanitizedActivity}`;
     // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-pro";
     const aiStartTime = Date.now();
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+
+    let aiResponse: Response;
+    let aiData: any;
+    let aiDurationMs: number;
+
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT_FINAL },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [ADAPTATION_TOOL],
+          tool_choice: { type: "function", function: { name: "deliver_adaptation" } },
+        }),
+        signal: controller.signal,
+      });
+      aiDurationMs = Date.now() - aiStartTime;
+    } catch (fetchErr: any) {
+      aiDurationMs = Date.now() - aiStartTime;
+      const isTimeout = fetchErr?.name === "AbortError";
+      logAiUsage({
+        user_id: user.id,
+        school_id: school_id || undefined,
+        action_type: "adaptation",
         model: modelName,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT_FINAL },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [ADAPTATION_TOOL],
-        tool_choice: { type: "function", function: { name: "deliver_adaptation" } },
-      }),
-    });
+        input_tokens: 0,
+        output_tokens: 0,
+        prompt_text: userPrompt,
+        request_duration_ms: aiDurationMs,
+        status: isTimeout ? "timeout" : "error",
+        error_message: isTimeout ? "Request timed out after 90s" : (fetchErr?.message || "Network error"),
+        metadata: {
+          activity_type: sanitizedType,
+          barriers_count: barriers?.length || 0,
+          has_student: !!student_id,
+          has_pei: !!peiContext,
+        },
+      }).catch(() => {});
+      throw new Error(isTimeout ? "A IA demorou demais para responder. Tente novamente." : "Falha na conexão com a IA.");
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
+      // Log error
+      logAiUsage({
+        user_id: user.id,
+        school_id: school_id || undefined,
+        action_type: "adaptation",
+        model: modelName,
+        input_tokens: 0,
+        output_tokens: 0,
+        prompt_text: userPrompt,
+        request_duration_ms: aiDurationMs,
+        status: "error",
+        error_message: `HTTP ${aiResponse.status}: ${errText.slice(0, 200)}`,
+        metadata: {
+          activity_type: sanitizedType,
+          barriers_count: barriers?.length || 0,
+          has_student: !!student_id,
+          http_status: aiResponse.status,
+        },
+      }).catch(() => {});
+
       if (aiResponse.status === 429) {
         return new Response(
           JSON.stringify({ error: "Limite de requisições IA atingido. Tente novamente em alguns minutos." }),
@@ -634,10 +689,9 @@ ${sanitizedActivity}`;
       });
     }
 
-    const aiData = await aiResponse.json();
+    aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     const tokensUsed = aiData.usage?.total_tokens ?? null;
-    const aiDurationMs = Date.now() - aiStartTime;
 
     // Log AI usage (fire-and-forget)
     logAiUsage({
@@ -647,6 +701,8 @@ ${sanitizedActivity}`;
       model: modelName,
       input_tokens: aiData.usage?.prompt_tokens || 0,
       output_tokens: aiData.usage?.completion_tokens || 0,
+      prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? userPrompt : undefined,
+      response_text: (aiData.usage?.completion_tokens || 0) === 0 ? toolCall?.function?.arguments : undefined,
       request_duration_ms: aiDurationMs,
       status: "success",
       metadata: {
