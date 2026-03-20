@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Pencil, X } from "lucide-react";
+import { Pencil, X, Trash2 } from "lucide-react";
 import katex from "katex";
 import TextBlockEditModal from "./TextBlockEditModal";
 import "katex/dist/katex.min.css";
@@ -373,6 +373,18 @@ export default function AdaptedContentRenderer({
     onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
   };
 
+  const handleDeleteQuestion = (questionNumber: string) => {
+    if (!onContentChange) return;
+    if (!confirm(`Deseja excluir a questão ${questionNumber}?`)) return;
+    const q = questionByNumber.get(questionNumber);
+    if (!q) return;
+    const normalized = content.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3")
+      .replace(/([^\n])(\s+)([a-eA-E]\)\s)/g, "$1\n$3");
+    const lines = normalized.split("\n");
+    lines.splice(q.startLine, q.endLine - q.startLine + 1);
+    onContentChange(lines.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+  };
+
   const handleEditBlockSave = (newText: string) => {
     if (!onContentChange || !editingBlock) return;
     const lines = content.split("\n");
@@ -440,16 +452,30 @@ export default function AdaptedContentRenderer({
                     ))}
                   </div>
                   {onEditQuestion && question && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => onEditQuestion({ ...question, text: block.text })}
-                      aria-label={`Editar questão ${block.number}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => onEditQuestion({ ...question, text: block.text })}
+                        aria-label={`Editar questão ${block.number}`}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      {onContentChange && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteQuestion(block.number)}
+                          aria-label={`Excluir questão ${block.number}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
