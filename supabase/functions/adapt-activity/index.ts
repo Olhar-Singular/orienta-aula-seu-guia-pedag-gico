@@ -637,6 +637,25 @@ ${sanitizedActivity}`;
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     const tokensUsed = aiData.usage?.total_tokens ?? null;
+    const aiDurationMs = Date.now() - aiStartTime;
+
+    // Log AI usage (fire-and-forget)
+    logAiUsage({
+      user_id: user.id,
+      school_id: school_id || undefined,
+      action_type: "adaptation",
+      model: modelName,
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      request_duration_ms: aiDurationMs,
+      status: "success",
+      metadata: {
+        activity_type: sanitizedType,
+        barriers_count: barriers?.length || 0,
+        has_student: !!student_id,
+        has_pei: !!peiContext,
+      },
+    }).catch(() => {});
 
     let adaptationResult: Record<string, any> = {};
     if (toolCall?.function?.arguments) {

@@ -72,6 +72,7 @@ const App = () => (
                 
                 {/* Admin routes */}
                 <Route path="/admin/professores" element={<AdminRoute><ErrorBoundary><TeacherManagement /></ErrorBoundary></AdminRoute>} />
+                <Route path="/admin/ai-usage" element={<AdminRoute><ErrorBoundary><AiUsageReport /></ErrorBoundary></AdminRoute>} />
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />

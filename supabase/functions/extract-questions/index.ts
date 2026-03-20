@@ -207,6 +207,19 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
+
+    // Log AI usage
+    logAiUsage({
+      user_id: user.id,
+      action_type: "question_extraction",
+      model: "google/gemini-2.5-flash",
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      request_duration_ms: Date.now() - extractStartTime,
+      status: "success",
+      metadata: { file_name: pdfFileName },
+    }).catch(() => {});
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let questions: any[] = [];
 

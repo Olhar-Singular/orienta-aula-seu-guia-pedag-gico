@@ -167,6 +167,19 @@ Preencha os campos usando a função fornecida.`;
     }
 
     const aiData = await aiResponse.json();
+
+    // Log AI usage
+    logAiUsage({
+      user_id: user.id,
+      action_type: "pei_generation",
+      model: "google/gemini-2.5-flash",
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      request_duration_ms: Date.now() - peiStartTime,
+      status: "success",
+      metadata: { student_id },
+    }).catch(() => {});
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     let peiResult: Record<string, any> = {};

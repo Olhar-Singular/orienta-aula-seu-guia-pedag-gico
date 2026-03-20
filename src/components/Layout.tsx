@@ -24,6 +24,7 @@ const navItems = [
 
 const adminItems = [
   { path: "/admin/professores", label: "Gestão de Professores", icon: ShieldCheck },
+  { path: "/admin/ai-usage", label: "Uso de IA", icon: Brain },
 ];
 
 export default function Layout({ children }: { children?: React.ReactNode }) {

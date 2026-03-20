@@ -111,6 +111,19 @@ serve(async (req) => {
       });
     }
 
+    // Log chat AI usage (streaming — tokens estimated)
+    const estInputTokens = Math.ceil((SYSTEM_PROMPT.length + JSON.stringify(messages || []).length) / 4);
+    logAiUsage({
+      user_id: authData.user.id,
+      action_type: "chat",
+      model: "google/gemini-2.5-flash",
+      input_tokens: estInputTokens,
+      output_tokens: 0,
+      request_duration_ms: Date.now() - chatStartTime,
+      status: "success",
+      metadata: { streaming: true },
+    }).catch(() => {});
+
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
