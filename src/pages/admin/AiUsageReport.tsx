@@ -23,7 +23,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 export default function AiUsageReport() {
   const [period, setPeriod] = useState<Period>("week");
-  const [modelFilter, setModelFilter] = useState("");
+  const [modelFilter, setModelFilter] = useState<string>("");
 
   const { data: report, isLoading, error } = useAiUsageReport({
     period,
