@@ -205,6 +205,7 @@ export default function MyAdaptations() {
 
   const cancelEditing = () => {
     setEditing(false);
+    setEditQuestionImages({ version_universal: {}, version_directed: {} });
   };
 
   const handleSaveEdit = async () => {
