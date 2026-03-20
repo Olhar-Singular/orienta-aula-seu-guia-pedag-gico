@@ -138,7 +138,7 @@ export default function AiUsageReport() {
                   </p>
                   <p className="text-xl font-bold tabular-nums">{stats.requests}</p>
                   <p className="text-xs text-muted-foreground">
-                    {stats.tokens.toLocaleString("pt-BR")} tokens · ${stats.cost.toFixed(4)}
+                    {stats.tokens >= 1_000 ? `${(stats.tokens / 1_000).toFixed(1)}k` : stats.tokens.toLocaleString("pt-BR")} tokens · ${stats.cost.toFixed(4)}
                   </p>
                 </div>
               ))}
