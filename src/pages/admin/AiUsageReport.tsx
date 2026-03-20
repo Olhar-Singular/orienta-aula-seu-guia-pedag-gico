@@ -27,7 +27,7 @@ export default function AiUsageReport() {
 
   const { data: report, isLoading, error } = useAiUsageReport({
     period,
-    model: modelFilter || undefined,
+    model: modelFilter && modelFilter !== "all" ? modelFilter : undefined,
   });
 
   if (error) {
