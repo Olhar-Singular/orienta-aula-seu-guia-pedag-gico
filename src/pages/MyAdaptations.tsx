@@ -91,6 +91,8 @@ export default function MyAdaptations() {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   // Wizard adaptations (new flow)
@@ -105,6 +107,8 @@ export default function MyAdaptations() {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   // Unify into a single list

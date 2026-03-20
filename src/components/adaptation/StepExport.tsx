@@ -50,6 +50,13 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
           notes: b.notes,
         }));
 
+      // Include per-question image maps in the saved result
+      const adaptationWithImages = {
+        ...r,
+        question_images_universal: data.questionImages.version_universal || {},
+        question_images_directed: data.questionImages.version_directed || {},
+      };
+
       const { data: inserted, error } = await supabase
         .from("adaptations_history")
         .insert({
@@ -57,7 +64,7 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
           original_activity: data.activityText,
           activity_type: data.activityType,
           barriers_used: activeBarriers,
-          adaptation_result: r as any,
+          adaptation_result: adaptationWithImages as any,
           student_id: data.studentId || null,
           class_id: data.classId || null,
           school_id: schoolId || null,
