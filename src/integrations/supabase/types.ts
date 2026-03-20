@@ -167,6 +167,107 @@ export type Database = {
           },
         ]
       }
+      ai_model_pricing: {
+        Row: {
+          id: string
+          is_active: boolean | null
+          model: string
+          notes: string | null
+          price_input_per_million: number
+          price_output_per_million: number
+          provider: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean | null
+          model: string
+          notes?: string | null
+          price_input_per_million: number
+          price_output_per_million: number
+          provider: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          is_active?: boolean | null
+          model?: string
+          notes?: string | null
+          price_input_per_million?: number
+          price_output_per_million?: number
+          provider?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_usage_logs: {
+        Row: {
+          action_type: string
+          cost_input: number | null
+          cost_output: number | null
+          cost_total: number | null
+          created_at: string | null
+          endpoint: string
+          error_message: string | null
+          id: string
+          input_tokens: number
+          metadata: Json | null
+          model: string
+          output_tokens: number
+          request_duration_ms: number | null
+          school_id: string | null
+          status: string | null
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          cost_input?: number | null
+          cost_output?: number | null
+          cost_total?: number | null
+          created_at?: string | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model: string
+          output_tokens?: number
+          request_duration_ms?: number | null
+          school_id?: string | null
+          status?: string | null
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          cost_input?: number | null
+          cost_output?: number | null
+          cost_total?: number | null
+          created_at?: string | null
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          metadata?: Json | null
+          model?: string
+          output_tokens?: number
+          request_duration_ms?: number | null
+          school_id?: string | null
+          status?: string | null
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_logs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           created_at: string
