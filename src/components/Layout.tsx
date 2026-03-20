@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, Users, BookOpen, Wand2, History, Settings, ScanSearch, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu, X, Users, BookOpen, Wand2, History, Settings, ScanSearch, ShieldCheck, Brain } from "lucide-react";
 import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
