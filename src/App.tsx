@@ -30,6 +30,7 @@ import Settings from "./pages/Settings";
 import BarrierSimulator from "./pages/BarrierSimulator";
 import SharedAdaptation from "./pages/SharedAdaptation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
+import AiUsageReport from "./pages/admin/AiUsageReport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
