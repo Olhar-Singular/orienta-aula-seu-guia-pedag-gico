@@ -150,8 +150,11 @@ function isTitle(line: string): boolean {
 }
 
 function isFormula(line: string): boolean {
-  if (line.length > 80) return false;
-  return FORMULA_CHARS.test(line) || FORMULA_EXPONENT.test(line);
+  if (line.length > 120) return false;
+  if (FORMULA_CHARS.test(line) || FORMULA_EXPONENT.test(line)) return true;
+  // Expression-like: multiple operators with numbers
+  const operatorCount = (line.match(/[+\-×÷=\/\(\)]/g) || []).length;
+  return /\d/.test(line) && operatorCount >= 3;
 }
 
 function isQuestionEnd(line: string): boolean {
