@@ -82,6 +82,12 @@ export function parseAdaptedQuestions(content: string): ParsedAdaptedQuestion[] 
 
     const questionMatch = trimmed.match(QUESTION_LINE_REGEX);
     if (questionMatch) {
+      const previousTrimmed = lineIndex > 0 ? lines[lineIndex - 1].trim() : "";
+      if (isLikelyMathContinuation(trimmed, previousTrimmed, !!current)) {
+        textParts.push(trimmed);
+        continue;
+      }
+
       finalizeCurrent(lineIndex - 1);
 
       current = {
