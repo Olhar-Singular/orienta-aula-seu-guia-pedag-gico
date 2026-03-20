@@ -649,18 +649,16 @@ export default function MyAdaptations() {
                 )}
 
                 {result && (() => {
-                  const savedImages: { image_url: string; question_text?: string }[] =
-                    Array.isArray(result.question_images) ? result.question_images : [];
+                  // Build image map: prefer new per-section format, fallback to legacy
+                  const getImageMap = (field: "version_universal" | "version_directed"): Record<string, string[]> => {
+                    const key = field === "version_universal" ? "question_images_universal" : "question_images_directed";
+                    if (result?.[key] && typeof result[key] === "object") return result[key];
 
-                  // Re-map images by matching order to adapted questions
-                  // Same logic the wizard uses: image at index N → adapted question N
-                  const buildImageMap = (sectionContent: string) => {
+                    // Fallback: legacy question_images array
+                    if (!Array.isArray(result?.question_images)) return {};
                     const map: Record<string, string[]> = {};
-                    if (savedImages.length === 0 || !sectionContent) return map;
-                    const parsedQs = parseAdaptedQuestions(sectionContent);
-                    if (parsedQs.length === 0) return map;
-
-                    savedImages.forEach((qi, index) => {
+                    const parsedQs = parseAdaptedQuestions(result?.[field] || "");
+                    result.question_images.forEach((qi: any, index: number) => {
                       if (!qi.image_url) return;
                       const adaptedQ = parsedQs[index];
                       if (!adaptedQ) return;
@@ -670,8 +668,8 @@ export default function MyAdaptations() {
                     return map;
                   };
 
-                  const imageMapUniversal = buildImageMap(result.version_universal || "");
-                  const imageMapDirected = buildImageMap(result.version_directed || "");
+                  const imageMapUniversal = getImageMap("version_universal");
+                  const imageMapDirected = getImageMap("version_directed");
 
                   return (
                     <>
