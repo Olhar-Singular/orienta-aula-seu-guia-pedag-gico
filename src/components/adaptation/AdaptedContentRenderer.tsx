@@ -452,16 +452,30 @@ export default function AdaptedContentRenderer({
                     ))}
                   </div>
                   {onEditQuestion && question && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 shrink-0"
-                      onClick={() => onEditQuestion({ ...question, text: block.text })}
-                      aria-label={`Editar questão ${block.number}`}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex gap-0.5 shrink-0">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => onEditQuestion({ ...question, text: block.text })}
+                        aria-label={`Editar questão ${block.number}`}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      {onContentChange && (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteQuestion(block.number)}
+                          aria-label={`Excluir questão ${block.number}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
