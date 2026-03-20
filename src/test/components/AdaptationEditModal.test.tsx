@@ -105,7 +105,7 @@ describe("AdaptationEditModal", () => {
         images={["https://example.com/photo.png"]}
       />
     );
-    const img = screen.getByRole("img", { name: "Imagem 1" });
+    const img = screen.getByRole("img", { name: "Imagem da questão 1" });
     expect(img).toBeInTheDocument();
   });
 
