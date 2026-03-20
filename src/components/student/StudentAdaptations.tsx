@@ -109,7 +109,10 @@ export default function StudentAdaptations({ studentId, studentName }: StudentAd
       </p>
 
       {adaptations.map((adaptation: any, index: number) => {
-        const barriers: string[] = Array.isArray(adaptation.barriers_used) ? adaptation.barriers_used : [];
+        const rawBarriers = Array.isArray(adaptation.barriers_used) ? adaptation.barriers_used : [];
+        const barriers: string[] = rawBarriers.map((b: any) =>
+          typeof b === "string" ? b : b?.barrier_key || b?.key || ""
+        ).filter(Boolean);
         const title = adaptation.original_activity?.slice(0, 100) || "Adaptação";
         const typeLabel = ACTIVITY_TYPES[adaptation.activity_type || ""] || "Atividade";
         const date = new Date(adaptation.created_at).toLocaleDateString("pt-BR", {
