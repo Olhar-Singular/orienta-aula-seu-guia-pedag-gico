@@ -7,7 +7,7 @@ export type ParsedAdaptedQuestion = {
   endLine: number;
 };
 
-const ALT_LINE_REGEX = /^([a-eA-E])\)\s*(.+)/;
+const ALT_LINE_REGEX = /^([a-zA-Z])\)\s*(.+)/;
 const QUESTION_LINE_REGEX = /^(?:\*{0,2})(\d+)[\.\)](?!\d)\s*(?:\*{0,2})\s*(.+)/;
 
 /**

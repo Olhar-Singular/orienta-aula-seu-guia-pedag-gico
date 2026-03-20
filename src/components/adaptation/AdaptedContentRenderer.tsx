@@ -174,7 +174,7 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
 }
 
 // Detect alternative lines: only a-e (standard exam answers), must start at line beginning
-const ALT_LINE_REGEX = /^([a-eA-E])\)\s+(.+)/;
+const ALT_LINE_REGEX = /^([a-zA-Z])\)\s+(.+)/;
 // Detect numbered question/item lines: must start with number + "." + space + text starting with a letter/word
 // Avoids matching bare numbers or math like "= 42/48"
 const QUESTION_LINE_REGEX = /^(\d+)[\.\)]\s*([A-Za-zÀ-ú"(].+)/;
