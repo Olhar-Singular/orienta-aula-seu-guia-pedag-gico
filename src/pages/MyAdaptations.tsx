@@ -865,6 +865,23 @@ export default function MyAdaptations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={unsavedWarningOpen} onOpenChange={setUnsavedWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações que não foram salvas. Deseja sair sem salvar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={forceCloseView} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
