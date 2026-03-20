@@ -307,8 +307,8 @@ export function parseActivityText(text: string): ParsedElement[] {
       continue;
     }
 
-    // 8. Formula (short line with math symbols)
-    if (isFormula(trimmed) && trimmed.length < 60) {
+    // 8. Formula (line with math symbols)
+    if (isFormula(trimmed) && trimmed.length < 120) {
       elements.push({ type: "formula", content: trimmed });
       continue;
     }
