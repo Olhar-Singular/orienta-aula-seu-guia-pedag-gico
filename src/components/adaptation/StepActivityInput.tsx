@@ -64,9 +64,13 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // File extraction state
   const [fileExtracting, setFileExtracting] = useState(false);
+
+  // Debounce timer for bank search
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tabs: { key: Tab; label: string; icon: typeof Type }[] = [
     { key: "manual", label: "Colar Texto", icon: Type },
