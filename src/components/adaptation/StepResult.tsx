@@ -145,7 +145,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
         .filter((b) => b.is_active)
         .map((b) => ({
           dimension: b.dimension,
-          barrier_key: b.label,
+          barrier_key: b.barrier_key,
           notes: b.notes,
         }));
 

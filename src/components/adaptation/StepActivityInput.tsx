@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -64,9 +64,13 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState("all");
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // File extraction state
   const [fileExtracting, setFileExtracting] = useState(false);
+
+  // Debounce timer for bank search
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tabs: { key: Tab; label: string; icon: typeof Type }[] = [
     { key: "manual", label: "Colar Texto", icon: Type },
@@ -96,7 +100,12 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   }, [bankSearch, filterSubject, filterDifficulty]);
 
   useEffect(() => {
-    if (showBankModal) fetchBankQuestions();
+    if (!showBankModal) return;
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      fetchBankQuestions();
+    }, 300);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
   }, [showBankModal, fetchBankQuestions]);
 
   const toggleQuestion = (id: string) => {
@@ -157,6 +166,8 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
     setFileExtracting(true);
     try {
       const formData = new FormData();
@@ -168,6 +179,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
           method: "POST",
           headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
           body: formData,
+          signal: abortRef.current.signal,
         }
       );
       if (!resp.ok) {
@@ -192,6 +204,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       onChange(value ? value + "\n\n" + text : text);
       toast({ title: `${questions.length} questão(ões) extraída(s) do arquivo!` });
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setFileExtracting(false);
@@ -204,6 +217,8 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       toast({ title: "Selecione uma imagem", variant: "destructive" });
       return;
     }
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
     setFileExtracting(true);
     try {
       const formData = new FormData();
@@ -215,6 +230,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
           method: "POST",
           headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
           body: formData,
+          signal: abortRef.current.signal,
         }
       );
       if (!resp.ok) {
@@ -231,6 +247,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       onChange(value ? value + "\n\n" + text : text);
       toast({ title: `${questions.length} questão(ões) extraída(s) da imagem!` });
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setFileExtracting(false);

@@ -85,6 +85,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       setStudents([]);
       return;
     }
+    let cancelled = false;
     setLoadingStudents(true);
     supabase
       .from("class_students")
@@ -92,9 +93,11 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       .eq("class_id", data.classId)
       .order("name")
       .then(({ data: d }) => {
+        if (cancelled) return;
         setStudents(d || []);
         setLoadingStudents(false);
       });
+    return () => { cancelled = true; };
   }, [data.classId]);
 
   // Sync studentName when students list loads after studentId is already set
