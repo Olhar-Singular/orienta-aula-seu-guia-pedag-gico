@@ -217,6 +217,8 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       toast({ title: "Selecione uma imagem", variant: "destructive" });
       return;
     }
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
     setFileExtracting(true);
     try {
       const formData = new FormData();
@@ -228,6 +230,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
           method: "POST",
           headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
           body: formData,
+          signal: abortRef.current.signal,
         }
       );
       if (!resp.ok) {
@@ -244,6 +247,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       onChange(value ? value + "\n\n" + text : text);
       toast({ title: `${questions.length} questão(ões) extraída(s) da imagem!` });
     } catch (err: any) {
+      if (err.name === "AbortError") return;
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     } finally {
       setFileExtracting(false);
