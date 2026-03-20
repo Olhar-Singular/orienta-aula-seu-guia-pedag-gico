@@ -608,6 +608,23 @@ export default function AdaptedContentRenderer({
         initialText={editingBlock ? editingBlock.lines.join("\n") : ""}
         onSave={handleEditBlockSave}
       />
+
+      <AlertDialog open={!!deleteQuestionNumber} onOpenChange={(open) => { if (!open) setDeleteQuestionNumber(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir questão {deleteQuestionNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A questão será removida da atividade.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteQuestion} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
