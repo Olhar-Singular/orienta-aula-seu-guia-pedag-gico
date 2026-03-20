@@ -4,6 +4,16 @@ import { cn } from "@/lib/utils";
 import { Pencil, X, Trash2 } from "lucide-react";
 import katex from "katex";
 import TextBlockEditModal from "./TextBlockEditModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import "katex/dist/katex.min.css";
 import {
   parseAdaptedQuestions,
