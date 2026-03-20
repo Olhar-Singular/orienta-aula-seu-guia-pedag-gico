@@ -72,6 +72,7 @@ Analise a atividade escolar fornecida e identifique barreiras pedagógicas poten
 
 Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sugira uma mitigação concreta.`;
 
+    const barrierStartTime = Date.now();
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
