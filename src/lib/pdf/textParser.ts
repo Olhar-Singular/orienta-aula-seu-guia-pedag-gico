@@ -162,12 +162,55 @@ function isQuestionEnd(line: string): boolean {
   return line.endsWith("?");
 }
 
+// ── Line Joining ──────────────────────────────────────────
+
+/**
+ * Join lines that are formula continuations.
+ * Detects lines ending with operators or incomplete fractions
+ * and merges them with the following line.
+ */
+function joinFormulaLines(rawLines: string[]): string[] {
+  const result: string[] = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    let current = rawLines[i].trim();
+
+    if (!current) {
+      result.push(rawLines[i]);
+      i++;
+      continue;
+    }
+
+    // Keep joining while current line ends with an operator or open paren
+    while (i + 1 < rawLines.length) {
+      const next = rawLines[i + 1].trim();
+      if (!next) break;
+
+      const endsWithOperator = /[+\-×÷=\(\[,\/\\]$/.test(current);
+      const nextStartsWithContinuation = /^[+\-×÷=\)\]\.,\d]/.test(next);
+
+      if (endsWithOperator || nextStartsWithContinuation) {
+        current = current + " " + next;
+        i++;
+      } else {
+        break;
+      }
+    }
+
+    result.push(current);
+    i++;
+  }
+
+  return result;
+}
+
 // ── Main Parser ───────────────────────────────────────────
 
 export function parseActivityText(text: string): ParsedElement[] {
   if (!text || typeof text !== "string") return [];
 
-  const lines = text.split("\n");
+  const lines = joinFormulaLines(text.split("\n"));
   const elements: ParsedElement[] = [];
 
   for (let i = 0; i < lines.length; i++) {
