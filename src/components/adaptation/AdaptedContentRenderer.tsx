@@ -4,6 +4,16 @@ import { cn } from "@/lib/utils";
 import { Pencil, X, Trash2 } from "lucide-react";
 import katex from "katex";
 import TextBlockEditModal from "./TextBlockEditModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import "katex/dist/katex.min.css";
 import {
   parseAdaptedQuestions,
@@ -360,7 +370,8 @@ export default function AdaptedContentRenderer({
   const parsedQuestions = parseAdaptedQuestions(content);
   const questionByNumber = new Map(parsedQuestions.map((question) => [question.number, question]));
 
-  const [editingBlock, setEditingBlock] = useState<{ lines: string[]; type: "paragraph" | "bulletList" } | null>(null);
+   const [editingBlock, setEditingBlock] = useState<{ lines: string[]; type: "paragraph" | "bulletList" } | null>(null);
+  const [deleteQuestionNumber, setDeleteQuestionNumber] = useState<string | null>(null);
 
   const handleDeleteParagraph = (paragraphLines: string[]) => {
     if (!onContentChange) return;
@@ -373,16 +384,16 @@ export default function AdaptedContentRenderer({
     onContentChange(filtered.join("\n").replace(/\n{3,}/g, "\n\n").trim());
   };
 
-  const handleDeleteQuestion = (questionNumber: string) => {
-    if (!onContentChange) return;
-    if (!confirm(`Deseja excluir a questão ${questionNumber}?`)) return;
-    const q = questionByNumber.get(questionNumber);
+  const confirmDeleteQuestion = () => {
+    if (!onContentChange || !deleteQuestionNumber) return;
+    const q = questionByNumber.get(deleteQuestionNumber);
     if (!q) return;
     const normalized = content.replace(/([^\n])(\s*)(\*{0,2}\d+[\.\)]\s)/g, "$1\n$3")
       .replace(/([^\n])(\s+)([a-eA-E]\)\s)/g, "$1\n$3");
     const lines = normalized.split("\n");
     lines.splice(q.startLine, q.endLine - q.startLine + 1);
     onContentChange(lines.join("\n").replace(/\n{3,}/g, "\n\n").trim());
+    setDeleteQuestionNumber(null);
   };
 
   const handleEditBlockSave = (newText: string) => {
@@ -469,7 +480,7 @@ export default function AdaptedContentRenderer({
                           size="icon"
                           variant="ghost"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteQuestion(block.number)}
+                          onClick={() => setDeleteQuestionNumber(block.number)}
                           aria-label={`Excluir questão ${block.number}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -597,6 +608,23 @@ export default function AdaptedContentRenderer({
         initialText={editingBlock ? editingBlock.lines.join("\n") : ""}
         onSave={handleEditBlockSave}
       />
+
+      <AlertDialog open={!!deleteQuestionNumber} onOpenChange={(open) => { if (!open) setDeleteQuestionNumber(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir questão {deleteQuestionNumber}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A questão será removida da atividade.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteQuestion} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

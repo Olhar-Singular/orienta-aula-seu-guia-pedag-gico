@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 
@@ -321,22 +322,31 @@ export default function MyAdaptations() {
     }
   };
 
-  const handleCloseView = () => {
-    if (editing) {
-      const hasChanges = viewItem?.source === "legacy"
-        ? editFields.adapted_text !== (viewItem?.raw?.adapted_text || "") ||
-          editFields.teacher_guidance !== (viewItem?.raw?.teacher_guidance || "") ||
-          editFields.justification !== (viewItem?.raw?.justification || "")
-        : editFields.version_universal !== ((viewItem?.raw?.adaptation_result as any)?.version_universal || "") ||
-          editFields.version_directed !== ((viewItem?.raw?.adaptation_result as any)?.version_directed || "");
+  const [unsavedWarningOpen, setUnsavedWarningOpen] = useState(false);
 
-      if (hasChanges && !confirm("Você tem alterações não salvas. Deseja sair?")) {
-        return;
-      }
+  const hasUnsavedChanges = () => {
+    if (!editing || !viewItem) return false;
+    return viewItem.source === "legacy"
+      ? editFields.adapted_text !== (viewItem?.raw?.adapted_text || "") ||
+        editFields.teacher_guidance !== (viewItem?.raw?.teacher_guidance || "") ||
+        editFields.justification !== (viewItem?.raw?.justification || "")
+      : editFields.version_universal !== ((viewItem?.raw?.adaptation_result as any)?.version_universal || "") ||
+        editFields.version_directed !== ((viewItem?.raw?.adaptation_result as any)?.version_directed || "");
+  };
+
+  const handleCloseView = () => {
+    if (hasUnsavedChanges()) {
+      setUnsavedWarningOpen(true);
+      return;
     }
+    forceCloseView();
+  };
+
+  const forceCloseView = () => {
     setViewItem(null);
     setEditing(false);
     setEditQuestionImages({ version_universal: {}, version_directed: {} });
+    setUnsavedWarningOpen(false);
   };
 
   return (
@@ -855,6 +865,23 @@ export default function MyAdaptations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={unsavedWarningOpen} onOpenChange={setUnsavedWarningOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações que não foram salvas. Deseja sair sem salvar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={forceCloseView} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Sair sem salvar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
