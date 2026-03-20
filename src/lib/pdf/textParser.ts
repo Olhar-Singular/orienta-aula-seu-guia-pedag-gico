@@ -137,6 +137,8 @@ export function normalizeMathText(text: string): string {
   result = result.replace(/≤/g, "<=");
   result = result.replace(/≥/g, ">=");
   result = result.replace(/·/g, ".");
+  // Remove any remaining unmatched dollar signs
+  result = result.replace(/\$/g, "");
   return result;
 }
 
@@ -148,8 +150,11 @@ function isTitle(line: string): boolean {
 }
 
 function isFormula(line: string): boolean {
-  if (line.length > 80) return false;
-  return FORMULA_CHARS.test(line) || FORMULA_EXPONENT.test(line);
+  if (line.length > 120) return false;
+  if (FORMULA_CHARS.test(line) || FORMULA_EXPONENT.test(line)) return true;
+  // Expression-like: multiple operators with numbers
+  const operatorCount = (line.match(/[+\-×÷=\/\(\)]/g) || []).length;
+  return /\d/.test(line) && operatorCount >= 3;
 }
 
 function isQuestionEnd(line: string): boolean {
@@ -157,12 +162,62 @@ function isQuestionEnd(line: string): boolean {
   return line.endsWith("?");
 }
 
+// ── Line Joining ──────────────────────────────────────────
+
+/**
+ * Join lines that are formula continuations.
+ * Detects lines ending with operators or incomplete fractions
+ * and merges them with the following line.
+ */
+function joinFormulaLines(rawLines: string[]): string[] {
+  const result: string[] = [];
+  let i = 0;
+
+  while (i < rawLines.length) {
+    let current = rawLines[i].trim();
+
+    if (!current) {
+      result.push(rawLines[i]);
+      i++;
+      continue;
+    }
+
+    // Don't try to join horizontal rules or bullet-like lines
+    const isCurrentRule = /^[\-=_\*]{3,}$/.test(current) || /^[\-\•\*]\s+/.test(current);
+
+    // Keep joining while current line ends with an operator or open paren
+    while (i + 1 < rawLines.length && !isCurrentRule) {
+      const next = rawLines[i + 1].trim();
+      if (!next) break;
+
+      // Don't join bullet items (- text), horizontal rules (---), or header-like lines
+      const isBulletOrRule = /^[\-\•\*]\s+/.test(next) || /^[\-=_\*]{3,}$/.test(next);
+      if (isBulletOrRule) break;
+
+      const endsWithOperator = /[+×÷=\(\[,\/\\]$/.test(current) || /[+\-]\s*$/.test(current);
+      const nextStartsWithContinuation = /^[+×÷=\)\]\.,]/.test(next) || /^\d+[\)\]]/.test(next);
+
+      if (endsWithOperator || nextStartsWithContinuation) {
+        current = current + " " + next;
+        i++;
+      } else {
+        break;
+      }
+    }
+
+    result.push(current);
+    i++;
+  }
+
+  return result;
+}
+
 // ── Main Parser ───────────────────────────────────────────
 
 export function parseActivityText(text: string): ParsedElement[] {
   if (!text || typeof text !== "string") return [];
 
-  const lines = text.split("\n");
+  const lines = joinFormulaLines(text.split("\n"));
   const elements: ParsedElement[] = [];
 
   for (let i = 0; i < lines.length; i++) {
@@ -237,12 +292,16 @@ export function parseActivityText(text: string): ParsedElement[] {
       const num = qMatch[1];
       const rest = (qMatch[2] || "").trim();
 
-      elements.push({
-        type: "question-number",
-        content: rest ? `${num}. ${rest}` : `${num}.`,
-        metadata: { number: num },
-      });
-      continue;
+      // Skip if the "text" is actually a formula fragment (e.g., "x (1,2² - 3/4)")
+      const isFormulaFragment = /^[a-z]\s*[\(\[×÷+\-=²³]/.test(rest) && rest.length < 40;
+      if (!isFormulaFragment) {
+        elements.push({
+          type: "question-number",
+          content: rest ? `${num}. ${rest}` : `${num}.`,
+          metadata: { number: num },
+        });
+        continue;
+      }
     }
 
     // 7. Bullet list
@@ -255,8 +314,8 @@ export function parseActivityText(text: string): ParsedElement[] {
       continue;
     }
 
-    // 8. Formula (short line with math symbols)
-    if (isFormula(trimmed) && trimmed.length < 60) {
+    // 8. Formula (line with math symbols)
+    if (isFormula(trimmed) && trimmed.length < 120) {
       elements.push({ type: "formula", content: trimmed });
       continue;
     }
