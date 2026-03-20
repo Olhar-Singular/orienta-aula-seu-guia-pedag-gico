@@ -14,6 +14,7 @@ import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 import StudentDocuments from "@/components/student/StudentDocuments";
 import StudentPeiReport from "@/components/student/StudentPeiReport";
+import StudentAdaptations from "@/components/student/StudentAdaptations";
 
 const MAX_NOTES_LENGTH = 1000;
 
@@ -118,6 +119,7 @@ export default function StudentProfile() {
       <Tabs defaultValue="perfil" className="w-full">
         <TabsList className="w-full sm:w-auto">
           <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil & Barreiras</TabsTrigger>
+          <TabsTrigger value="adaptacoes" className="flex-1 sm:flex-none">Adaptações</TabsTrigger>
           <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
           <TabsTrigger value="pei" className="flex-1 sm:flex-none">PEI & Relatório</TabsTrigger>
         </TabsList>
@@ -197,6 +199,12 @@ export default function StudentProfile() {
               Salvar perfil do aluno
             </Button>
           </motion.div>
+        </TabsContent>
+
+        <TabsContent value="adaptacoes" className="mt-4">
+          {alunoId && (
+            <StudentAdaptations studentId={alunoId} studentName={student?.name || "Aluno"} />
+          )}
         </TabsContent>
 
         <TabsContent value="documentos" className="mt-4">
