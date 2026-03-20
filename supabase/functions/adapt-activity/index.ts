@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
+import { logAiUsage } from "../_shared/logAiUsage.ts";
 
 
 const corsHeaders = {
@@ -594,6 +595,7 @@ ${sanitizedActivity}`;
 
     // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-flash";
+    const aiStartTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -635,6 +637,25 @@ ${sanitizedActivity}`;
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     const tokensUsed = aiData.usage?.total_tokens ?? null;
+    const aiDurationMs = Date.now() - aiStartTime;
+
+    // Log AI usage (fire-and-forget)
+    logAiUsage({
+      user_id: user.id,
+      school_id: school_id || undefined,
+      action_type: "adaptation",
+      model: modelName,
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      request_duration_ms: aiDurationMs,
+      status: "success",
+      metadata: {
+        activity_type: sanitizedType,
+        barriers_count: barriers?.length || 0,
+        has_student: !!student_id,
+        has_pei: !!peiContext,
+      },
+    }).catch(() => {});
 
     let adaptationResult: Record<string, any> = {};
     if (toolCall?.function?.arguments) {

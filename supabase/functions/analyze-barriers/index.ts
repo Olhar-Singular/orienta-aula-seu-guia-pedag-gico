@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage } from "../_shared/logAiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,6 +72,7 @@ Analise a atividade escolar fornecida e identifique barreiras pedagógicas poten
 
 Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sugira uma mitigação concreta.`;
 
+    const barrierStartTime = Date.now();
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -163,6 +165,18 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
     }
 
     const data = await response.json();
+
+    // Log AI usage
+    logAiUsage({
+      user_id: authData.user.id,
+      action_type: "barrier_analysis",
+      model: "google/gemini-2.5-flash",
+      input_tokens: data.usage?.prompt_tokens || 0,
+      output_tokens: data.usage?.completion_tokens || 0,
+      request_duration_ms: Date.now() - barrierStartTime,
+      status: "success",
+    }).catch(() => {});
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
       return new Response(

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage } from "../_shared/logAiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,6 +83,7 @@ Preencha os campos usando a função fornecida.`;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 
+    const peiStartTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -165,6 +167,19 @@ Preencha os campos usando a função fornecida.`;
     }
 
     const aiData = await aiResponse.json();
+
+    // Log AI usage
+    logAiUsage({
+      user_id: user.id,
+      action_type: "pei_generation",
+      model: "google/gemini-2.5-flash",
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      request_duration_ms: Date.now() - peiStartTime,
+      status: "success",
+      metadata: { student_id },
+    }).catch(() => {});
+
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 
     let peiResult: Record<string, any> = {};

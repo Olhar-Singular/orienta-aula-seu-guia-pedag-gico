@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage } from "../_shared/logAiUsage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,6 +76,7 @@ serve(async (req) => {
 
     // Messages may contain multimodal content (text + image_url)
     // Forward them as-is to the vision-capable model
+    const chatStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -108,6 +110,19 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Log chat AI usage (streaming — tokens estimated)
+    const estInputTokens = Math.ceil((SYSTEM_PROMPT.length + JSON.stringify(messages || []).length) / 4);
+    logAiUsage({
+      user_id: authData.user.id,
+      action_type: "chat",
+      model: "google/gemini-2.5-flash",
+      input_tokens: estInputTokens,
+      output_tokens: 0,
+      request_duration_ms: Date.now() - chatStartTime,
+      status: "success",
+      metadata: { streaming: true },
+    }).catch(() => {});
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

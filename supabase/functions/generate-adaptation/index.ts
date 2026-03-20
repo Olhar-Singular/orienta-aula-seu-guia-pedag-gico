@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logAiUsage } from "../_shared/logAiUsage.ts";
 
 
 const corsHeaders = {
@@ -176,6 +177,7 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
 
     console.log("Processing request:", { action, hasContext: !!context, messageCount: messages?.length });
 
+    const aiStartTime = Date.now();
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -213,6 +215,19 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
       });
     }
 
+
+    // Log AI usage for streaming (tokens estimated from input, output unknown)
+    const estimatedInputTokens = Math.ceil((systemContent.length + JSON.stringify(messages || []).length) / 4);
+    logAiUsage({
+      user_id: authData.user.id,
+      action_type: "adaptation_wizard",
+      model: "google/gemini-2.5-pro",
+      input_tokens: estimatedInputTokens,
+      output_tokens: 0,
+      request_duration_ms: Date.now() - aiStartTime,
+      status: "success",
+      metadata: { streaming: true, action: action || "generate" },
+    }).catch(() => {});
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
