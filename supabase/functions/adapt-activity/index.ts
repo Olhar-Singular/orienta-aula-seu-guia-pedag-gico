@@ -595,6 +595,7 @@ ${sanitizedActivity}`;
 
     // Call AI — using pro model for complex pedagogical reasoning
     const modelName = "google/gemini-2.5-flash";
+    const aiStartTime = Date.now();
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
