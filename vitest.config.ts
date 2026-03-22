@@ -9,6 +9,15 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Limitar uso de memória (~60% de 32GB)
+    pool: "forks", // Usa processos ao invés de threads (mais estável em memória)
+    poolOptions: {
+      forks: {
+        maxForks: 4, // Limita a 4 workers paralelos
+        minForks: 1,
+      },
+    },
+    maxConcurrency: 10, // Máximo de testes concorrentes por worker
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

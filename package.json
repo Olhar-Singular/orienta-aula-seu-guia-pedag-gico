@@ -9,8 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "NODE_OPTIONS='--max-old-space-size=19456' vitest run",
+    "test:watch": "NODE_OPTIONS='--max-old-space-size=19456' vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
