@@ -16,6 +16,7 @@ import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
 import StepResult from "./StepResult";
 import StepExport from "./StepExport";
+import type { StructuredActivity } from "@/types/adaptation";
 
 export type ActivityType = "prova" | "exercicio" | "atividade_casa" | "trabalho";
 
@@ -27,9 +28,10 @@ export type BarrierItem = {
   notes?: string;
 };
 
+// version_universal/directed can be string (legacy) or StructuredActivity (new)
 export type AdaptationResult = {
-  version_universal: string;
-  version_directed: string;
+  version_universal: string | StructuredActivity;
+  version_directed: string | StructuredActivity;
   strategies_applied: string[];
   pedagogical_justification: string;
   implementation_tips: string[];
