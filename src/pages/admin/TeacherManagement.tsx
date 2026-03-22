@@ -73,10 +73,14 @@ export default function TeacherManagement() {
 
       // Fetch profiles separately since there's no FK relationship
       const userIds = members.map((m) => m.user_id);
-      const { data: profiles } = await supabase
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, name, email")
         .in("user_id", userIds);
+
+      if (profilesError) {
+        console.error("Erro ao buscar profiles:", profilesError);
+      }
 
       const profileMap = new Map(
         (profiles || []).map((p) => [p.user_id, p])

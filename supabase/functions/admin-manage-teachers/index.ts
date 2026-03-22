@@ -7,6 +7,44 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Find a user by email without listing all users */
+async function findUserByEmail(
+  admin: ReturnType<typeof createClient>,
+  email: string
+) {
+  // Use listUsers with a per-page of 1 — the Supabase admin API
+  // doesn't support email filter natively, so we query profiles table first
+  // as a fast path, then fall back to auth if needed.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("user_id, email")
+    .eq("email", email.toLowerCase())
+    .maybeSingle();
+
+  if (profile?.user_id) {
+    const { data } = await admin.auth.admin.getUserById(profile.user_id);
+    if (data?.user) return data.user;
+  }
+
+  // Fallback: paginate auth users searching for email (handles edge cases
+  // where profile email is out of sync)
+  let page = 1;
+  const perPage = 100;
+  while (true) {
+    const { data } = await admin.auth.admin.listUsers({ page, perPage });
+    if (!data?.users?.length) break;
+    const found = data.users.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
+    if (found) return found;
+    if (data.users.length < perPage) break;
+    page++;
+  }
+  return null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -52,6 +90,13 @@ serve(async (req) => {
         });
       }
 
+      if (!EMAIL_REGEX.test(email)) {
+        return new Response(JSON.stringify({ error: "Formato de e-mail inválido." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       // Verify caller is admin
       const { data: isAdmin } = await admin.rpc("is_school_admin", {
         _user_id: caller.id,
@@ -64,11 +109,8 @@ serve(async (req) => {
         });
       }
 
-      // Check if user already exists in auth
-      const { data: existingUsers } = await admin.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === email.toLowerCase()
-      );
+      // Check if user already exists (efficient lookup)
+      const existingUser = await findUserByEmail(admin, email);
 
       let userId: string;
 
@@ -123,7 +165,6 @@ serve(async (req) => {
           .insert({ user_id: userId, full_name: name, name, email });
         
         if (profileErr) {
-          // Profile may already exist from trigger, try update instead
           console.log("Profile insert failed, trying update:", profileErr.message);
           await admin
             .from("profiles")
@@ -187,8 +228,28 @@ serve(async (req) => {
         });
       }
 
+      // ── PRE-FETCH: batch lookup existing members & profiles ──
+      const { data: existingMembers } = await admin
+        .from("school_members")
+        .select("user_id")
+        .eq("school_id", school_id);
+      const existingMemberIds = new Set(
+        (existingMembers || []).map((m) => m.user_id)
+      );
+
+      // Batch lookup profiles by email to avoid per-teacher listUsers()
+      const emails = teachers
+        .map((t: any) => t.email?.toLowerCase())
+        .filter(Boolean);
+      const { data: existingProfiles } = await admin
+        .from("profiles")
+        .select("user_id, email")
+        .in("email", emails);
+      const profileByEmail = new Map(
+        (existingProfiles || []).map((p) => [p.email?.toLowerCase(), p])
+      );
+
       const results: { email: string; success: boolean; error?: string }[] = [];
-      const siteUrl = req.headers.get("origin") || Deno.env.get("SITE_URL") || "https://aula-wise-guide.lovable.app";
 
       for (const teacher of teachers) {
         try {
@@ -197,30 +258,32 @@ serve(async (req) => {
             continue;
           }
 
-          // Check if user exists
-          const { data: existingUsers } = await admin.auth.admin.listUsers();
-          const existing = existingUsers?.users?.find(
-            (u) => u.email?.toLowerCase() === teacher.email.toLowerCase()
-          );
+          if (!EMAIL_REGEX.test(teacher.email)) {
+            results.push({ email: teacher.email, success: false, error: "Formato de e-mail inválido" });
+            continue;
+          }
 
-          let userId: string;
+          const emailLower = teacher.email.toLowerCase();
 
-          if (existing) {
-            // Check if already member
-            const { data: existingMember } = await admin
-              .from("school_members")
-              .select("id")
-              .eq("school_id", school_id)
-              .eq("user_id", existing.id)
-              .maybeSingle();
+          // Try fast path via profiles map
+          let userId: string | null = null;
+          const cachedProfile = profileByEmail.get(emailLower);
+          if (cachedProfile) {
+            userId = cachedProfile.user_id;
+          } else {
+            // Fallback: check auth (for users without profile email)
+            const existing = await findUserByEmail(admin, teacher.email);
+            if (existing) userId = existing.id;
+          }
 
-            if (existingMember) {
+          if (userId) {
+            // Already a member?
+            if (existingMemberIds.has(userId)) {
               results.push({ email: teacher.email, success: false, error: "Já vinculado à escola" });
               continue;
             }
-            userId = existing.id;
 
-            // Ensure profile exists/updated for existing user
+            // Ensure profile exists/updated
             await admin
               .from("profiles")
               .upsert(
@@ -242,7 +305,6 @@ serve(async (req) => {
             }
             userId = newUser.user.id;
 
-            // Ensure profile exists/updated for new user
             await admin
               .from("profiles")
               .upsert(
@@ -256,6 +318,9 @@ serve(async (req) => {
             user_id: userId,
             role: teacher.role === "admin" ? "admin" : "teacher",
           });
+
+          // Track in local set to avoid duplicate within same batch
+          existingMemberIds.add(userId);
 
           results.push({ email: teacher.email, success: true });
         } catch (e) {
