@@ -84,8 +84,8 @@ describe("Landing page (Index)", () => {
   });
 
   it("renders PEI section with keyword", () => {
-    const { getByText } = renderIndex();
-    expect(getByText(/Plano Educacional Individualizado/)).toBeTruthy();
+    const { getAllByText } = renderIndex();
+    expect(getAllByText(/Plano Educacional Individualizado/).length).toBeGreaterThan(0);
   });
 
   it("renders social proof stats", () => {
