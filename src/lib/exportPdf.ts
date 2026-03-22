@@ -19,6 +19,13 @@ export type ExportData = {
 };
 
 export async function exportToPdf(data: ExportData) {
+  console.log("[exportToPdf] Starting export with data:", {
+    hasUniversalText: !!data.versionUniversal,
+    hasDirectedText: !!data.versionDirected,
+    universalImages: data.questionImagesUniversal ? Object.keys(data.questionImagesUniversal) : [],
+    directedImages: data.questionImagesDirected ? Object.keys(data.questionImagesDirected) : [],
+  });
+
   const props: AdaptationPDFProps = {
     schoolName: data.schoolName,
     teacherName: data.teacherName,
@@ -33,5 +40,12 @@ export async function exportToPdf(data: ExportData) {
     questionImagesUniversal: data.questionImagesUniversal,
     questionImagesDirected: data.questionImagesDirected,
   };
-  await downloadAdaptationPDF(props);
+
+  try {
+    await downloadAdaptationPDF(props);
+    console.log("[exportToPdf] Export completed successfully");
+  } catch (error) {
+    console.error("[exportToPdf] Export failed:", error);
+    throw error;
+  }
 }

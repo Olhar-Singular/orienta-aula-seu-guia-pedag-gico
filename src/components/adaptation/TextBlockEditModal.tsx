@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import QuestionRichEditor, { textToHtml, htmlToText } from "@/components/QuestionRichEditor";
 
 type Props = {
   open: boolean;
@@ -21,10 +21,10 @@ export default function TextBlockEditModal({
   initialText,
   onSave,
 }: Props) {
-  const [text, setText] = useState(initialText);
+  const [text, setText] = useState(() => textToHtml(initialText));
 
   useEffect(() => {
-    if (open) setText(initialText);
+    if (open) setText(textToHtml(initialText));
   }, [open, initialText]);
 
   const handleSave = () => {
@@ -38,17 +38,19 @@ export default function TextBlockEditModal({
         <DialogHeader>
           <DialogTitle>Editar texto</DialogTitle>
         </DialogHeader>
-        <Textarea
+        <QuestionRichEditor
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={8}
-          className="text-sm"
+          onChange={setText}
+          placeholder="Digite o texto..."
+          minHeight={180}
         />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>Salvar</Button>
+          <Button onClick={handleSave} disabled={!htmlToText(text).trim()}>
+            Salvar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

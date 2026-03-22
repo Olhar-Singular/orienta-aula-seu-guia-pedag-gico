@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
-import { renderMathToHtml } from "@/lib/latexRenderer";
+import QuestionRichEditor, { textToHtml, htmlToText } from "@/components/QuestionRichEditor";
 import type { StructuredQuestion, Alternative, QuestionType } from "@/types/adaptation";
 import { QUESTION_TYPE_LABELS } from "@/types/adaptation";
 
@@ -19,7 +18,7 @@ interface Props {
 
 export default function QuestionEditor({ open, onOpenChange, question, onSave }: Props) {
   const [type, setType] = useState<QuestionType>(question.type);
-  const [statement, setStatement] = useState(question.statement);
+  const [statement, setStatement] = useState(() => textToHtml(question.statement));
   const [instruction, setInstruction] = useState(question.instruction || "");
   const [alternatives, setAlternatives] = useState<Alternative[]>(
     question.alternatives || []
@@ -29,10 +28,15 @@ export default function QuestionEditor({ open, onOpenChange, question, onSave }:
   );
 
   const handleSave = () => {
+    // Get the statement content - preserve HTML if it has formatting
+    const statementContent = statement.trim();
+    const plainText = htmlToText(statementContent);
+
     const updated: StructuredQuestion = {
       ...question,
       type,
-      statement: statement.trim(),
+      statement: statementContent,
+      statementFormat: statementContent !== plainText ? "html" : "text",
       instruction: instruction.trim() || undefined,
       alternatives: type === "multiple_choice" ? alternatives.filter((a) => a.text.trim()) : undefined,
       scaffolding: scaffolding.filter((s) => s.trim()).length > 0
@@ -93,15 +97,6 @@ export default function QuestionEditor({ open, onOpenChange, question, onSave }:
     setType(newType);
   };
 
-  const renderPreview = (text: string) => {
-    try {
-      const html = renderMathToHtml(text);
-      return <span dangerouslySetInnerHTML={{ __html: html }} />;
-    } catch {
-      return <span>{text}</span>;
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -140,18 +135,15 @@ export default function QuestionEditor({ open, onOpenChange, question, onSave }:
           {/* Statement */}
           <div className="space-y-2">
             <Label>Enunciado</Label>
-            <Textarea
+            <QuestionRichEditor
               value={statement}
-              onChange={(e) => setStatement(e.target.value)}
-              rows={4}
+              onChange={setStatement}
               placeholder="Texto da questão (suporta LaTeX com $...$)"
+              minHeight={120}
             />
-            {statement.includes("$") && (
-              <div className="text-sm p-2 bg-muted rounded-md">
-                <span className="text-xs text-muted-foreground block mb-1">Preview:</span>
-                {renderPreview(statement)}
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Use $...$ para fórmulas matemáticas. Ex: $\frac{"{1}"}{"{2}"}$
+            </p>
           </div>
 
           {/* Alternatives (multiple_choice only) */}
@@ -164,18 +156,12 @@ export default function QuestionEditor({ open, onOpenChange, question, onSave }:
                     <span className="text-sm font-medium mt-2.5 w-6 shrink-0">
                       {alt.letter})
                     </span>
-                    <div className="flex-1 space-y-1">
-                      <Input
-                        value={alt.text}
-                        onChange={(e) => updateAlternative(index, e.target.value)}
-                        placeholder={`Alternativa ${alt.letter}`}
-                      />
-                      {alt.text.includes("$") && (
-                        <div className="text-xs p-1.5 bg-muted rounded">
-                          {renderPreview(alt.text)}
-                        </div>
-                      )}
-                    </div>
+                    <Input
+                      value={alt.text}
+                      onChange={(e) => updateAlternative(index, e.target.value)}
+                      placeholder={`Alternativa ${alt.letter}`}
+                      className="flex-1"
+                    />
                     <Button
                       type="button"
                       size="icon"
@@ -234,7 +220,7 @@ export default function QuestionEditor({ open, onOpenChange, question, onSave }:
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={!statement.trim()}>
+          <Button onClick={handleSave} disabled={!htmlToText(statement).trim()}>
             Salvar
           </Button>
         </DialogFooter>

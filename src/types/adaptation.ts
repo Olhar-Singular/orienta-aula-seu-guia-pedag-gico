@@ -12,7 +12,8 @@ export interface Alternative {
 export interface StructuredQuestion {
   number: number;                 // 1, 2, 3...
   type: QuestionType;             // Tipo da questão
-  statement: string;              // Enunciado (pode conter LaTeX)
+  statement: string;              // Enunciado (pode conter LaTeX ou HTML)
+  statementFormat?: 'text' | 'html';  // Formato do enunciado (default: text)
   instruction?: string;           // Instrução antes da questão
   alternatives?: Alternative[];   // Para multiple_choice
   blank_placeholder?: string;     // Para fill_blank

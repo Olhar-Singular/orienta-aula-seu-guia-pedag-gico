@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, Plus, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical, ChevronDown, ChevronUp, RefreshCw, Loader2 } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
@@ -23,12 +23,16 @@ import type {
 } from "@/types/adaptation";
 import { QUESTION_TYPE_LABELS } from "@/types/adaptation";
 import QuestionEditor from "./QuestionEditor";
+import RichTextPreview, { RichTextInline } from "@/components/RichTextPreview";
+import { isHtmlContent } from "@/components/QuestionRichEditor";
 
 interface Props {
   activity: StructuredActivity;
   className?: string;
   questionImages?: Record<string, string[]>;
   onActivityChange?: (updated: StructuredActivity) => void;
+  onRegenerateQuestion?: (question: StructuredQuestion) => void;
+  regeneratingQuestionNumber?: number | null;
 }
 
 function KaTeXInline({ formula }: { formula: string }) {
@@ -80,13 +84,17 @@ function QuestionCard({
   images,
   onEdit,
   onDelete,
+  onRegenerate,
   editable,
+  isRegenerating,
 }: {
   question: StructuredQuestion;
   images?: string[];
   onEdit?: () => void;
   onDelete?: () => void;
+  onRegenerate?: () => void;
   editable?: boolean;
+  isRegenerating?: boolean;
 }) {
   const [showScaffolding, setShowScaffolding] = useState(false);
 
@@ -112,10 +120,16 @@ function QuestionCard({
             </p>
           )}
 
-          <div className="text-[13px] text-foreground leading-relaxed space-y-1">
-            {question.statement.split("\n").map((line, li) => (
-              <p key={li}>{renderInlineContent(line)}</p>
-            ))}
+          <div className="text-[13px] text-foreground leading-relaxed">
+            {isHtmlContent(question.statement) ? (
+              <RichTextPreview content={question.statement} />
+            ) : (
+              <div className="space-y-1">
+                {question.statement.split("\n").map((line, li) => (
+                  <p key={li}>{renderInlineContent(line)}</p>
+                ))}
+              </div>
+            )}
           </div>
 
           {question.alternatives && question.alternatives.length > 0 && (
@@ -125,7 +139,13 @@ function QuestionCard({
                   <span className="font-semibold text-primary shrink-0">
                     {alt.letter})
                   </span>
-                  <span>{renderInlineContent(alt.text)}</span>
+                  <span>
+                    {isHtmlContent(alt.text) ? (
+                      <RichTextInline content={alt.text} />
+                    ) : (
+                      renderInlineContent(alt.text)
+                    )}
+                  </span>
                 </div>
               ))}
             </div>
@@ -145,7 +165,12 @@ function QuestionCard({
                 <div className="mt-1 pl-2 border-l-2 border-primary/20 space-y-0.5">
                   {question.scaffolding.map((step, i) => (
                     <p key={i} className="text-xs text-muted-foreground">
-                      <span className="font-medium">{i + 1}.</span> {renderInlineContent(step)}
+                      <span className="font-medium">{i + 1}.</span>{" "}
+                      {isHtmlContent(step) ? (
+                        <RichTextInline content={step} />
+                      ) : (
+                        renderInlineContent(step)
+                      )}
                     </p>
                   ))}
                 </div>
@@ -156,6 +181,23 @@ function QuestionCard({
 
         {editable && (
           <div className="flex gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onRegenerate && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7"
+                onClick={onRegenerate}
+                disabled={isRegenerating}
+                aria-label={`Regenerar questão ${question.number}`}
+              >
+                {isRegenerating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+              </Button>
+            )}
             {onEdit && (
               <Button
                 type="button"
@@ -163,6 +205,7 @@ function QuestionCard({
                 variant="ghost"
                 className="h-7 w-7"
                 onClick={onEdit}
+                disabled={isRegenerating}
                 aria-label={`Editar questão ${question.number}`}
               >
                 <Pencil className="w-3.5 h-3.5" />
@@ -175,6 +218,7 @@ function QuestionCard({
                 variant="ghost"
                 className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={onDelete}
+                disabled={isRegenerating}
                 aria-label={`Excluir questão ${question.number}`}
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -206,6 +250,8 @@ export default function StructuredContentRenderer({
   className,
   questionImages,
   onActivityChange,
+  onRegenerateQuestion,
+  regeneratingQuestionNumber,
 }: Props) {
   const [editingQuestion, setEditingQuestion] = useState<StructuredQuestion | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ sectionIdx: number; questionIdx: number } | null>(null);
@@ -280,6 +326,8 @@ export default function StructuredContentRenderer({
               editable={editable}
               onEdit={() => setEditingQuestion(question)}
               onDelete={() => setDeleteTarget({ sectionIdx, questionIdx })}
+              onRegenerate={onRegenerateQuestion ? () => onRegenerateQuestion(question) : undefined}
+              isRegenerating={regeneratingQuestionNumber === question.number}
             />
           ))}
         </div>

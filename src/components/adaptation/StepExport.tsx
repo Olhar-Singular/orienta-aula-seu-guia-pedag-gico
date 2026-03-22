@@ -117,8 +117,13 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         questionImagesDirected,
       });
       toast({ title: "PDF exportado!" });
-    } catch {
-      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
+    } catch (error) {
+      console.error("[StepExport] PDF export error:", error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: error instanceof Error ? error.message : "Verifique o console para detalhes",
+        variant: "destructive",
+      });
     }
     setExportingPdf(false);
   };

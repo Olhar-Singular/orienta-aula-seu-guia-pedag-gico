@@ -25,7 +25,7 @@ import {
   type ParsedAdaptedQuestion,
 } from "@/lib/adaptedQuestions";
 import { isStructuredActivity } from "@/types/adaptation";
-import type { StructuredActivity } from "@/types/adaptation";
+import type { StructuredActivity, StructuredQuestion } from "@/types/adaptation";
 import ContextIndicator from "./ContextIndicator";
 
 type Props = {
@@ -102,6 +102,12 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     field: EditableField;
     title: string;
     question: ParsedAdaptedQuestion;
+  } | null>(null);
+
+  // State for per-question regeneration
+  const [regeneratingQuestion, setRegeneratingQuestion] = useState<{
+    field: EditableField;
+    questionNumber: number;
   } | null>(null);
 
   const generateImagesForResult = async (accessToken?: string) => {
@@ -301,6 +307,83 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     setEditingQuestion(null);
   };
 
+  // Handler for per-question regeneration
+  const handleRegenerateQuestion = async (
+    field: EditableField,
+    question: StructuredQuestion
+  ) => {
+    if (!data.result) return;
+
+    setRegeneratingQuestion({ field, questionNumber: question.number });
+
+    try {
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
+
+      if (!accessToken) {
+        toast({ title: "Sessão expirada", variant: "destructive" });
+        return;
+      }
+
+      const versionType = field === "version_universal" ? "universal" : "directed";
+      const activeBarriers = data.barriers.filter((b) => b.is_active);
+
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/regenerate-question`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            question,
+            version_type: versionType,
+            activity_type: data.activityType,
+            barriers: activeBarriers,
+            student_id: data.studentId || undefined,
+            school_id: schoolId || undefined,
+          }),
+        }
+      );
+
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.error || "Falha ao regenerar questão");
+      }
+
+      const result = await resp.json();
+      const regeneratedQuestion = result.question as StructuredQuestion;
+
+      // Update the question in the activity
+      const content = data.result[field] as StructuredActivity;
+      const updatedSections = content.sections.map((section) => ({
+        ...section,
+        questions: section.questions.map((q) =>
+          q.number === question.number ? { ...regeneratedQuestion, number: question.number } : q
+        ),
+      }));
+
+      updateData({
+        result: {
+          ...data.result,
+          [field]: { ...content, sections: updatedSections },
+        } as AdaptationResult,
+      });
+
+      toast({ title: `Questão ${question.number} regenerada` });
+    } catch (e: any) {
+      console.error("Regenerate question error:", e);
+      toast({
+        title: "Erro ao regenerar",
+        description: e.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingQuestion(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -362,6 +445,10 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
                   result: { ...data.result, [field]: updated } as AdaptationResult,
                 });
               }}
+              onRegenerateQuestion={(question) => handleRegenerateQuestion(field, question)}
+              regeneratingQuestionNumber={
+                regeneratingQuestion?.field === field ? regeneratingQuestion.questionNumber : null
+              }
             />
           ) : (
             <AdaptedContentRenderer

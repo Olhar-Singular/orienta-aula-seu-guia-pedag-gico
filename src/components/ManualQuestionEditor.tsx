@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -40,10 +40,10 @@ import { useUserSchool } from "@/hooks/useUserSchool";
 import { parsePdf } from "@/lib/pdf-utils";
 import { extractDocxText } from "@/lib/docx-utils";
 import { detectFileType } from "@/lib/fileValidation";
-import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import QuestionRichEditor, { htmlToText } from "@/components/QuestionRichEditor";
 import "katex/dist/katex.min.css";
 
 const subjects = [
@@ -79,16 +79,6 @@ const emptyQuestion = (): ManualQuestion => ({
   saving: false,
 });
 
-function MathPreview({ text }: { text: string }) {
-  const html = useMemo(() => renderMathToHtml(text), [text]);
-  if (!text || !hasMathContent(text)) return null;
-  return (
-    <div className="mt-1 p-2 rounded border border-border/50 bg-muted/30">
-      <p className="text-[10px] text-muted-foreground mb-1">Prévia matemática</p>
-      <div className="text-sm leading-relaxed [&_.katex]:text-[115%]" dangerouslySetInnerHTML={{ __html: html }} />
-    </div>
-  );
-}
 
 type Props = {
   file: File;
@@ -190,7 +180,8 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   const handleSaveOne = async (index: number) => {
     if (!user) return;
     const q = questions[index];
-    if (!q.text.trim()) {
+    const textContent = htmlToText(q.text).trim();
+    if (!textContent) {
       toast({ title: "Enunciado vazio", variant: "destructive" });
       return;
     }
@@ -244,7 +235,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   };
 
   const handleSaveAll = async () => {
-    const unsaved = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.saved && q.text.trim());
+    const unsaved = questions.map((q, i) => ({ q, i })).filter(({ q }) => !q.saved && htmlToText(q.text).trim());
     if (unsaved.length === 0) {
       toast({ title: "Nenhuma questão para salvar", variant: "destructive" });
       return;
@@ -257,7 +248,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
   };
 
   const savedCount = questions.filter(q => q.saved).length;
-  const unsavedCount = questions.filter(q => !q.saved && q.text.trim()).length;
+  const unsavedCount = questions.filter(q => !q.saved && htmlToText(q.text).trim()).length;
   const q = questions[activeQ];
 
   return (
@@ -401,15 +392,13 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   {/* Text */}
                   <div>
                     <Label className="text-xs">Enunciado *</Label>
-                    <Textarea
+                    <QuestionRichEditor
                       value={q.text}
-                      onChange={e => updateQuestion(activeQ, "text", e.target.value)}
-                      rows={4}
-                      className="text-sm"
+                      onChange={(html) => updateQuestion(activeQ, "text", html)}
                       placeholder="Cole ou digite o enunciado da questão..."
+                      minHeight={100}
                       disabled={q.saved}
                     />
-                    <MathPreview text={q.text} />
                   </div>
 
                   {/* Image section */}
@@ -542,7 +531,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                   <div className="flex gap-2 pt-2 border-t">
                     {!q.saved && (
                       <>
-                        <Button onClick={() => handleSaveOne(activeQ)} disabled={q.saving || !q.text.trim()}>
+                        <Button onClick={() => handleSaveOne(activeQ)} disabled={q.saving || !htmlToText(q.text).trim()}>
                           {q.saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
                           Salvar questão
                         </Button>

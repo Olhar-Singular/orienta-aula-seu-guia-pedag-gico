@@ -2,6 +2,85 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Foot
 
 export type QuestionImageMap = Record<string, string[]>;
 
+/**
+ * Convert HTML content from the WYSIWYG editor to plain text for DOCX export.
+ * Preserves text formatting intentions while stripping HTML tags.
+ */
+function htmlToPlainText(html: string): string {
+  if (!html) return "";
+
+  // Check if it's actually HTML
+  if (!/<[^>]+>/.test(html)) return html;
+
+  // Create a temporary element to parse HTML
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  // Process the document to extract formatted text
+  function processNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent || "";
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+    let result = "";
+
+    // Process children first
+    const childText = Array.from(node.childNodes)
+      .map(processNode)
+      .join("");
+
+    // Handle different tags
+    switch (tag) {
+      case "br":
+        return "\n";
+      case "p":
+      case "div":
+        return childText + "\n";
+      case "li":
+        const parent = el.parentElement;
+        if (parent?.tagName.toLowerCase() === "ul") {
+          return "• " + childText + "\n";
+        } else if (parent?.tagName.toLowerCase() === "ol") {
+          const index = Array.from(parent.children).indexOf(el) + 1;
+          return `${index}. ` + childText + "\n";
+        }
+        return childText + "\n";
+      case "ul":
+      case "ol":
+        return childText;
+      case "mark":
+      case "span":
+      case "strong":
+      case "b":
+      case "em":
+      case "i":
+      case "u":
+      case "s":
+      case "sub":
+      case "sup":
+        // For inline elements, just return the text content
+        // In the future, we could track formatting and apply it via TextRun options
+        return childText;
+      default:
+        return childText;
+    }
+  }
+
+  let result = processNode(doc.body);
+
+  // Clean up multiple newlines
+  result = result.replace(/\n{3,}/g, "\n\n");
+  result = result.trim();
+
+  return result;
+}
+
 export type DocxExportData = {
   schoolName?: string;
   teacherName?: string;
@@ -28,6 +107,7 @@ const TYPE_LABELS: Record<string, string> = {
  * Normalize LaTeX markup for DOCX export.
  * Strips $ delimiters, converts operators to readable symbols,
  * but preserves \frac (handled by parseLineWithFractions) and ^exponents (handled by parseExponents).
+ * Note: HTML should be converted to plain text before calling this function.
  */
 function normalizeLatexForDocx(text: string): string {
   let result = text;
@@ -181,9 +261,12 @@ function parseExponents(text: string): TextRun[] {
 
 /**
  * Convert a block of text into Paragraphs with inline fraction support.
+ * Handles HTML content from the WYSIWYG editor.
  */
 function textToParagraphs(text: string): Paragraph[] {
-  return text.split("\n").map((rawLine) => {
+  // Convert HTML to plain text first
+  const plainText = htmlToPlainText(text);
+  return plainText.split("\n").map((rawLine) => {
     const line = normalizeLatexForDocx(rawLine);
     const children = parseLineWithFractions(line);
     return new Paragraph({ children });
@@ -265,7 +348,9 @@ export async function exportToDocx(data: DocxExportData) {
     text: string,
     qImages?: QuestionImageMap
   ): Promise<Paragraph[]> {
-    const lines = text.split("\n");
+    // First convert HTML to plain text, then split by lines
+    const plainText = htmlToPlainText(text);
+    const lines = plainText.split("\n");
     const result: Paragraph[] = [];
     let currentQNum: string | undefined;
 
@@ -340,7 +425,7 @@ export async function exportToDocx(data: DocxExportData) {
           // Strategies
           new Paragraph({ text: "Estratégias Aplicadas", heading: HeadingLevel.HEADING_2 }),
           ...data.strategiesApplied.map((s) => new Paragraph({
-            children: [new TextRun({ text: `• ${s}` })],
+            children: [new TextRun({ text: `• ${htmlToPlainText(s)}` })],
           })),
           new Paragraph({ text: "" }),
           // Justification
@@ -350,7 +435,7 @@ export async function exportToDocx(data: DocxExportData) {
           // Tips
           new Paragraph({ text: "Dicas de Implementação", heading: HeadingLevel.HEADING_2 }),
           ...data.implementationTips.map((t, i) => new Paragraph({
-            children: [new TextRun({ text: `${i + 1}. ${t}` })],
+            children: [new TextRun({ text: `${i + 1}. ${htmlToPlainText(t)}` })],
           })),
         ],
       },

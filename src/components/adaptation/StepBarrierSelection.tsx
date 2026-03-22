@@ -267,12 +267,12 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
       {data.barriers.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <p className="text-sm font-medium text-foreground">
+            <div className="text-sm font-medium text-foreground flex items-center">
               Barreiras observáveis
               {activeCount > 0 && (
                 <Badge variant="secondary" className="ml-2">{activeCount} selecionada(s)</Badge>
               )}
-            </p>
+            </div>
             {barriersLocked && (
               <Button
                 variant="outline"
@@ -307,12 +307,12 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             return (
               <Card key={dim.key}>
                 <CardContent className="p-4">
-                  <p className="text-sm font-semibold text-foreground mb-3">
+                  <div className="text-sm font-semibold text-foreground mb-3 flex items-center">
                     {dim.label}
                     {dimActive > 0 && (
                       <Badge variant="default" className="ml-2 text-xs">{dimActive}</Badge>
                     )}
-                  </p>
+                  </div>
                   <div className="space-y-2">
                     {dimBarriers.map((b) => (
                       <label
