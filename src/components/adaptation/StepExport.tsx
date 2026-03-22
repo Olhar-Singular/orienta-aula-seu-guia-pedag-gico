@@ -39,7 +39,10 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   const r = data.result;
   if (!r) return null;
 
-  const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${r.version_universal}\n\n---\n\nVERSÃO DIRECIONADA\n\n${r.version_directed}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
+  const universalText = getVersionText(r.version_universal);
+  const directedText = getVersionText(r.version_directed);
+
+  const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${universalText}\n\n---\n\nVERSÃO DIRECIONADA\n\n${directedText}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
 
   const handleSaveHistory = async () => {
     if (!user || saved) return;
