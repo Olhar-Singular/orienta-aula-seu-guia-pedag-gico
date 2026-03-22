@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { useQueryClient } from "@tanstack/react-query";
+import { getVersionText } from "@/lib/structuredMigration";
 
 type Props = {
   data: WizardData;
@@ -34,7 +35,10 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   const r = data.result;
   if (!r) return null;
 
-  const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${r.version_universal}\n\n---\n\nVERSÃO DIRECIONADA\n\n${r.version_directed}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
+  const universalText = getVersionText(r.version_universal);
+  const directedText = getVersionText(r.version_directed);
+
+  const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${universalText}\n\n---\n\nVERSÃO DIRECIONADA\n\n${directedText}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
 
   const handleSaveHistory = async () => {
     if (!user || saved) return;
@@ -104,8 +108,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         studentName: data.studentName || undefined,
         activityType: data.activityType || undefined,
         date: new Date().toLocaleDateString("pt-BR"),
-        versionUniversal: r.version_universal,
-        versionDirected: r.version_directed,
+        versionUniversal: universalText,
+        versionDirected: directedText,
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,
@@ -127,8 +131,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
         studentName: data.studentName || undefined,
         activityType: data.activityType || undefined,
         date: new Date().toLocaleDateString("pt-BR"),
-        versionUniversal: r.version_universal,
-        versionDirected: r.version_directed,
+        versionUniversal: universalText,
+        versionDirected: directedText,
         strategiesApplied: r.strategies_applied,
         pedagogicalJustification: r.pedagogical_justification,
         implementationTips: r.implementation_tips,

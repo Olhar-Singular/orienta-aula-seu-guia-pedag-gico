@@ -15,6 +15,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import AdaptedContentRenderer from "./AdaptedContentRenderer";
+import StructuredContentRenderer from "./StructuredContentRenderer";
 import AdaptationEditModal, {
   type AdaptationQuestionEditPayload,
 } from "./AdaptationEditModal";
@@ -23,6 +24,8 @@ import {
   replaceQuestionInAdaptedContent,
   type ParsedAdaptedQuestion,
 } from "@/lib/adaptedQuestions";
+import { isStructuredActivity } from "@/types/adaptation";
+import type { StructuredActivity } from "@/types/adaptation";
 import ContextIndicator from "./ContextIndicator";
 
 type Props = {
@@ -40,7 +43,6 @@ const VISUAL_CUE_REGEX =
 /**
  * Build a question→images map by matching each selectedQuestion (by order)
  * to the corresponding adapted question number.
- * Image from selectedQuestion[0] → adapted question 1, etc.
  */
 const buildQuestionImageMap = (
   sectionContent: string,
@@ -53,13 +55,34 @@ const buildQuestionImageMap = (
 
   selectedQuestions.forEach((sq, index) => {
     if (!sq.image_url) return;
-    // Match by order: selectedQuestion index → adapted question at same index
     const adaptedQ = parsedQuestions[index];
     if (!adaptedQ) return;
     if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
     map[adaptedQ.number].push(sq.image_url);
   });
 
+  return map;
+};
+
+/**
+ * Build image map for structured activity using selectedQuestions order.
+ */
+const buildStructuredImageMap = (
+  activity: StructuredActivity,
+  selectedQuestions: SelectedQuestion[]
+): QuestionImageMap => {
+  const map: QuestionImageMap = {};
+  let qIndex = 0;
+  for (const section of activity.sections) {
+    for (const q of section.questions) {
+      const sq = selectedQuestions[qIndex];
+      if (sq?.image_url) {
+        if (!map[String(q.number)]) map[String(q.number)] = [];
+        map[String(q.number)].push(sq.image_url);
+      }
+      qIndex++;
+    }
+  }
   return map;
 };
 
@@ -191,32 +214,44 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
 
       const mergedImages = await generateImagesForResult(accessToken);
 
-      // Build per-question image maps using selectedQuestions order
-      const universalImages = buildQuestionImageMap(
-        result.adaptation.version_universal,
-        data.selectedQuestions
-      );
-      const directedImages = buildQuestionImageMap(
-        result.adaptation.version_directed,
-        data.selectedQuestions
-      );
+      // Build per-question image maps depending on format
+      const vUniversal = result.adaptation.version_universal;
+      const vDirected = result.adaptation.version_directed;
 
-      // Also add any AI-generated images (not from selectedQuestions) to the first visual-cue question
+      let universalImages: QuestionImageMap;
+      let directedImages: QuestionImageMap;
+
+      if (isStructuredActivity(vUniversal)) {
+        universalImages = buildStructuredImageMap(vUniversal, data.selectedQuestions);
+      } else {
+        universalImages = buildQuestionImageMap(String(vUniversal), data.selectedQuestions);
+      }
+      if (isStructuredActivity(vDirected)) {
+        directedImages = buildStructuredImageMap(vDirected, data.selectedQuestions);
+      } else {
+        directedImages = buildQuestionImageMap(String(vDirected), data.selectedQuestions);
+      }
+
+      // Add AI-generated images to first visual-cue question
       if (mergedImages.length > 0) {
         const selectedUrls = new Set(data.selectedQuestions.map(q => q.image_url).filter(Boolean));
         const aiGeneratedImages = mergedImages.filter(url => !selectedUrls.has(url));
         if (aiGeneratedImages.length > 0) {
-          const universalParsed = parseAdaptedQuestions(result.adaptation.version_universal);
-          const visualQ = universalParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
-          if (visualQ) {
-            if (!universalImages[visualQ.number]) universalImages[visualQ.number] = [];
-            universalImages[visualQ.number].push(...aiGeneratedImages);
+          // Find first question number to attach images to
+          let firstQNum: string | undefined;
+          if (isStructuredActivity(vUniversal)) {
+            const firstQ = vUniversal.sections[0]?.questions[0];
+            if (firstQ) firstQNum = String(firstQ.number);
+          } else {
+            const parsed = parseAdaptedQuestions(String(vUniversal));
+            const visualQ = parsed.find(q => VISUAL_CUE_REGEX.test(q.text));
+            if (visualQ) firstQNum = visualQ.number;
           }
-          const directedParsed = parseAdaptedQuestions(result.adaptation.version_directed);
-          const visualQDir = directedParsed.find(q => VISUAL_CUE_REGEX.test(q.text));
-          if (visualQDir) {
-            if (!directedImages[visualQDir.number]) directedImages[visualQDir.number] = [];
-            directedImages[visualQDir.number].push(...aiGeneratedImages);
+          if (firstQNum) {
+            if (!universalImages[firstQNum]) universalImages[firstQNum] = [];
+            universalImages[firstQNum].push(...aiGeneratedImages);
+            if (!directedImages[firstQNum]) directedImages[firstQNum] = [];
+            directedImages[firstQNum].push(...aiGeneratedImages);
           }
         }
       }
@@ -242,6 +277,7 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Legacy question edit handler (for string content)
   const handleQuestionSave = (payload: AdaptationQuestionEditPayload) => {
     if (!editingQuestion || !data.result) return;
 
@@ -292,36 +328,54 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
   }
 
   const r = data.result;
+  const isUniversalStructured = isStructuredActivity(r.version_universal);
+  const isDirectedStructured = isStructuredActivity(r.version_directed);
 
-  const renderQuestionSection = (
+  const renderSection = (
     title: string,
     icon: React.ReactNode,
     field: EditableField,
-    content: string
+    content: string | StructuredActivity
   ) => {
+    const isStructured = isStructuredActivity(content);
+
     return (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             {icon} {title}
+            {isStructured && (
+              <Badge variant="secondary" className="text-[10px] ml-auto">
+                Estruturado
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <AdaptedContentRenderer
-            content={content}
-            questionImages={questionImages[field]}
-            onEditQuestion={(question) =>
-              setEditingQuestion({
-                field,
-                title,
-                question,
-              })
-            }
-            onContentChange={(newContent) => {
-              if (!data.result) return;
-              updateData({ result: { ...data.result, [field]: newContent } as AdaptationResult });
-            }}
-          />
+          {isStructured ? (
+            <StructuredContentRenderer
+              activity={content as StructuredActivity}
+              questionImages={questionImages[field]}
+              onActivityChange={(updated) => {
+                if (!data.result) return;
+                updateData({
+                  result: { ...data.result, [field]: updated } as AdaptationResult,
+                });
+              }}
+            />
+          ) : (
+            <AdaptedContentRenderer
+              content={String(content)}
+              questionImages={questionImages[field]}
+              onEditQuestion={(question) =>
+                setEditingQuestion({ field, title, question })
+              }
+              onContentChange={(newContent) => {
+                if (!data.result) return;
+                updateData({ result: { ...data.result, [field]: newContent } as AdaptationResult });
+              }}
+            />
+          )}
         </CardContent>
       </Card>
     );
@@ -352,14 +406,14 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
         />
       )}
 
-      {renderQuestionSection(
+      {renderSection(
         "Versão Universal (Design Universal)",
         <BookOpen className="w-4 h-4 text-primary" />,
         "version_universal",
         r.version_universal
       )}
 
-      {renderQuestionSection(
+      {renderSection(
         "Versão Direcionada",
         <Target className="w-4 h-4 text-primary" />,
         "version_directed",

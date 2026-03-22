@@ -262,31 +262,112 @@ Identifique o nível cognitivo de cada questão e PRESERVE-O na adaptação:
 A adaptação remove BARREIRAS DE ACESSO, não reduz o nível cognitivo.
 
 REGRAS DE FORMATAÇÃO
-1. Cada questão em NOVA LINHA: 1. , 2. , 3. etc.
-2. Cada alternativa em NOVA LINHA: a) , b) , c) , d)
-3. Fórmulas em LINHA ISOLADA com espaçamento
-4. Notação escolar Unicode para variáveis: v₀, v², Δv
-5. FRAÇÕES: SEMPRE envolva expressões LaTeX com delimitadores de cifrão. Exemplos: $\\frac{a}{b}$, $\\frac{23}{24} = \\frac{?}{48}$, $\\sqrt{2}$
-6. Cada equação/frase com frações em LINHA SEPARADA (nunca concatenar várias frações na mesma linha)
-7. Preserve fórmulas, símbolos e unidades integralmente
-8. NUNCA use asteriscos (**) ou markdown.
-9. NUNCA escreva comandos LaTeX como \\frac ou \\sqrt sem delimitadores $...$. Sempre use $...$`;
+1. FRAÇÕES: SEMPRE envolva expressões LaTeX com delimitadores de cifrão. Exemplos: $\\frac{a}{b}$, $\\frac{23}{24} = \\frac{?}{48}$, $\\sqrt{2}$
+2. Notação escolar Unicode para variáveis: v₀, v², Δv
+3. Preserve fórmulas, símbolos e unidades integralmente
+4. NUNCA use asteriscos (**) ou markdown.
+5. NUNCA escreva comandos LaTeX como \\frac ou \\sqrt sem delimitadores $...$. Sempre use $...$
+
+IMPORTANTE: Você DEVE responder usando a ferramenta deliver_adaptation com dados JSON estruturados.
+Cada questão deve ser um objeto com number, type, statement e alternatives (se múltipla escolha).
+Tipos válidos: multiple_choice, open_ended, fill_blank, true_false.
+
+EXEMPLO DE RESPOSTA ESTRUTURADA:
+{
+  "version_universal": {
+    "sections": [
+      {
+        "title": "Frações",
+        "questions": [
+          {
+            "number": 1,
+            "type": "multiple_choice",
+            "statement": "Qual fração representa metade?",
+            "instruction": "Observe e escolha a alternativa correta.",
+            "alternatives": [
+              { "letter": "a", "text": "$\\\\frac{1}{2}$" },
+              { "letter": "b", "text": "$\\\\frac{1}{4}$" },
+              { "letter": "c", "text": "$\\\\frac{3}{4}$" }
+            ],
+            "scaffolding": ["Pense: quantas partes iguais tem o todo?"]
+          },
+          {
+            "number": 2,
+            "type": "open_ended",
+            "statement": "Explique com suas palavras o que é uma fração."
+          }
+        ]
+      }
+    ]
+  }
+}`;
 }
+
+const ACTIVITY_SCHEMA = {
+  type: "object",
+  properties: {
+    sections: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          title: { type: "string" },
+          introduction: { type: "string" },
+          questions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                number: { type: "integer" },
+                type: {
+                  type: "string",
+                  enum: ["multiple_choice", "open_ended", "fill_blank", "true_false"],
+                },
+                statement: { type: "string", description: "Enunciado da questão (pode conter LaTeX com $...$)" },
+                instruction: { type: "string", description: "Instrução opcional antes da questão" },
+                alternatives: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      letter: { type: "string" },
+                      text: { type: "string" },
+                    },
+                    required: ["letter", "text"],
+                  },
+                },
+                scaffolding: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Passos de apoio DUA para o aluno",
+                },
+              },
+              required: ["number", "type", "statement"],
+            },
+          },
+        },
+        required: ["questions"],
+      },
+    },
+    general_instructions: { type: "string" },
+  },
+  required: ["sections"],
+};
 
 const ADAPTATION_TOOL = {
   type: "function" as const,
   function: {
     name: "deliver_adaptation",
-    description: "Entrega a atividade adaptada estruturada",
+    description: "Entrega a atividade adaptada em formato JSON estruturado com questões tipadas",
     parameters: {
       type: "object",
       properties: {
         version_universal: {
-          type: "string",
-          description: "Versão universal da atividade adaptada (Design Universal para Aprendizagem)",
+          ...ACTIVITY_SCHEMA,
+          description: "Versão universal (DUA) da atividade adaptada",
         },
         version_directed: {
-          type: "string",
+          ...ACTIVITY_SCHEMA,
           description: "Versão direcionada ao perfil específico do aluno",
         },
         strategies_applied: {
@@ -303,10 +384,6 @@ const ADAPTATION_TOOL = {
           items: { type: "string" },
           description: "Dicas práticas de implementação para o professor",
         },
-        autonomy_confirmation: {
-          type: "string",
-          description: "Confirmação de que a decisão final é do profissional",
-        },
       },
       required: [
         "version_universal",
@@ -314,7 +391,6 @@ const ADAPTATION_TOOL = {
         "strategies_applied",
         "pedagogical_justification",
         "implementation_tips",
-        "autonomy_confirmation",
       ],
     },
   },
