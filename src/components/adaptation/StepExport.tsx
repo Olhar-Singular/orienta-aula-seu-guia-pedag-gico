@@ -11,6 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { useQueryClient } from "@tanstack/react-query";
+import { getVersionText } from "@/lib/structuredMigration";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserSchool } from "@/hooks/useUserSchool";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
   data: WizardData;
