@@ -63,8 +63,14 @@ export async function logAiUsage(log: AiUsageLog): Promise<void> {
     // Auto-resolve school_id if not provided
     let schoolId = log.school_id || null;
     if (!schoolId && log.user_id) {
-      const { data } = await admin.rpc("get_user_school_id", { _user_id: log.user_id });
+      const { data, error: schoolErr } = await admin.rpc("get_user_school_id", { _user_id: log.user_id });
+      if (schoolErr) {
+        console.warn("Failed to resolve school_id for user", log.user_id, schoolErr.message);
+      }
       schoolId = data || null;
+      if (!schoolId) {
+        console.warn("AI usage log will have null school_id for user", log.user_id);
+      }
     }
 
     // Determine token source and values

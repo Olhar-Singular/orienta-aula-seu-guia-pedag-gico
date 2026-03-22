@@ -77,27 +77,40 @@ serve(async (req) => {
 
     // Use service role for aggregation query
     const admin = createClient(supabaseUrl, serviceRoleKey);
-    let query = admin
-      .from("ai_usage_logs")
-      .select("*")
-      .eq("school_id", schoolId)
-      .gte("created_at", startDate.toISOString())
-      .order("created_at", { ascending: false })
-      .limit(1000);
 
-    if (modelFilter) query = query.eq("model", modelFilter);
-    if (actionFilter) query = query.eq("action_type", actionFilter);
+    // Paginate to handle >1000 logs
+    const PAGE_SIZE = 1000;
+    let allItems: any[] = [];
+    let page = 0;
+    while (true) {
+      let query = admin
+        .from("ai_usage_logs")
+        .select("*")
+        .eq("school_id", schoolId)
+        .gte("created_at", startDate.toISOString())
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    const { data: logs, error: queryError } = await query;
-    if (queryError) {
-      console.error("Query error:", queryError);
-      return new Response(JSON.stringify({ error: queryError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (modelFilter) query = query.eq("model", modelFilter);
+      if (actionFilter) query = query.eq("action_type", actionFilter);
+
+      const { data: logs, error: queryError } = await query;
+      if (queryError) {
+        console.error("Query error:", queryError);
+        return new Response(JSON.stringify({ error: queryError.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      allItems = allItems.concat(logs || []);
+      if (!logs || logs.length < PAGE_SIZE) break;
+      page++;
+      // Safety cap at 10k rows
+      if (allItems.length >= 10_000) break;
     }
 
-    const items = logs || [];
+    const items = allItems;
 
     // Summary aggregation
     const summary = {
