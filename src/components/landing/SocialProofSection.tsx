@@ -28,8 +28,25 @@ export default function SocialProofSection() {
   return (
     <section className="py-16 lg:py-24 bg-background">
       <div className="max-w-5xl mx-auto px-4">
+        {/* Como economizamos seu tempo */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-foreground mb-4">
+            Mais tempo para seus alunos, menos tempo no planejamento
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            O Olhar Singular automatiza a parte mais demorada do trabalho inclusivo: transformar atividades em versões adaptadas. 
+            Em vez de gastar horas pesquisando estratégias e reescrevendo conteúdos, você descreve as barreiras observadas e recebe 
+            adaptações prontas com justificativa pedagógica — tudo em menos de 5 minutos.
+          </p>
+        </motion.div>
+
         {/* Números de impacto */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-16">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -50,9 +67,9 @@ export default function SocialProofSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-3xl font-bold text-foreground text-center mb-10"
+          className="text-2xl font-bold text-foreground text-center mb-10"
         >
-          O que dizem os professores
+          Professores que já usam o Olhar Singular
         </motion.h2>
         <div className="grid md:grid-cols-3 gap-6">
           {testimonials.map((testimonial, i) => (
