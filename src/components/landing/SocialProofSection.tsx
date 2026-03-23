@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
 
 const stats = [
-  { number: "2.500+", label: "Adaptações criadas" },
-  { number: "850+", label: "Professores ativos" },
-  { number: "4.8★", label: "Avaliação média" },
-  { number: "< 5min", label: "Tempo médio de uso" },
+  { number: "2.500+", label: "Adaptações já criadas na plataforma" },
+  { number: "< 5min", label: "Para criar uma adaptação completa" },
+  { number: "2h+", label: "Economizadas por semana em planejamento" },
 ];
 
 const testimonials = [
