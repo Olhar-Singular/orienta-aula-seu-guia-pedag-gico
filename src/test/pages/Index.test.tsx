@@ -91,7 +91,7 @@ describe("Landing page (Index)", () => {
   it("renders social proof stats", () => {
     const { getByText } = renderIndex();
     expect(getByText("2.500+")).toBeTruthy();
-    expect(getByText("850+")).toBeTruthy();
+    expect(getByText("< 5min")).toBeTruthy();
   });
 
   it("renders testimonials", () => {
