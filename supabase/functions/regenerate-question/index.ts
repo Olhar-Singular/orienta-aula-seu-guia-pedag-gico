@@ -231,13 +231,11 @@ Regenere esta questão melhorando clareza, scaffolding e adequação às barreir
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60_000);
 
-    const aiResponse = await fetch("https://api.openrouter.ai/api/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://olharsingular.com.br",
-        "X-Title": "Olhar Singular - Regenerar Questão",
       },
       body: JSON.stringify({
         model: modelName,
