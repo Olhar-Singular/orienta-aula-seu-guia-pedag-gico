@@ -16,16 +16,9 @@ export default function LandingHeader() {
           <a href="#para-quem" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Para quem</a>
           <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
         </nav>
-        <div className="flex items-center gap-3">
-          <Link to="/login">
-            <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold">Entrar</Button>
-          </Link>
-          <Link to="/login">
-            <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">
-              Acessar plataforma
-            </Button>
-          </Link>
-        </div>
+        <Link to="/login">
+          <Button variant="outline" size="sm" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground font-semibold">Entrar</Button>
+        </Link>
       </div>
     </header>
   );

@@ -21,18 +21,11 @@ export default function HeroSection() {
               <p className="text-lg text-primary-foreground/80 leading-relaxed mb-8 max-w-lg">
                 Transforme atividades escolares em versões adaptadas para alunos com autismo, deficiência e outras necessidades especiais. Sem diagnóstico clínico, foco em barreiras observáveis.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <Link to="/login">
-                  <Button size="lg" className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold text-base px-8 shadow-glow">
-                    Criar minha primeira adaptação <ArrowRight className="w-4 h-4" aria-hidden="true" />
-                  </Button>
-                </Link>
-                <a href="#como-funciona">
-                  <button className="h-11 px-8 rounded-md border-2 border-white text-white font-semibold hover:bg-white/20 transition-colors">
-                    Ver como funciona
-                  </button>
-                </a>
-              </div>
+              <a href="#como-funciona">
+                <button className="h-11 px-8 rounded-md border-2 border-white text-white font-semibold hover:bg-white/20 transition-colors">
+                  Ver como funciona
+                </button>
+              </a>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 30 }}
