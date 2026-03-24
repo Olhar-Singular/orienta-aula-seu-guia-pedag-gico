@@ -13,6 +13,7 @@ vi.mock("framer-motion", async () => {
       div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
       section: ({ children, ...props }: any) => <section {...props}>{children}</section>,
       h1: ({ children, ...props }: any) => <h1 {...props}>{children}</h1>,
+      h2: ({ children, ...props }: any) => <h2 {...props}>{children}</h2>,
       p: ({ children, ...props }: any) => <p {...props}>{children}</p>,
       span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
       img: (props: any) => <img {...props} />,
@@ -80,5 +81,34 @@ describe("Landing page (Index)", () => {
     const { container } = renderIndex();
     const main = container.querySelector("#main-content");
     expect(main).toBeTruthy();
+  });
+
+  it("renders PEI section with keyword", () => {
+    const { getAllByText } = renderIndex();
+    expect(getAllByText(/Plano Educacional Individualizado/).length).toBeGreaterThan(0);
+  });
+
+  it("renders social proof stats", () => {
+    const { getByText } = renderIndex();
+    expect(getByText("2.500+")).toBeTruthy();
+    expect(getByText("< 5min")).toBeTruthy();
+  });
+
+  it("renders testimonials", () => {
+    const { getByText } = renderIndex();
+    expect(getByText("O que dizem os professores")).toBeTruthy();
+    expect(getByText("Maria S.")).toBeTruthy();
+  });
+
+  it("has PEI nav link", () => {
+    const { container } = renderIndex();
+    const peiLink = container.querySelector('a[href="#o-que-e-pei"]');
+    expect(peiLink).toBeTruthy();
+  });
+
+  it("H1 includes PEI keyword", () => {
+    const { container } = renderIndex();
+    const h1 = container.querySelector("h1");
+    expect(h1?.textContent).toContain("PEI");
   });
 });
