@@ -188,3 +188,109 @@ b) Alimentação
 2. Qual o ciclo da água?
 a) Evaporação
 b) Condensação`;
+
+// ─── Skip AI / Manual mode fixtures ───
+import type { SelectedQuestion, WizardData, AdaptationResult } from "@/components/adaptation/AdaptationWizard";
+import type { StructuredActivity } from "@/types/adaptation";
+
+export const MOCK_SELECTED_QUESTIONS: SelectedQuestion[] = [
+  {
+    id: "sq-001",
+    text: "Quanto é 2 + 2?",
+    image_url: null,
+    options: ["3", "4", "5", "6"],
+    subject: "Matemática",
+    topic: "Aritmética",
+    difficulty: "facil",
+  },
+  {
+    id: "sq-002",
+    text: "Explique o que é fotossíntese.",
+    image_url: "https://example.com/fotossintese.png",
+    options: null,
+    subject: "Ciências",
+    topic: "Biologia",
+    difficulty: "medio",
+  },
+  {
+    id: "sq-003",
+    text: "Qual é a capital do Brasil?",
+    image_url: null,
+    options: ["Rio de Janeiro", "São Paulo", "Brasília", "Salvador"],
+    subject: "Geografia",
+    topic: "Capitais",
+    difficulty: "facil",
+  },
+];
+
+export const MOCK_ACTIVITY_TEXT_WITH_QUESTIONS = `Atividade de revisão — 5º Ano
+
+1) O que é o ciclo da água?
+a) Um processo de purificação
+b) A circulação contínua da água na natureza
+c) A transformação da água em gelo
+
+2) Descreva com suas palavras o que aprendeu sobre o meio ambiente.`;
+
+export const MOCK_MANUAL_WIZARD_DATA: WizardData = {
+  activityType: "exercicio",
+  activityText: MOCK_ACTIVITY_TEXT_WITH_QUESTIONS,
+  selectedQuestions: MOCK_SELECTED_QUESTIONS,
+  classId: "class-001",
+  studentId: null,
+  studentName: null,
+  barriers: [],
+  adaptForWholeClass: false,
+  observationNotes: "",
+  result: null,
+  contextPillars: null,
+  questionImages: {
+    version_universal: {},
+    version_directed: {},
+  },
+};
+
+export const MOCK_MANUAL_STRUCTURED_ACTIVITY: StructuredActivity = {
+  sections: [
+    {
+      questions: [
+        {
+          number: 1,
+          type: "multiple_choice",
+          statement: "Quanto é 2 + 2?",
+          alternatives: [
+            { letter: "a", text: "3" },
+            { letter: "b", text: "4" },
+            { letter: "c", text: "5" },
+            { letter: "d", text: "6" },
+          ],
+        },
+        {
+          number: 2,
+          type: "open_ended",
+          statement: "Explique o que é fotossíntese.",
+          images: ["https://example.com/fotossintese.png"],
+        },
+        {
+          number: 3,
+          type: "multiple_choice",
+          statement: "Qual é a capital do Brasil?",
+          alternatives: [
+            { letter: "a", text: "Rio de Janeiro" },
+            { letter: "b", text: "São Paulo" },
+            { letter: "c", text: "Brasília" },
+            { letter: "d", text: "Salvador" },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+export const MOCK_MANUAL_ADAPTATION_RESULT: AdaptationResult = {
+  version_universal: MOCK_MANUAL_STRUCTURED_ACTIVITY,
+  version_directed: MOCK_MANUAL_STRUCTURED_ACTIVITY,
+  strategies_applied: [],
+  pedagogical_justification: "Atividade editada manualmente pelo professor.",
+  implementation_tips: [],
+};
