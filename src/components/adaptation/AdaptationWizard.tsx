@@ -73,8 +73,8 @@ export type WizardData = {
 };
 
 const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
-  ai: ["type", "content", "barriers", "result", "export"],
-  manual: ["type", "content", "choice", "editor", "export"],
+  ai: ["type", "content", "barriers", "choice", "result", "export"],
+  manual: ["type", "content", "barriers", "choice", "editor", "export"],
 } as const;
 
 export function getStepsForMode(mode: WizardMode): readonly string[] {
