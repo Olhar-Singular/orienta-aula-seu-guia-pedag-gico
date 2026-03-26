@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "NODE_OPTIONS='--max-old-space-size=19456' vitest run",
-    "test:watch": "NODE_OPTIONS='--max-old-space-size=19456' vitest"
+    "test:watch": "NODE_OPTIONS='--max-old-space-size=19456' vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
