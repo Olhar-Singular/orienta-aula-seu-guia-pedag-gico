@@ -42,12 +42,28 @@ describe("Skip AI mode fixtures", () => {
 // ─── Mode Selection Logic (TEST-01) ───
 describe("Mode Selection Logic (TEST-01)", () => {
   describe("getNextStep function", () => {
-    it("returns 'barriers' step when mode is 'ai'", () => {
+    it("returns 'barriers' step after content in ai mode", () => {
       expect(getNextStep("content", "ai")).toBe("barriers");
     });
 
-    it("returns 'choice' step after content when mode is 'manual'", () => {
-      expect(getNextStep("content", "manual")).toBe("choice");
+    it("returns 'barriers' step after content in manual mode", () => {
+      expect(getNextStep("content", "manual")).toBe("barriers");
+    });
+
+    it("returns 'choice' step after barriers in ai mode", () => {
+      expect(getNextStep("barriers", "ai")).toBe("choice");
+    });
+
+    it("returns 'choice' step after barriers in manual mode", () => {
+      expect(getNextStep("barriers", "manual")).toBe("choice");
+    });
+
+    it("returns 'result' step after choice in ai mode", () => {
+      expect(getNextStep("choice", "ai")).toBe("result");
+    });
+
+    it("returns 'editor' step after choice in manual mode", () => {
+      expect(getNextStep("choice", "manual")).toBe("editor");
     });
   });
 
@@ -75,34 +91,31 @@ describe("Mode Selection Logic (TEST-01)", () => {
 // ─── Manual Mode Flow (TEST-02) ───
 describe("Manual Mode Flow (TEST-02)", () => {
   describe("Step sequence", () => {
-    it("getStepsForMode('manual') returns 5-step array without barriers and result", () => {
+    it("getStepsForMode('manual') returns 6-step array with barriers and choice before editor", () => {
       const steps: string[] = getStepsForMode("manual");
-      expect(steps).toHaveLength(5);
-      expect(steps).toContain("type");
-      expect(steps).toContain("content");
-      expect(steps).toContain("choice");
-      expect(steps).toContain("editor");
-      expect(steps).toContain("export");
-      expect(steps).not.toContain("barriers");
+      expect(steps).toHaveLength(6);
+      expect(steps).toEqual(["type", "content", "barriers", "choice", "editor", "export"]);
       expect(steps).not.toContain("result");
     });
 
-    it("getStepsForMode('ai') returns 5-step array with all AI steps", () => {
+    it("getStepsForMode('ai') returns 6-step array with barriers and choice before result", () => {
       const steps: string[] = getStepsForMode("ai");
-      expect(steps).toHaveLength(5);
-      expect(steps).toContain("type");
-      expect(steps).toContain("content");
-      expect(steps).toContain("barriers");
-      expect(steps).toContain("result");
-      expect(steps).toContain("export");
+      expect(steps).toHaveLength(6);
+      expect(steps).toEqual(["type", "content", "barriers", "choice", "result", "export"]);
       expect(steps).not.toContain("editor");
-      expect(steps).not.toContain("choice");
     });
 
-    it("manual mode skips barriers step entirely", () => {
-      const nextAfterChoice = getNextStep("choice", "manual");
-      expect(nextAfterChoice).toBe("editor");
-      expect(nextAfterChoice).not.toBe("barriers");
+    it("choice step appears after barriers in both modes", () => {
+      const aiSteps: string[] = getStepsForMode("ai");
+      const manualSteps: string[] = getStepsForMode("manual");
+      expect(aiSteps.indexOf("choice")).toBe(aiSteps.indexOf("barriers") + 1);
+      expect(manualSteps.indexOf("choice")).toBe(manualSteps.indexOf("barriers") + 1);
+    });
+
+    it("choice step is at the same index in both modes", () => {
+      const aiSteps: string[] = getStepsForMode("ai");
+      const manualSteps: string[] = getStepsForMode("manual");
+      expect(aiSteps.indexOf("choice")).toBe(manualSteps.indexOf("choice"));
     });
   });
 
