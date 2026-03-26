@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -20,7 +20,9 @@ import { StepChoice } from "./StepChoice";
 import { StepEditor } from "./StepEditor";
 import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
-import type { StructuredActivity } from "@/types/adaptation";
+import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
+
+export type { SelectedQuestion };
 
 export type ActivityType = "prova" | "exercicio" | "atividade_casa" | "trabalho";
 
@@ -47,16 +49,6 @@ export type ContextPillars = {
   hasDocuments: boolean;
   hasChatHistory: boolean;
   hasActivityContext: boolean;
-};
-
-export type SelectedQuestion = {
-  id: string;
-  text: string;
-  image_url: string | null;
-  options: string[] | null;
-  subject: string;
-  topic: string | null;
-  difficulty: string | null;
 };
 
 export type QuestionImageMap = Record<string, string[]>;
@@ -160,6 +152,10 @@ export default function AdaptationWizard() {
     return parseActivityText(data.activityText);
   }, [data.selectedQuestions, data.activityText]);
 
+  const editorActivity = useMemo(() => {
+    return manualActivity ?? buildManualActivity();
+  }, [manualActivity, buildManualActivity]);
+
   const [pendingBackTarget, setPendingBackTarget] = useState<number | null>(null);
 
   const updateData = useCallback((partial: Partial<WizardData>) => {
@@ -193,7 +189,6 @@ export default function AdaptationWizard() {
   const requestBack = useCallback((target: number) => {
     // If going backwards and there is a generated result, confirm discard
     const resultStepIndex = steps.indexOf("result");
-    const exportStepIndex = steps.indexOf("export");
     const hasResultStep = resultStepIndex !== -1;
     if (hasResultStep && step >= resultStepIndex && target < resultStepIndex && data.result) {
       setPendingBackTarget(target);
@@ -340,16 +335,13 @@ export default function AdaptationWizard() {
             )}
             {currentStepKey === "editor" && (
               <StepEditor
-                activityText={data.activityText}
-                structuredActivity={manualActivity ?? buildManualActivity()}
-                onStructuredActivityChange={(activity) => setManualActivity(activity)}
+                structuredActivity={editorActivity}
+                onStructuredActivityChange={(updated) => setManualActivity(updated)}
                 onNext={() => {
-                  // Generate manual result and advance to export
-                  const activity = manualActivity ?? buildManualActivity();
                   updateData({
                     result: {
-                      version_universal: activity,
-                      version_directed: activity,
+                      version_universal: editorActivity,
+                      version_directed: editorActivity,
                       strategies_applied: [],
                       pedagogical_justification: "Atividade editada manualmente pelo professor.",
                       implementation_tips: [],
