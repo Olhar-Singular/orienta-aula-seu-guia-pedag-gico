@@ -54,13 +54,13 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders wizard with 5-step stepper", () => {
+  it("renders wizard with 6-step stepper", () => {
     const Wrapper = createTestWrapper("/dashboard/adaptar");
     const { getByText, container } = render(<AdaptationWizard />, { wrapper: Wrapper });
 
     expect(getByText("Adaptar Atividade")).toBeTruthy();
     // Mobile step indicator
-    expect(getByText(/Passo 1 de 5/)).toBeTruthy();
+    expect(getByText(/Passo 1 de 6/)).toBeTruthy();
   });
 
   it("Step 1: shows activity type options", () => {
