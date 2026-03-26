@@ -1,5 +1,9 @@
 # Orientador Digital
 
+## Regra de Commit
+
+**Nunca fazer commit automaticamente.** Sempre aguardar confirmação explícita do usuário após validação e teste manual.
+
 Plataforma educacional para professores brasileiros adaptarem atividades para alunos com barreiras de aprendizagem usando IA (Design Universal para Aprendizagem — DUA).
 
 ## Comandos Essenciais
