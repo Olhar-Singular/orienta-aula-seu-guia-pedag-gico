@@ -4,9 +4,18 @@ Verificação completa antes de criar um Pull Request.
 
 ## Passo 1: Verificação
 
+Primeiro, verifique que não está na branch `main` ou `master`:
+
+```bash
+git branch --show-current   # deve ser uma feature branch, não main/master
+```
+
+Se estiver em `main`, pare e peça ao usuário para criar uma feature branch antes de continuar.
+
 Rode em sequência e reporte cada resultado:
 
 ```bash
+npm run typecheck     # Sem erros de TypeScript
 npm run test          # Todos os testes devem passar
 npm run lint          # Sem erros de lint
 npm run build         # Build deve completar sem erros

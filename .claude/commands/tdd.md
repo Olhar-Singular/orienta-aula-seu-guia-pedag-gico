@@ -22,6 +22,8 @@ Você vai implementar a feature/fix usando TDD estrito. Execute cada fase separa
 
 **Pare aqui e pergunte**: "Teste RED escrito. O contrato está correto? Posso avançar para GREEN?"
 
+> **Nota**: O hook `PostToolUse` vai rodar os testes após cada edição e mostrar falhas — isso é **esperado** na fase RED. Ignore as falhas do hook até confirmar o avanço para GREEN.
+
 ## Fase 2: GREEN (Implementação mínima)
 
 1. Implemente o MÍNIMO necessário para o teste passar

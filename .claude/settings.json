@@ -3,7 +3,7 @@
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
-        "command": "cd \"$PROJECT_DIR\" && npm run test -- --run --reporter=dot 2>&1 | tail -20",
+        "command": "cd \"$PROJECT_DIR\" && npm run test -- --run --reporter=dot 2>&1 | tail -50",
         "timeout": 120000,
         "description": "Run tests after file edits to catch regressions immediately"
       }
@@ -14,6 +14,12 @@
         "command": "if echo \"$TOOL_INPUT\" | grep -qE 'git\\s+push.*main|git\\s+push.*master|git\\s+push\\s+-f|git\\s+push\\s+--force'; then echo 'BLOCKED: Push direto para main/master ou force push não permitido. Use feature branch + PR.' >&2; exit 2; fi",
         "timeout": 5000,
         "description": "Block direct push to main/master and force pushes"
+      },
+      {
+        "matcher": "Edit|Write",
+        "command": "if echo \"$TOOL_INPUT\" | grep -qE 'src/components/ui/|src/integrations/supabase/types\\.ts'; then echo 'BLOCKED: Arquivo protegido. src/components/ui/* e src/integrations/supabase/types.ts não devem ser editados manualmente. Use: npx shadcn-ui@latest add <component> ou regenere os types via Supabase CLI.' >&2; exit 2; fi",
+        "timeout": 5000,
+        "description": "Block manual edits to protected files (shadcn/ui and supabase types)"
       }
     ]
   }

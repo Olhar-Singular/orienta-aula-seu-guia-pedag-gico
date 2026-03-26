@@ -13,7 +13,7 @@ Você é um arquiteto de software. O usuário quer planejar uma feature ou mudan
    - Quais edge functions ou tabelas Supabase são impactadas
    - Riscos e áreas frágeis (ver CLAUDE.md → Áreas Frágeis)
 
-3. **Gere o plano em `docs/plan.md`** com a seguinte estrutura:
+3. **Gere o plano em `.claude/plans/<nome-da-feature>.md`** com a seguinte estrutura:
 
 ```markdown
 # Plano: [nome da feature]
