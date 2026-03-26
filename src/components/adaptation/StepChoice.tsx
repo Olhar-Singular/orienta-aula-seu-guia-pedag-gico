@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import type { WizardMode } from "./AdaptationWizard";
 
 type StepChoiceProps = {
@@ -9,18 +10,22 @@ export function StepChoice({ onSelect }: StepChoiceProps) {
     <div className="flex flex-col gap-4 items-center py-8">
       <h2 className="text-xl font-semibold">Como deseja adaptar?</h2>
       <div className="flex gap-4">
-        <button
-          className="px-6 py-4 border rounded-lg hover:bg-accent"
+        <Button
+          type="button"
+          variant="outline"
+          className="px-6 py-4 h-auto"
           onClick={() => onSelect("ai")}
         >
           Adaptação com IA
-        </button>
-        <button
-          className="px-6 py-4 border rounded-lg hover:bg-accent"
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="px-6 py-4 h-auto"
           onClick={() => onSelect("manual")}
         >
           Edição manual
-        </button>
+        </Button>
       </div>
     </div>
   );
