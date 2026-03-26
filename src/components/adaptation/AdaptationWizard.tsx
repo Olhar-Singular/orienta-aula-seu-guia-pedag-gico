@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -16,7 +16,13 @@ import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
 import StepResult from "./StepResult";
 import StepExport from "./StepExport";
-import type { StructuredActivity } from "@/types/adaptation";
+import { StepChoice } from "./StepChoice";
+import { StepEditor } from "./StepEditor";
+import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
+import { parseActivityText } from "@/lib/parseActivityText";
+import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
+
+export type { SelectedQuestion };
 
 export type ActivityType = "prova" | "exercicio" | "atividade_casa" | "trabalho";
 
@@ -45,18 +51,10 @@ export type ContextPillars = {
   hasActivityContext: boolean;
 };
 
-export type SelectedQuestion = {
-  id: string;
-  text: string;
-  image_url: string | null;
-  options: string[] | null;
-  subject: string;
-  topic: string | null;
-  difficulty: string | null;
-};
-
 export type QuestionImageMap = Record<string, string[]>;
 export type SectionQuestionImages = Record<"version_universal" | "version_directed", QuestionImageMap>;
+
+export type WizardMode = "ai" | "manual";
 
 export type WizardData = {
   activityType: ActivityType | null;
@@ -71,15 +69,40 @@ export type WizardData = {
   result: AdaptationResult | null;
   contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
+  wizardMode?: WizardMode;
 };
 
-const STEPS = [
-  { label: "Tipo", description: "Tipo de atividade" },
-  { label: "Conteúdo", description: "Inserir atividade" },
-  { label: "Barreiras", description: "Aluno e barreiras" },
-  { label: "Resultado", description: "Adaptação da IA" },
-  { label: "Exportar", description: "Salvar e exportar" },
-];
+const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
+  ai: ["type", "content", "barriers", "choice", "result", "export"],
+  manual: ["type", "content", "barriers", "choice", "editor", "export"],
+} as const;
+
+export function getStepsForMode(mode: WizardMode): readonly string[] {
+  return STEP_SEQUENCES[mode];
+}
+
+export function getNextStep(currentStep: string, mode: WizardMode): string {
+  const steps = STEP_SEQUENCES[mode];
+  const currentIndex = steps.indexOf(currentStep);
+  if (currentIndex === -1 || currentIndex >= steps.length - 1) return steps[steps.length - 1];
+  return steps[currentIndex + 1];
+}
+
+type StepMeta = { label: string; description: string };
+
+const STEP_META: Record<string, StepMeta> = {
+  type: { label: "Tipo", description: "Tipo de atividade" },
+  content: { label: "Conteúdo", description: "Inserir atividade" },
+  choice: { label: "Modo", description: "Escolher modo" },
+  barriers: { label: "Barreiras", description: "Aluno e barreiras" },
+  result: { label: "Resultado", description: "Adaptação da IA" },
+  editor: { label: "Editor", description: "Editar atividade" },
+  export: { label: "Exportar", description: "Salvar e exportar" },
+};
+
+function getStepsMeta(mode: WizardMode): StepMeta[] {
+  return getStepsForMode(mode).map((key) => STEP_META[key]);
+}
 
 const slideVariants = {
   enter: (direction: number) => ({
@@ -101,6 +124,8 @@ function announce(message: string) {
 export default function AdaptationWizard() {
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [wizardMode, setWizardMode] = useState<WizardMode>("ai");
+  const [manualActivity, setManualActivity] = useState<StructuredActivity | null>(null);
   const [data, setData] = useState<WizardData>({
     activityType: null,
     activityText: "",
@@ -115,6 +140,21 @@ export default function AdaptationWizard() {
     contextPillars: null,
     questionImages: { version_universal: {}, version_directed: {} },
   });
+
+  const steps = getStepsForMode(wizardMode);
+  const stepsMeta = getStepsMeta(wizardMode);
+  const currentStepKey = steps[step] ?? "type";
+
+  const buildManualActivity = useCallback((): StructuredActivity => {
+    if (data.selectedQuestions.length > 0) {
+      return convertToStructuredActivity(data.selectedQuestions);
+    }
+    return parseActivityText(data.activityText);
+  }, [data.selectedQuestions, data.activityText]);
+
+  const editorActivity = useMemo(() => {
+    return manualActivity ?? buildManualActivity();
+  }, [manualActivity, buildManualActivity]);
 
   const [pendingBackTarget, setPendingBackTarget] = useState<number | null>(null);
 
@@ -134,27 +174,29 @@ export default function AdaptationWizard() {
   const navigateTo = useCallback((target: number) => {
     setDirection(target > step ? 1 : -1);
     setStep(target);
-    announce(`Passo ${target + 1} de ${STEPS.length}: ${STEPS[target].description}`);
-  }, [step]);
+    announce(`Passo ${target + 1} de ${stepsMeta.length}: ${stepsMeta[target]?.description ?? ""}`);
+  }, [step, stepsMeta]);
 
   const next = useCallback(() => {
     setDirection(1);
     setStep((s) => {
-      const newStep = Math.min(s + 1, STEPS.length - 1);
-      announce(`Passo ${newStep + 1} de ${STEPS.length}: ${STEPS[newStep].description}`);
+      const newStep = Math.min(s + 1, stepsMeta.length - 1);
+      announce(`Passo ${newStep + 1} de ${stepsMeta.length}: ${stepsMeta[newStep]?.description ?? ""}`);
       return newStep;
     });
-  }, []);
+  }, [stepsMeta]);
 
   const requestBack = useCallback((target: number) => {
-    // If currently on step 3 (Result) or 4 (Export) and going to an earlier step,
-    // and there is a generated result, show confirmation dialog
-    if (step >= 3 && target < 3 && data.result) {
+    // If going backwards and there is a generated result, confirm discard
+    const resultStepIndex = steps.indexOf("result");
+    const hasResultStep = resultStepIndex !== -1;
+    if (hasResultStep && step >= resultStepIndex && target < resultStepIndex && data.result) {
       setPendingBackTarget(target);
       return;
     }
+    // For manual mode: if on export and going back, no special handling needed
     navigateTo(target);
-  }, [step, data.result, navigateTo]);
+  }, [step, steps, data.result, navigateTo]);
 
   const prev = useCallback(() => {
     requestBack(step - 1);
@@ -185,7 +227,7 @@ export default function AdaptationWizard() {
       {/* Stepper */}
       <nav aria-label="Progresso da adaptação" className="hidden sm:block">
         <ol className="flex items-center gap-2" role="list">
-          {STEPS.map((s, i) => {
+          {stepsMeta.map((s, i) => {
             const completed = i < step;
             const current = i === step;
             return (
@@ -216,7 +258,7 @@ export default function AdaptationWizard() {
                   </span>
                   <span className="hidden lg:inline text-sm">{s.label}</span>
                 </button>
-                {i < STEPS.length - 1 && (
+                {i < stepsMeta.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 ${
                       completed ? "bg-primary" : "bg-muted"
@@ -232,7 +274,7 @@ export default function AdaptationWizard() {
 
       {/* Mobile step indicator */}
       <p className="sm:hidden text-sm text-muted-foreground" role="status">
-        Passo {step + 1} de {STEPS.length}: {STEPS[step].description}
+        Passo {step + 1} de {stepsMeta.length}: {stepsMeta[step]?.description}
       </p>
 
       {/* Step Content with slide animation */}
@@ -247,14 +289,14 @@ export default function AdaptationWizard() {
             exit="exit"
             transition={{ duration: 0.25, ease: "easeInOut" }}
           >
-            {step === 0 && (
+            {currentStepKey === "type" && (
               <StepActivityType
                 value={data.activityType}
                 onChange={(t) => updateData({ activityType: t })}
                 onNext={next}
               />
             )}
-            {step === 1 && (
+            {currentStepKey === "content" && (
               <StepActivityInput
                 value={data.activityText}
                 onChange={(t) => updateData({ activityText: t })}
@@ -264,7 +306,18 @@ export default function AdaptationWizard() {
                 onPrev={prev}
               />
             )}
-            {step === 2 && (
+            {currentStepKey === "choice" && (
+              <StepChoice
+                onSelect={(mode) => {
+                  setWizardMode(mode);
+                  updateData({ wizardMode: mode });
+                  // After choosing mode, step index stays the same but steps array changes
+                  // So we just advance to next step
+                  next();
+                }}
+              />
+            )}
+            {currentStepKey === "barriers" && (
               <StepBarrierSelection
                 data={data}
                 updateData={updateData}
@@ -272,7 +325,7 @@ export default function AdaptationWizard() {
                 onPrev={prev}
               />
             )}
-            {step === 3 && (
+            {currentStepKey === "result" && (
               <StepResult
                 data={data}
                 updateData={updateData}
@@ -280,10 +333,31 @@ export default function AdaptationWizard() {
                 onPrev={prev}
               />
             )}
-            {step === 4 && (
+            {currentStepKey === "editor" && (
+              <StepEditor
+                structuredActivity={editorActivity}
+                onStructuredActivityChange={(updated) => setManualActivity(updated)}
+                onNext={() => {
+                  updateData({
+                    result: {
+                      version_universal: editorActivity,
+                      version_directed: editorActivity,
+                      strategies_applied: [],
+                      pedagogical_justification: "Atividade editada manualmente pelo professor.",
+                      implementation_tips: [],
+                    },
+                  });
+                  next();
+                }}
+                onPrev={prev}
+              />
+            )}
+            {currentStepKey === "export" && (
               <StepExport data={data} onPrev={prev} onRestart={() => {
                 setStep(0);
                 setDirection(-1);
+                setWizardMode("ai");
+                setManualActivity(null);
                 setData({
                   activityType: null,
                   activityText: "",
@@ -294,9 +368,9 @@ export default function AdaptationWizard() {
                   barriers: [],
                   adaptForWholeClass: false,
                   observationNotes: "",
-                    result: null,
-                    contextPillars: null,
-                    questionImages: { version_universal: {}, version_directed: {} },
+                  result: null,
+                  contextPillars: null,
+                  questionImages: { version_universal: {}, version_directed: {} },
                 });
               }} />
             )}
