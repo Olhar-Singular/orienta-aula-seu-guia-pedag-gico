@@ -1,5 +1,4 @@
-import type { StructuredActivity, StructuredQuestion, Alternative } from "@/types/adaptation";
-import type { SelectedQuestion } from "@/components/adaptation/AdaptationWizard";
+import type { StructuredActivity, StructuredQuestion, Alternative, SelectedQuestion } from "@/types/adaptation";
 
 function toAlternatives(options: string[]): Alternative[] {
   return options.map((text, i) => ({

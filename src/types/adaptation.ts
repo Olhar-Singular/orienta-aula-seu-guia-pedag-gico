@@ -44,6 +44,17 @@ export interface StructuredAdaptationResult {
   implementation_tips: string[];
 }
 
+// Questão selecionada do banco de questões
+export type SelectedQuestion = {
+  id: string;
+  text: string;
+  image_url: string | null;
+  options: string[] | null;
+  subject: string;
+  topic: string | null;
+  difficulty: string | null;
+};
+
 // Type guard
 export function isStructuredActivity(data: unknown): data is StructuredActivity {
   return (
