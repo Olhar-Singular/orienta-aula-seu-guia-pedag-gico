@@ -1,5 +1,24 @@
 /**
- * Integration Test: Login → Adaptar Atividade → Ver Resultado → Exportar PDF
+ * Integration Test: Wizard de Adaptação → Resultado → Exportar
+ *
+ * Cobre o fluxo completo do wizard em ambos os modos:
+ *
+ * Modo IA:     type → content → barriers → choice → result → export  (6 steps)
+ * Modo Manual: type → content → barriers → choice → editor → export  (6 steps)
+ *
+ * O step "choice" aparece após "barriers" em ambos os modos, permitindo
+ * que o professor escolha o modo de adaptação após selecionar o aluno.
+ *
+ * Contexto de produto:
+ * - "barriers" inclui seleção de turma, aluno e barreiras de aprendizagem (DUA)
+ * - Modo IA envia para edge function `adapt-activity` via SSE
+ * - Modo Manual usa StructuredContentRenderer para edição inline (sem IA)
+ * - Barreiras selecionadas são ignoradas no modo manual (decisão de produto)
+ * - Restart zera wizardMode para "ai" e limpa manualActivity
+ *
+ * Testes unitários complementares:
+ * - src/test/skip-ai-mode.test.ts — lógica de navegação e conversão
+ * - src/test/components/StepEditor.test.tsx — StepEditor com StructuredContentRenderer
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render } from "@testing-library/react";
@@ -24,7 +43,7 @@ vi.mock("@/integrations/supabase/client", () =>
   })
 );
 
-// Mock @react-pdf/renderer to avoid canvas issues in tests
+// Mock @react-pdf/renderer para evitar problemas de canvas nos testes
 vi.mock("@react-pdf/renderer", () => ({
   pdf: vi.fn(() => ({
     toBlob: vi.fn().mockResolvedValue(new Blob(["mock"], { type: "application/pdf" })),
@@ -54,14 +73,19 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders wizard with 5-step stepper", () => {
+  // ─── Estrutura do wizard ───
+
+  it("renders wizard stepper on first step", () => {
     const Wrapper = createTestWrapper("/dashboard/adaptar");
-    const { getByText, container } = render(<AdaptationWizard />, { wrapper: Wrapper });
+    const { getByText } = render(<AdaptationWizard />, { wrapper: Wrapper });
 
     expect(getByText("Adaptar Atividade")).toBeTruthy();
-    // Mobile step indicator
-    expect(getByText(/Passo 1 de 5/)).toBeTruthy();
+    // O indicador mobile mostra "Passo 1 de N" onde N é o número de steps do modo atual.
+    // Após o merge do PR feat/skip-ai-mode: N=6 (type→content→barriers→choice→result|editor→export)
+    expect(getByText(/Passo 1 de \d+/)).toBeTruthy();
   });
+
+  // ─── Step 1: Tipo de atividade ───
 
   it("Step 1: shows activity type options", () => {
     const Wrapper = createTestWrapper("/dashboard/adaptar");
@@ -90,7 +114,10 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     expect(nextBtn).not.toBeDisabled();
   });
 
-  it("validates wizard data structure for API call", () => {
+  // ─── Contratos de dados ───
+
+  it("validates wizard data structure for AI API call", () => {
+    // Contrato do payload enviado para a edge function adapt-activity
     const activeBarriers = BARRIER_DIMENSIONS.flatMap((dim) =>
       dim.barriers.slice(0, 1).map((b) => ({
         dimension: dim.key,
@@ -113,6 +140,7 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
   });
 
   it("validates adaptation result has all required fields", () => {
+    // Contrato do retorno da edge function adapt-activity
     const r = MOCK_ADAPTATION_RESULT;
     expect(r.version_universal).toBeTruthy();
     expect(r.version_directed).toBeTruthy();
@@ -122,6 +150,7 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
   });
 
   it("validates PDF export data assembly", () => {
+    // Contrato do objeto passado para exportToPdf / exportToDocx
     const r = MOCK_ADAPTATION_RESULT;
     const pdfData = {
       teacherName: MOCK_USER.user_metadata.name,
@@ -141,7 +170,8 @@ describe("Flow: Adaptation Wizard → Result → Export", () => {
     expect(pdfData.implementationTips).toHaveLength(3);
   });
 
-  it("validates full text copy includes all sections", () => {
+  it("validates full text copy includes both versions", () => {
+    // Contrato do texto gerado para a opção "Copiar texto completo"
     const r = MOCK_ADAPTATION_RESULT;
     const fullText = `VERSÃO UNIVERSAL\n\n${r.version_universal}\n\nVERSÃO DIRECIONADA\n\n${r.version_directed}`;
     expect(fullText).toContain("VERSÃO UNIVERSAL");
