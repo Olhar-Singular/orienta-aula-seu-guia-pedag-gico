@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ interface Teacher {
 export default function TeacherManagement() {
   const { user } = useAuth();
   const { schoolId, schoolName } = useUserSchool();
+  const { isSuperAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -98,7 +100,7 @@ export default function TeacherManagement() {
         };
       }) as Teacher[];
     },
-    enabled: !!schoolId,
+    enabled: !!schoolId || isSuperAdmin,
   });
 
   const filtered = teachers.filter((t) => {
@@ -181,7 +183,7 @@ export default function TeacherManagement() {
         return {
           name: cols[nameIdx] || "",
           email: cols[emailIdx] || "",
-          role: roleIdx !== -1 && cols[roleIdx]?.toLowerCase() === "admin" ? "admin" : "teacher",
+          role: roleIdx !== -1 && cols[roleIdx]?.toLowerCase() === "gestor" ? "gestor" : "teacher",
         };
       }).filter((t) => t.name && t.email);
 
@@ -289,7 +291,7 @@ export default function TeacherManagement() {
   };
 
   const downloadTemplate = () => {
-    const csv = "Nome,E-mail,Cargo\nMaria Silva,maria@escola.com,prof\nJoão Santos,joao@escola.com,admin\n";
+    const csv = "Nome,E-mail,Cargo\nMaria Silva,maria@escola.com,prof\nJoão Santos,joao@escola.com,gestor\n";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -299,7 +301,7 @@ export default function TeacherManagement() {
     URL.revokeObjectURL(url);
   };
 
-  if (!schoolId) {
+  if (!schoolId && !isSuperAdmin) {
     return (
       <div className="text-center py-20">
         <p className="text-muted-foreground">Você precisa estar vinculado a uma escola para acessar esta página.</p>
@@ -370,8 +372,8 @@ export default function TeacherManagement() {
                       {teacher.email || "—"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={teacher.role === "admin" ? "default" : "secondary"}>
-                        {teacher.role === "admin" ? "Admin" : "Professor"}
+                      <Badge variant={teacher.role === "gestor" ? "default" : "secondary"}>
+                        {teacher.role === "gestor" ? "Gestor" : "Professor"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -464,8 +466,8 @@ export default function TeacherManagement() {
                   <Label htmlFor="role-teacher">Professor</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="admin" id="role-admin" />
-                  <Label htmlFor="role-admin">Administrador</Label>
+                  <RadioGroupItem value="gestor" id="role-gestor" />
+                  <Label htmlFor="role-gestor">Gestor</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -505,7 +507,7 @@ export default function TeacherManagement() {
               <p className="font-medium mb-1">Formato esperado:</p>
               <p>Nome, E-mail, Cargo</p>
               <p>Maria Silva, maria@escola.com, prof</p>
-              <p className="mt-1">* Cargo: "prof" ou "admin" (padrão: prof)</p>
+              <p className="mt-1">* Cargo: "prof" ou "gestor" (padrão: prof)</p>
             </div>
           </div>
           <DialogFooter>
@@ -547,8 +549,8 @@ export default function TeacherManagement() {
                   <Label htmlFor="edit-role-teacher">Professor</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="admin" id="edit-role-admin" />
-                  <Label htmlFor="edit-role-admin">Administrador</Label>
+                  <RadioGroupItem value="gestor" id="edit-role-gestor" />
+                  <Label htmlFor="edit-role-gestor">Gestor</Label>
                 </div>
               </RadioGroup>
             </div>
