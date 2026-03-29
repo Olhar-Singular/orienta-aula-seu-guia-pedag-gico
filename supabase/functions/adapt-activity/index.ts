@@ -725,12 +725,6 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (aiResponse.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos de IA insuficientes." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       return new Response(JSON.stringify({ error: "Falha na geração da adaptação." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

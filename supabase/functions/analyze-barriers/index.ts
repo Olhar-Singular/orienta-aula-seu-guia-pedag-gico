@@ -150,12 +150,6 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Créditos insuficientes. Adicione créditos à sua conta." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errText = await response.text();
       console.error("AI gateway error:", response.status, errText);
       return new Response(

@@ -30,12 +30,11 @@ import {
   MOCK_ACTIVITY_TEXT,
   MOCK_ADAPTATION_HISTORY,
 } from "./fixtures";
-import { createSupabaseMock, mockAuthHook, mockSubscriptionHook, createTestWrapper, mockFetch } from "./helpers";
+import { createSupabaseMock, mockAuthHook, createTestWrapper, mockFetch } from "./helpers";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 
 // ─── Mocks ───
 vi.mock("@/hooks/useAuth", () => mockAuthHook());
-vi.mock("@/hooks/useSubscription", () => mockSubscriptionHook());
 vi.mock("@/integrations/supabase/client", () =>
   createSupabaseMock({
     profiles: MOCK_PROFILE,

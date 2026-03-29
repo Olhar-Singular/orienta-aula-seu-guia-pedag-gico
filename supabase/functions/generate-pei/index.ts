@@ -155,12 +155,6 @@ Preencha os campos usando a função fornecida.`;
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await aiResponse.text();
       console.error("AI error:", aiResponse.status, t);
       throw new Error("Erro ao gerar PEI com IA");

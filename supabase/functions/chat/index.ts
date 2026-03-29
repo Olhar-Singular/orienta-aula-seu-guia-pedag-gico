@@ -133,11 +133,6 @@ serve(async (req) => {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       return new Response(JSON.stringify({ error: "Erro ao conectar com a IA." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

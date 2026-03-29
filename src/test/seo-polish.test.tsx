@@ -122,11 +122,10 @@ describe("Protected routes", () => {
       "/dashboard/simulador",
       "/chat",
       "/profile",
-      "/pricing",
     ];
     const publicPaths = ["/", "/login", "/cadastro", "/recuperar-senha", "/reset-password", "/compartilhado/:token"];
 
-    expect(protectedPaths.length).toBe(10);
+    expect(protectedPaths.length).toBe(9);
     expect(publicPaths.length).toBe(6);
   });
 });

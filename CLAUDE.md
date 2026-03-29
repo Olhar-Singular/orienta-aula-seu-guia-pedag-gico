@@ -8,14 +8,80 @@ Plataforma educacional para professores brasileiros adaptarem atividades para al
 
 ## Comandos Essenciais
 
+### Docker (container do app)
+
 ```bash
-npm run dev              # Dev server (Vite, porta 8080)
+make up                  # Subir container (build + start)
+make down                # Parar container
+make rebuild             # Rebuild após mudar dependências
+make shell               # Shell dentro do container
+make logs                # Logs do container
+```
+
+### Dev (rodam dentro do container via make)
+
+```bash
+make dev                 # Dev server (Vite, porta 8080)
+make build               # Build produção
+make lint                # ESLint
+make test                # Vitest (single run)
+make test-watch          # Vitest (watch mode)
+make typecheck           # TypeScript check
+```
+
+### Supabase (CLI no host — `supabase start` gerencia todos os serviços)
+
+```bash
+make sb-start            # Subir Supabase local (DB, Auth, Storage, Functions, Studio)
+make sb-stop             # Parar Supabase local
+make sb-status           # Exibir URLs e keys do Supabase local
+make sb-reset            # Reset DB local (reaplica migrations)
+make sb-login            # Autenticar no Supabase (remoto)
+make sb-link             # Vincular ao projeto remoto
+make db-push             # Aplicar migrations no remoto
+make gen-types           # Gerar tipos TypeScript do schema local
+make gen-types-remote    # Gerar tipos TypeScript do schema remoto
+make fn-deploy-all       # Deploy de todas as edge functions
+make fn-serve            # Servir funções localmente
+make sync                # db-push + fn-deploy-all + gen-types-remote
+```
+
+### Atalhos
+
+```bash
+make start               # Subir tudo (Supabase local + container app)
+make stop                # Parar tudo (container app + Supabase local)
+```
+
+### Sem Docker (fallback / CI)
+
+```bash
+npm run dev              # Dev server direto
 npm run build            # Build produção
-npm run lint             # ESLint
-npm run test             # Vitest (single run)
-npm run test:watch       # Vitest (watch mode)
+npm run test             # Vitest direto
 bun install              # Instalar deps (CI usa --frozen-lockfile)
 ```
+
+## Setup Inicial
+
+```bash
+# 1. Instalar Supabase CLI (binário direto, sem npm)
+curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz \
+  | tar -xz -C ~/.local/bin supabase
+
+# 2. Configurar .env
+cp .env.example .env
+
+# 3. Subir tudo
+make start               # supabase start + docker compose up
+
+# 4. Copiar keys do supabase status para o .env
+make sb-status           # Pegar VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY
+```
+
+> **Arquitetura**: Supabase CLI roda no host e gerencia ~11 containers automaticamente.
+> O app roda num container Docker separado (Node 20-slim com glibc) para evitar conflito musl/glibc do Lovable.
+> `node_modules` fica num volume Docker separado. Edições no host refletem em tempo real via volume mount.
 
 ## Stack
 

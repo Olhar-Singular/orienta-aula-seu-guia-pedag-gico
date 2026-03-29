@@ -40,9 +40,6 @@ describe("buildRadarData", () => {
 vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "u1", user_metadata: {} }, session: null, loading: false, signUp: vi.fn(), signIn: vi.fn(), signOut: vi.fn() }),
 }));
-vi.mock("@/hooks/useSubscription", () => ({
-  useSubscription: () => ({ creditsRemaining: 5, monthlyCredits: 10, planName: "free", loading: false }),
-}));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({ select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null }) }) }) }),

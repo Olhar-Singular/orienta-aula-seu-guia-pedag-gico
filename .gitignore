@@ -25,3 +25,11 @@ dist-ssr
 *.sln
 *.sw?
 .planning/
+
+# Docker
+docker-compose.override.yml
+
+# Supabase local
+supabase/.temp/
+
+prompts

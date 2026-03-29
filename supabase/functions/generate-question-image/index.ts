@@ -78,11 +78,6 @@ REGRAS:
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Créditos insuficientes." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       return new Response(JSON.stringify({ error: "Falha na geração da imagem." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

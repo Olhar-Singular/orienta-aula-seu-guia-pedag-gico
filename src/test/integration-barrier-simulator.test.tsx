@@ -28,9 +28,6 @@ vi.mock("@/hooks/useAuth", () => ({
   }),
   AuthProvider: ({ children }: any) => children,
 }));
-vi.mock("@/hooks/useSubscription", () => ({
-  useSubscription: () => ({ loading: false }),
-}));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: vi.fn((table: string) => {

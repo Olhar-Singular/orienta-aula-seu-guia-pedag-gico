@@ -24,18 +24,6 @@ export function mockAuthHook(overrides = {}) {
 }
 
 /**
- * Creates a standard mock for @/hooks/useSubscription (no-op, credits removed)
- */
-export function mockSubscriptionHook(overrides = {}) {
-  return {
-    useSubscription: () => ({
-      loading: false,
-      ...overrides,
-    }),
-  };
-}
-
-/**
  * Chainable Supabase query mock builder
  */
 export function createChainableQuery(resolvedData: any = null, error: any = null) {
