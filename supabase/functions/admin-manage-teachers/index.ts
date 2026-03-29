@@ -177,7 +177,7 @@ serve(async (req) => {
       const { error: memberErr } = await admin.from("school_members").insert({
         school_id,
         user_id: userId,
-        role: role === "admin" ? "admin" : "teacher",
+        role: role === "gestor" ? "gestor" : "teacher",
       });
 
       if (memberErr) {
@@ -316,7 +316,7 @@ serve(async (req) => {
           await admin.from("school_members").insert({
             school_id,
             user_id: userId,
-            role: teacher.role === "admin" ? "admin" : "teacher",
+            role: teacher.role === "gestor" ? "gestor" : "teacher",
           });
 
           // Track in local set to avoid duplicate within same batch
@@ -482,10 +482,10 @@ serve(async (req) => {
       }
 
       // Update role in school_members
-      if (newRole && (newRole === "admin" || newRole === "teacher")) {
+      if (newRole && (newRole === "gestor" || newRole === "teacher")) {
         // Prevent demoting self
-        if (member.user_id === caller.id && newRole !== "admin") {
-          return new Response(JSON.stringify({ error: "Você não pode remover seu próprio cargo de admin." }), {
+        if (member.user_id === caller.id && newRole !== "gestor") {
+          return new Response(JSON.stringify({ error: "Você não pode remover seu próprio cargo de gestor." }), {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -495,6 +495,52 @@ serve(async (req) => {
           .from("school_members")
           .update({ role: newRole })
           .eq("id", member_id);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ─── TOGGLE ACTIVE (super-admin only) ───
+    if (action === "toggle-active") {
+      const { target_user_id, is_active } = body;
+
+      if (!target_user_id || typeof is_active !== "boolean") {
+        return new Response(JSON.stringify({ error: "target_user_id e is_active são obrigatórios." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Only super-admin can toggle active status
+      const { data: isSuperAdmin } = await admin.rpc("is_super_admin", { _user_id: caller.id });
+      if (!isSuperAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas administradores globais podem ativar/desativar usuários." }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Prevent deactivating self
+      if (target_user_id === caller.id) {
+        return new Response(JSON.stringify({ error: "Você não pode desativar sua própria conta." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: updateErr } = await admin
+        .from("profiles")
+        .update({ is_active })
+        .eq("user_id", target_user_id);
+
+      if (updateErr) {
+        return new Response(JSON.stringify({ error: "Erro ao atualizar status do usuário." }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       return new Response(

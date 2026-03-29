@@ -37,28 +37,21 @@ serve(async (req) => {
       });
     }
 
-    // Verify admin role
-    const { data: membership } = await userClient
-      .from("school_members")
-      .select("school_id, role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .single();
-
-    if (!membership) {
-      return new Response(JSON.stringify({ error: "Acesso restrito a administradores." }), {
+    // Verify super-admin
+    const { data: isSuperAdmin } = await userClient.rpc("is_super_admin", { _user_id: user.id });
+    if (!isSuperAdmin) {
+      return new Response(JSON.stringify({ error: "Acesso restrito a administradores globais." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const schoolId = membership.school_id;
 
     // Parse filters from query params
     const url = new URL(req.url);
     const period = url.searchParams.get("period") || "week";
     const modelFilter = url.searchParams.get("model") || "";
     const actionFilter = url.searchParams.get("action_type") || "";
+    const schoolIdFilter = url.searchParams.get("school_id") || "";
 
     // Calculate date range
     const now = new Date();
@@ -86,11 +79,11 @@ serve(async (req) => {
       let query = admin
         .from("ai_usage_logs")
         .select("*")
-        .eq("school_id", schoolId)
         .gte("created_at", startDate.toISOString())
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
+      if (schoolIdFilter) query = query.eq("school_id", schoolIdFilter);
       if (modelFilter) query = query.eq("model", modelFilter);
       if (actionFilter) query = query.eq("action_type", actionFilter);
 
@@ -159,6 +152,16 @@ serve(async (req) => {
       by_action_type[a].cost += parseFloat((log as any).cost_total || "0");
     }
 
+    // By school (for super-admin cross-school view)
+    const by_school: Record<string, any> = {};
+    for (const log of items) {
+      const sid = (log as any).school_id || "unknown";
+      if (!by_school[sid]) by_school[sid] = { school_name: sid, requests: 0, total_tokens: 0, total_cost: 0 };
+      by_school[sid].requests++;
+      by_school[sid].total_tokens += (log as any).total_tokens || 0;
+      by_school[sid].total_cost += parseFloat((log as any).cost_total || "0");
+    }
+
     return new Response(
       JSON.stringify({
         period,
@@ -168,6 +171,7 @@ serve(async (req) => {
         by_model,
         by_day,
         by_action_type,
+        by_school,
         logs: items.slice(0, 100),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

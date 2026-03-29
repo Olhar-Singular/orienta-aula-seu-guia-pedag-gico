@@ -46,6 +46,15 @@ export interface AiUsageByDay {
   };
 }
 
+export interface AiUsageBySchool {
+  [schoolId: string]: {
+    school_name: string;
+    requests: number;
+    total_tokens: number;
+    total_cost: number;
+  };
+}
+
 export interface AiUsageReport {
   period: "day" | "week" | "month";
   start_date: string;
@@ -54,5 +63,6 @@ export interface AiUsageReport {
   by_model: AiUsageByModel;
   by_day: AiUsageByDay;
   by_action_type: Record<string, { requests: number; tokens: number; cost: number }>;
+  by_school: AiUsageBySchool;
   logs: AiUsageLog[];
 }
