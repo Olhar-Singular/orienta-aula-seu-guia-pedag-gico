@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import AdminRoute from "@/components/AdminRoute";
+import RoleRoute from "@/components/RoleRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
@@ -31,6 +31,7 @@ import BarrierSimulator from "./pages/BarrierSimulator";
 import SharedAdaptation from "./pages/SharedAdaptation";
 import TeacherManagement from "./pages/admin/TeacherManagement";
 import AiUsageReport from "./pages/admin/AiUsageReport";
+import SchoolManagement from "./pages/admin/SchoolManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,9 +71,12 @@ const App = () => (
                 <Route path="/chat" element={<ErrorBoundary><Chat /></ErrorBoundary>} />
                 <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
                 
-                {/* Admin routes */}
-                <Route path="/admin/professores" element={<AdminRoute><ErrorBoundary><TeacherManagement /></ErrorBoundary></AdminRoute>} />
-                <Route path="/admin/ai-usage" element={<AdminRoute><ErrorBoundary><AiUsageReport /></ErrorBoundary></AdminRoute>} />
+                {/* Gestor routes (gestor + admin) */}
+                <Route path="/admin/professores" element={<RoleRoute allowedRoles={["gestor", "admin"]}><ErrorBoundary><TeacherManagement /></ErrorBoundary></RoleRoute>} />
+
+                {/* Admin-only routes */}
+                <Route path="/admin/ai-usage" element={<RoleRoute allowedRoles={["admin"]}><ErrorBoundary><AiUsageReport /></ErrorBoundary></RoleRoute>} />
+                <Route path="/admin/escolas" element={<RoleRoute allowedRoles={["admin"]}><ErrorBoundary><SchoolManagement /></ErrorBoundary></RoleRoute>} />
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />
