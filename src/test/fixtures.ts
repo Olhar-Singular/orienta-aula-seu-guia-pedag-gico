@@ -232,7 +232,7 @@ a) Evaporação
 b) Condensação`;
 
 // ─── Skip AI / Manual mode fixtures ───
-import type { SelectedQuestion, WizardData, AdaptationResult } from "@/components/adaptation/AdaptationWizard";
+import type { SelectedQuestion, WizardData } from "@/components/adaptation/AdaptationWizard";
 import type { StructuredActivity } from "@/types/adaptation";
 
 export const MOCK_SELECTED_QUESTIONS: SelectedQuestion[] = [

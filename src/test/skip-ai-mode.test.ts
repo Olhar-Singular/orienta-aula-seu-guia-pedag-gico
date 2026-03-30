@@ -113,8 +113,8 @@ describe("Manual Mode Flow (TEST-02)", () => {
     });
 
     it("choice step is at the same index in both modes", () => {
-      const aiSteps: string[] = getStepsForMode("ai");
-      const manualSteps: string[] = getStepsForMode("manual");
+      const aiSteps = getStepsForMode("ai");
+      const manualSteps = getStepsForMode("manual");
       expect(aiSteps.indexOf("choice")).toBe(manualSteps.indexOf("choice"));
     });
   });
