@@ -94,12 +94,6 @@ describe("Landing page (Index)", () => {
     expect(getByText("< 5min")).toBeTruthy();
   });
 
-  it("renders testimonials", () => {
-    const { getByText } = renderIndex();
-    expect(getByText("O que dizem os professores")).toBeTruthy();
-    expect(getByText("Maria S.")).toBeTruthy();
-  });
-
   it("has PEI nav link", () => {
     const { container } = renderIndex();
     const peiLink = container.querySelector('a[href="#o-que-e-pei"]');

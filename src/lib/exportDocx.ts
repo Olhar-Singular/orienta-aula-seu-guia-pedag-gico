@@ -28,7 +28,7 @@ function htmlToPlainText(html: string): string {
 
     const el = node as Element;
     const tag = el.tagName.toLowerCase();
-    let result = "";
+    const result = "";
 
     // Process children first
     const childText = Array.from(node.childNodes)

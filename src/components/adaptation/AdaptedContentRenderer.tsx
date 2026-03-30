@@ -151,7 +151,7 @@ function parseInlineFormatting(text: string): React.ReactNode[] {
   let key = 0;
 
   // Bold markers already stripped in preProcessContent
-  let cleaned = text;
+  const cleaned = text;
 
   // First, handle $...$ delimited LaTeX blocks — render them directly
   const dollarParts = cleaned.split(/\$([^$]+)\$/g);

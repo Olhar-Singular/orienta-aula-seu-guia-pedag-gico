@@ -2,6 +2,14 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import TextBlockEditModal from "@/components/adaptation/TextBlockEditModal";
 
+vi.mock("@/components/QuestionRichEditor", () => ({
+  default: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <textarea value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+  textToHtml: (t: string) => t,
+  htmlToText: (t: string) => t,
+}));
+
 describe("TextBlockEditModal", () => {
   const defaultProps = {
     open: true,
