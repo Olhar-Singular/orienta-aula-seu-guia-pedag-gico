@@ -277,13 +277,13 @@ export default function TeacherManagement() {
   };
 
   // ─── RESET PASSWORD ───
-  const handleResetPassword = async (email: string) => {
+  const handleResetPassword = async (email: string, teacherSchoolId?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
         body: {
           action: "reset-password",
           email,
-          school_id: schoolId,
+          school_id: teacherSchoolId || schoolId,
         },
       });
       if (error) throw error;
