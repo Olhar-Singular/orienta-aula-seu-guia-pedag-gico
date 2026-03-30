@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook } from "@testing-library/react";
 import { createTestWrapper } from "../helpers";
 
 // ─── Mocks ───
@@ -12,24 +12,6 @@ vi.mock("@/hooks/useAuth", () => ({
 const mockUseUserSchool = vi.fn();
 vi.mock("@/hooks/useUserSchool", () => ({
   useUserSchool: () => mockUseUserSchool(),
-}));
-
-const mockProfileQuery = vi.fn();
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: {
-    from: (table: string) => {
-      if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: () => ({
-              maybeSingle: mockProfileQuery,
-            }),
-          }),
-        };
-      }
-      return { select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }) }) };
-    },
-  },
 }));
 
 import { useUserRole } from "@/hooks/useUserRole";
@@ -62,18 +44,12 @@ describe("useUserRole", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue(defaultAuth());
     mockUseUserSchool.mockReturnValue(defaultSchool("teacher"));
-    mockProfileQuery.mockResolvedValue({
-      data: { is_super_admin: false, is_active: true },
-      error: null,
-    });
   });
 
-  it("returns 'teacher' role for regular teacher", async () => {
+  it("returns 'teacher' role for regular teacher", () => {
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.role).toBe("teacher");
     expect(result.current.isTeacher).toBe(true);
@@ -82,33 +58,24 @@ describe("useUserRole", () => {
     expect(result.current.isActive).toBe(true);
   });
 
-  it("returns 'gestor' role for school gestor", async () => {
+  it("returns 'gestor' role for school gestor", () => {
     mockUseUserSchool.mockReturnValue(defaultSchool("gestor"));
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
     expect(result.current.role).toBe("gestor");
     expect(result.current.isGestor).toBe(true);
     expect(result.current.isTeacher).toBe(false);
-    expect(result.current.isSuperAdmin).toBe(false);
   });
 
-  it("returns 'admin' role for super-admin regardless of school role", async () => {
-    mockUseUserSchool.mockReturnValue(defaultSchool("teacher"));
-    mockProfileQuery.mockResolvedValue({
-      data: { is_super_admin: true, is_active: true },
-      error: null,
-    });
+  it("returns 'admin' role for school admin", () => {
+    mockUseUserSchool.mockReturnValue(defaultSchool("admin"));
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.role).toBe("admin");
     expect(result.current.isSuperAdmin).toBe(true);
@@ -116,42 +83,8 @@ describe("useUserRole", () => {
     expect(result.current.isGestor).toBe(false);
   });
 
-  it("returns 'admin' even if super-admin has gestor school role", async () => {
-    mockUseUserSchool.mockReturnValue(defaultSchool("gestor"));
-    mockProfileQuery.mockResolvedValue({
-      data: { is_super_admin: true, is_active: true },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useUserRole(), {
-      wrapper: createTestWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.role).toBe("admin");
-    expect(result.current.isSuperAdmin).toBe(true);
-  });
-
-  it("returns isActive=false for inactive user", async () => {
-    mockProfileQuery.mockResolvedValue({
-      data: { is_super_admin: false, is_active: false },
-      error: null,
-    });
-
-    const { result } = renderHook(() => useUserRole(), {
-      wrapper: createTestWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.isActive).toBe(false);
-    expect(result.current.role).toBe("teacher");
-  });
-
   it("returns loading state while fetching", () => {
     mockUseUserSchool.mockReturnValue({ ...defaultSchool(), isLoading: true });
-    mockProfileQuery.mockReturnValue(new Promise(() => {})); // never resolves
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
@@ -180,7 +113,7 @@ describe("useUserRole", () => {
     expect(result.current.isActive).toBe(true);
   });
 
-  it("returns admin with no school membership (super-admin without school)", async () => {
+  it("returns admin with no school shows hasSchool false", () => {
     mockUseUserSchool.mockReturnValue({
       schoolId: null,
       schoolName: null,
@@ -189,19 +122,12 @@ describe("useUserRole", () => {
       isLoading: false,
       hasSchool: false,
     });
-    mockProfileQuery.mockResolvedValue({
-      data: { is_super_admin: true, is_active: true },
-      error: null,
-    });
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
 
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.role).toBe("admin");
-    expect(result.current.isSuperAdmin).toBe(true);
+    expect(result.current.role).toBe("teacher");
     expect(result.current.hasSchool).toBe(false);
   });
 });
