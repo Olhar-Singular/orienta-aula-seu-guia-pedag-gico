@@ -38,7 +38,7 @@ export type Database = {
           teacher_guidance: string | null
           topic: string
           type: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           adapted_text?: string | null
@@ -63,7 +63,7 @@ export type Database = {
           teacher_guidance?: string | null
           topic: string
           type: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           adapted_text?: string | null
@@ -88,7 +88,7 @@ export type Database = {
           teacher_guidance?: string | null
           topic?: string
           type?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -219,7 +219,7 @@ export type Database = {
           status: string | null
           tokens_source: string | null
           total_tokens: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           action_type: string
@@ -239,7 +239,7 @@ export type Database = {
           status?: string | null
           tokens_source?: string | null
           total_tokens?: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           action_type?: string
@@ -259,7 +259,7 @@ export type Database = {
           status?: string | null
           tokens_source?: string | null
           total_tokens?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -277,21 +277,21 @@ export type Database = {
           id: string
           title: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -409,21 +409,21 @@ export type Database = {
           activity_type: string
           hidden_at: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           activity_id: string
           activity_type: string
           hidden_at?: string
           id?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           activity_id?: string
           activity_type?: string
           hidden_at?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -436,7 +436,7 @@ export type Database = {
           questions_extracted: number | null
           school_id: string | null
           uploaded_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           description?: string | null
@@ -446,7 +446,7 @@ export type Database = {
           questions_extracted?: number | null
           school_id?: string | null
           uploaded_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           description?: string | null
@@ -456,7 +456,7 @@ export type Database = {
           questions_extracted?: number | null
           school_id?: string | null
           uploaded_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
