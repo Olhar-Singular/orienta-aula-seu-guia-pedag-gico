@@ -23,8 +23,33 @@ export function useSchoolManagement() {
   const query = useQuery<School[]>({
     queryKey: ["schools-admin"],
     queryFn: async () => {
-      const data = await invokeManageSchools({ action: "list" });
-      return data.schools ?? [];
+      // Use direct DB query for listing (works in preview, avoids edge function CORS issues)
+      const { data: schools, error } = await supabase
+        .from("schools")
+        .select("id, name, code, created_at")
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+
+      // Get member counts
+      const { data: members, error: membersError } = await supabase
+        .from("school_members")
+        .select("school_id");
+
+      if (membersError) throw membersError;
+
+      const countMap: Record<string, number> = {};
+      for (const m of members ?? []) {
+        countMap[m.school_id] = (countMap[m.school_id] || 0) + 1;
+      }
+
+      return (schools ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        created_at: s.created_at ?? undefined,
+        member_count: countMap[s.id] || 0,
+      }));
     },
     staleTime: 60_000,
   });
