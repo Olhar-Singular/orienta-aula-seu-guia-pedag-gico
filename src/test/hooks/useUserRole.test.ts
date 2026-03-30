@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { createTestWrapper } from "../helpers";
 
 // ─── Mocks ───
@@ -12,6 +12,19 @@ vi.mock("@/hooks/useAuth", () => ({
 const mockUseUserSchool = vi.fn();
 vi.mock("@/hooks/useUserSchool", () => ({
   useUserSchool: () => mockUseUserSchool(),
+}));
+
+const mockSupabaseSelect = vi.fn();
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          single: mockSupabaseSelect,
+        }),
+      }),
+    }),
+  },
 }));
 
 import { useUserRole } from "@/hooks/useUserRole";
@@ -44,12 +57,15 @@ describe("useUserRole", () => {
     vi.clearAllMocks();
     mockUseAuth.mockReturnValue(defaultAuth());
     mockUseUserSchool.mockReturnValue(defaultSchool("teacher"));
+    mockSupabaseSelect.mockResolvedValue({ data: { is_super_admin: false, is_active: true } });
   });
 
-  it("returns 'teacher' role for regular teacher", () => {
+  it("returns 'teacher' role for regular teacher", async () => {
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.role).toBe("teacher");
     expect(result.current.isTeacher).toBe(true);
@@ -58,24 +74,28 @@ describe("useUserRole", () => {
     expect(result.current.isActive).toBe(true);
   });
 
-  it("returns 'gestor' role for school gestor", () => {
+  it("returns 'gestor' role for school gestor", async () => {
     mockUseUserSchool.mockReturnValue(defaultSchool("gestor"));
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
 
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
     expect(result.current.role).toBe("gestor");
     expect(result.current.isGestor).toBe(true);
     expect(result.current.isTeacher).toBe(false);
   });
 
-  it("returns 'admin' role for school admin", () => {
-    mockUseUserSchool.mockReturnValue(defaultSchool("admin"));
+  it("returns 'admin' role for super admin", async () => {
+    mockSupabaseSelect.mockResolvedValue({ data: { is_super_admin: true, is_active: true } });
 
     const { result } = renderHook(() => useUserRole(), {
       wrapper: createTestWrapper(),
     });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.role).toBe("admin");
     expect(result.current.isSuperAdmin).toBe(true);
@@ -113,7 +133,7 @@ describe("useUserRole", () => {
     expect(result.current.isActive).toBe(true);
   });
 
-  it("returns admin with no school shows hasSchool false", () => {
+  it("returns hasSchool false when no school", async () => {
     mockUseUserSchool.mockReturnValue({
       schoolId: null,
       schoolName: null,
@@ -127,7 +147,21 @@ describe("useUserRole", () => {
       wrapper: createTestWrapper(),
     });
 
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
     expect(result.current.role).toBe("teacher");
     expect(result.current.hasSchool).toBe(false);
+  });
+
+  it("returns isActive false when user is deactivated", async () => {
+    mockSupabaseSelect.mockResolvedValue({ data: { is_super_admin: false, is_active: false } });
+
+    const { result } = renderHook(() => useUserRole(), {
+      wrapper: createTestWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.isActive).toBe(false);
   });
 });
