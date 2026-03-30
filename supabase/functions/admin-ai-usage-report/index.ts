@@ -75,8 +75,7 @@ serve(async (req) => {
         break;
     }
 
-    // Use service role for aggregation query
-    const admin = createClient(supabaseUrl, serviceRoleKey);
+    // admin client already created above
 
     // Paginate to handle >1000 logs
     const PAGE_SIZE = 1000;
