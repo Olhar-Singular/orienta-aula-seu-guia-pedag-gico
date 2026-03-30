@@ -258,7 +258,7 @@ export default function TeacherManagement() {
         body: {
           action: "update",
           member_id: editTeacher.id,
-          school_id: schoolId,
+          school_id: editTeacher.school_id || schoolId,
           name: editForm.name.trim(),
           role: editForm.role,
         },
