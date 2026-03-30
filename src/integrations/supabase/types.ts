@@ -536,6 +536,8 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_active: boolean
+          is_super_admin: boolean
           main_goal: string | null
           main_subject: string | null
           name: string | null
@@ -553,6 +555,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
+          is_super_admin?: boolean
           main_goal?: string | null
           main_subject?: string | null
           name?: string | null
@@ -570,6 +574,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
+          is_super_admin?: boolean
           main_goal?: string | null
           main_subject?: string | null
           name?: string | null
