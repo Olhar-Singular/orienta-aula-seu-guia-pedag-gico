@@ -132,6 +132,22 @@ serve(async (req) => {
 
         userId = existingUser.id;
 
+        // If admin provided a password for an existing account, update it
+        // so the credentials defined in the teacher form actually work.
+        if (typeof password === "string" && password.length >= 6) {
+          const { error: pwdErr } = await admin.auth.admin.updateUserById(userId, {
+            password,
+          });
+
+          if (pwdErr) {
+            console.error("Update existing user password error:", pwdErr);
+            return new Response(JSON.stringify({ error: "Erro ao atualizar senha do usuário existente." }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+
         // Ensure profile exists/updated
         await admin
           .from("profiles")
