@@ -51,15 +51,31 @@ serve(async (req) => {
       });
     }
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: supabaseAnonKey,
+      },
     });
 
+    if (!authResponse.ok) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const authUser = await authResponse.json();
+    const validatedUserId = authUser?.id ?? userId;
+
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
     // Verify admin role for current authenticated user
-    const { data: membership, error: membershipError } = await userClient
+    const { data: membership, error: membershipError } = await admin
       .from("school_members")
       .select("id")
-      .eq("user_id", userId)
+      .eq("user_id", validatedUserId)
       .eq("role", "admin")
       .limit(1)
       .maybeSingle();
@@ -78,8 +94,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Parse filters from query params
     const url = new URL(req.url);
