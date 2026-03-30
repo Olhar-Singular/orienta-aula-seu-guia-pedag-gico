@@ -1,0 +1,1 @@
+UPDATE public.profiles SET is_super_admin = true WHERE user_id = 'ac312259-e584-47ae-8c60-6ed5b73e863a';
