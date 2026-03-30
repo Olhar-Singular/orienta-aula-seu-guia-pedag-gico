@@ -33,41 +33,20 @@ serve(async (req) => {
       });
     }
 
-    let userId = "";
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-      userId = payload?.sub ?? "";
-    } catch {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: supabaseAnonKey,
-      },
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
     });
 
-    if (!authResponse.ok) {
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    const validatedUserId = claimsData?.claims?.sub;
+
+    if (claimsError || !validatedUserId) {
+      console.error("JWT claims validation failed:", claimsError?.message ?? "missing sub claim");
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const authUser = await authResponse.json();
-    const validatedUserId = authUser?.id ?? userId;
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
