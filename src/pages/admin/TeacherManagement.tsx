@@ -223,7 +223,7 @@ export default function TeacherManagement() {
       const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
         body: {
           action: "import",
-          school_id: schoolId,
+          school_id: effectiveSchoolId || schoolId,
           teachers: teachersList,
         },
       });
@@ -258,7 +258,7 @@ export default function TeacherManagement() {
         body: {
           action: "update",
           member_id: editTeacher.id,
-          school_id: schoolId,
+          school_id: editTeacher.school_id || schoolId,
           name: editForm.name.trim(),
           role: editForm.role,
         },
@@ -277,13 +277,13 @@ export default function TeacherManagement() {
   };
 
   // ─── RESET PASSWORD ───
-  const handleResetPassword = async (email: string) => {
+  const handleResetPassword = async (email: string, teacherSchoolId?: string) => {
     try {
       const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
         body: {
           action: "reset-password",
           email,
-          school_id: schoolId,
+          school_id: teacherSchoolId || schoolId,
         },
       });
       if (error) throw error;
@@ -305,7 +305,7 @@ export default function TeacherManagement() {
         body: {
           action: "remove",
           member_id: removeTeacher.id,
-          school_id: schoolId,
+          school_id: removeTeacher.school_id || schoolId,
         },
       });
       if (error) throw error;
@@ -625,7 +625,7 @@ export default function TeacherManagement() {
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => editTeacher?.email && handleResetPassword(editTeacher.email)}
+              onClick={() => editTeacher?.email && handleResetPassword(editTeacher.email, editTeacher.school_id)}
             >
               <KeyRound className="w-4 h-4" /> Enviar link para redefinir senha
             </Button>
