@@ -37,10 +37,17 @@ serve(async (req) => {
       });
     }
 
-    // Verify super-admin
-    const { data: isSuperAdmin } = await userClient.rpc("is_super_admin", { _user_id: user.id });
-    if (!isSuperAdmin) {
-      return new Response(JSON.stringify({ error: "Acesso restrito a administradores globais." }), {
+    // Verify admin role via school_members
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+    const { data: membership } = await admin
+      .from("school_members")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!membership) {
+      return new Response(JSON.stringify({ error: "Acesso restrito a administradores." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
