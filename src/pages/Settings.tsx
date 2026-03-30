@@ -240,7 +240,7 @@ function SchoolTab() {
             <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
               <div>
                 <p className="font-semibold text-foreground">{schoolData.name}</p>
-                <p className="text-xs text-muted-foreground">Função: {membership?.role === "admin" ? "Administrador" : "Professor"}</p>
+                <p className="text-xs text-muted-foreground">Função: {membership?.role === "gestor" ? "Gestor" : membership?.role === "admin" ? "Administrador" : "Professor"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <code className="text-sm font-mono bg-background px-3 py-1.5 rounded border border-border">{schoolData.code}</code>
