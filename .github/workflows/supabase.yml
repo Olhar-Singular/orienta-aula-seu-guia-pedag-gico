@@ -38,7 +38,7 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
       - name: Apply migrations
-        run: supabase db push -p "$SUPABASE_DB_PASSWORD" --include-all
+        run: supabase db push -p "$SUPABASE_DB_PASSWORD"
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
