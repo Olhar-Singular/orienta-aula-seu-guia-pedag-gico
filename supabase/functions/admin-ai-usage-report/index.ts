@@ -22,29 +22,55 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Use service role client to validate user token
-    const admin = createClient(supabaseUrl, serviceRoleKey);
-
-    // Extract token and validate
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await admin.auth.getUser(token);
-    if (authError || !user) {
-      console.error("Auth error:", authError?.message);
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify admin role via school_members
-    const { data: membership } = await admin
+    let userId = "";
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+      userId = payload?.sub ?? "";
+    } catch {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+
+    // Verify admin role for current authenticated user
+    const { data: membership, error: membershipError } = await userClient
       .from("school_members")
-      .select("role")
-      .eq("user_id", user.id)
+      .select("id")
+      .eq("user_id", userId)
       .eq("role", "admin")
+      .limit(1)
       .maybeSingle();
+
+    if (membershipError) {
+      console.error("Membership auth error:", membershipError.message);
+      return new Response(JSON.stringify({ error: "Não autorizado" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!membership) {
       return new Response(JSON.stringify({ error: "Acesso restrito a administradores." }), {
@@ -52,6 +78,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // Parse filters from query params
     const url = new URL(req.url);
