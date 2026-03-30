@@ -22,15 +22,16 @@ serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Use service role client to validate user token
+    const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    // Extract token and validate
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await admin.auth.getUser(token);
     if (authError || !user) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,7 +39,6 @@ serve(async (req) => {
     }
 
     // Verify admin role via school_members
-    const admin = createClient(supabaseUrl, serviceRoleKey);
     const { data: membership } = await admin
       .from("school_members")
       .select("role")
