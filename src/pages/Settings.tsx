@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { generateSchoolCode } from "@/lib/schoolCode";
@@ -19,6 +20,8 @@ import { generateSchoolCode } from "@/lib/schoolCode";
 /* ───────── Profile Tab ───────── */
 function ProfileTab() {
   const { user } = useAuth();
+  const { role } = useUserRole();
+  const roleLabel = role === "admin" ? "Administrador" : role === "gestor" ? "Gestor" : "Professor";
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -107,6 +110,12 @@ function ProfileTab() {
                 <SelectItem value="terapeuta">Terapeuta</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Cargo na plataforma</Label>
+            <div className="flex items-center h-10 px-3 rounded-md border border-input bg-muted text-sm">
+              <span data-testid="rbac-role-badge">{roleLabel}</span>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Disciplina principal</Label>

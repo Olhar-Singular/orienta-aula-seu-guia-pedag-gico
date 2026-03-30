@@ -46,6 +46,8 @@ interface Teacher {
   full_name: string | null;
   role: string | null;
   joined_at: string | null;
+  school_id?: string | null;
+  school_name?: string | null;
 }
 
 export default function TeacherManagement() {
@@ -54,22 +56,42 @@ export default function TeacherManagement() {
   const { isSuperAdmin } = useUserRole();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("all");
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
   const [removeTeacher, setRemoveTeacher] = useState<Teacher | null>(null);
 
+  // ─── FETCH ALL SCHOOLS (admin only) ───
+  const { data: allSchools = [] } = useQuery({
+    queryKey: ["all-schools"],
+    queryFn: async () => {
+      const { data } = await supabase.from("schools").select("id, name").order("name");
+      return data ?? [];
+    },
+    enabled: isSuperAdmin,
+  });
+
+  const effectiveSchoolId = isSuperAdmin
+    ? (selectedSchoolId !== "all" ? selectedSchoolId : null)
+    : schoolId;
+
   // ─── FETCH TEACHERS ───
   const { data: teachers = [], isLoading } = useQuery({
-    queryKey: ["school-teachers", schoolId],
+    queryKey: ["school-teachers", isSuperAdmin ? selectedSchoolId : schoolId],
     queryFn: async () => {
-      if (!schoolId) return [];
-      const { data: members, error } = await supabase
+      let membersQuery = supabase
         .from("school_members")
-        .select("id, user_id, role, joined_at")
-        .eq("school_id", schoolId)
+        .select("id, user_id, role, joined_at, school_id")
         .order("joined_at", { ascending: false });
 
+      if (effectiveSchoolId) {
+        membersQuery = membersQuery.eq("school_id", effectiveSchoolId);
+      } else if (!isSuperAdmin) {
+        return [];
+      }
+
+      const { data: members, error } = await membersQuery;
       if (error) throw error;
       if (!members || members.length === 0) return [];
 
@@ -88,6 +110,8 @@ export default function TeacherManagement() {
         (profiles || []).map((p) => [p.user_id, p])
       );
 
+      const schoolMap = new Map(allSchools.map((s: { id: string; name: string }) => [s.id, s.name]));
+
       return members.map((m) => {
         const profile = profileMap.get(m.user_id);
         return {
@@ -97,10 +121,12 @@ export default function TeacherManagement() {
           full_name: profile?.full_name ?? profile?.name ?? profile?.email?.split("@")[0] ?? null,
           role: m.role,
           joined_at: m.joined_at,
+          school_id: m.school_id,
+          school_name: schoolMap.get(m.school_id) ?? null,
         };
       }) as Teacher[];
     },
-    enabled: !!schoolId || isSuperAdmin,
+    enabled: !!effectiveSchoolId || isSuperAdmin,
   });
 
   const filtered = teachers.filter((t) => {
@@ -113,7 +139,7 @@ export default function TeacherManagement() {
   });
 
   // ─── ADD TEACHER ───
-  const [addForm, setAddForm] = useState({ name: "", email: "", password: "", role: "teacher" });
+  const [addForm, setAddForm] = useState({ name: "", email: "", password: "", role: "teacher", school_id: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
 
@@ -126,6 +152,11 @@ export default function TeacherManagement() {
       toast.error("A senha deve ter pelo menos 6 caracteres.");
       return;
     }
+    const targetSchoolId = isSuperAdmin ? addForm.school_id : schoolId;
+    if (!targetSchoolId) {
+      toast.error("Selecione uma escola.");
+      return;
+    }
     setAddLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
@@ -134,7 +165,7 @@ export default function TeacherManagement() {
           email: addForm.email.trim(),
           name: addForm.name.trim(),
           password: addForm.password,
-          school_id: schoolId,
+          school_id: targetSchoolId,
           role: addForm.role,
         },
       });
@@ -147,7 +178,7 @@ export default function TeacherManagement() {
           : "Professor cadastrado com sucesso!"
       );
       setAddOpen(false);
-      setAddForm({ name: "", email: "", password: "", role: "teacher" });
+      setAddForm({ name: "", email: "", password: "", role: "teacher", school_id: "" });
       queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao cadastrar professor.");
@@ -331,6 +362,20 @@ export default function TeacherManagement() {
         </div>
       </div>
 
+      {isSuperAdmin && (
+        <select
+          data-testid="school-filter"
+          value={selectedSchoolId}
+          onChange={(e) => setSelectedSchoolId(e.target.value)}
+          className="w-full sm:w-64 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+        >
+          <option value="all">Todas as escolas</option>
+          {allSchools.map((s: { id: string; name: string }) => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      )}
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
@@ -357,6 +402,7 @@ export default function TeacherManagement() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead className="hidden sm:table-cell">E-mail</TableHead>
+                  {isSuperAdmin && <TableHead>Escola</TableHead>}
                   <TableHead>Cargo</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -371,6 +417,11 @@ export default function TeacherManagement() {
                     <TableCell className="hidden sm:table-cell text-muted-foreground">
                       {teacher.email || "—"}
                     </TableCell>
+                    {isSuperAdmin && (
+                      <TableCell className="text-muted-foreground">
+                        {teacher.school_name || "—"}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <Badge variant={teacher.role === "gestor" ? "default" : "secondary"}>
                         {teacher.role === "gestor" ? "Gestor" : "Professor"}
@@ -458,6 +509,22 @@ export default function TeacherManagement() {
               </div>
               <p className="text-xs text-muted-foreground">O professor usará esta senha para o primeiro acesso.</p>
             </div>
+            {isSuperAdmin && (
+              <div className="space-y-2">
+                <Label htmlFor="add-school">Escola *</Label>
+                <select
+                  id="add-school"
+                  value={addForm.school_id}
+                  onChange={(e) => setAddForm({ ...addForm, school_id: e.target.value })}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Selecione uma escola</option>
+                  {allSchools.map((s: { id: string; name: string }) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Cargo</Label>
               <RadioGroup value={addForm.role} onValueChange={(v) => setAddForm({ ...addForm, role: v })}>
