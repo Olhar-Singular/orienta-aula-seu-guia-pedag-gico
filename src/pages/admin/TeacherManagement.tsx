@@ -223,7 +223,7 @@ export default function TeacherManagement() {
       const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
         body: {
           action: "import",
-          school_id: schoolId,
+          school_id: effectiveSchoolId || schoolId,
           teachers: teachersList,
         },
       });
