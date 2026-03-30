@@ -1,0 +1,72 @@
+name: Supabase Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Migrations → Functions → Types
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref pvqjooezhoomtpymfiea
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Apply migrations
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
+      - name: Deploy edge functions
+        run: |
+          FUNCTIONS=(
+            adapt-activity
+            admin-ai-usage-report
+            admin-manage-schools
+            admin-manage-teachers
+            analyze-barriers
+            chat
+            extract-questions
+            generate-adaptation
+            generate-pei
+            generate-question-image
+            regenerate-question
+          )
+          for fn in "${FUNCTIONS[@]}"; do
+            echo "→ Deploying $fn..."
+            supabase functions deploy "$fn" --project-ref pvqjooezhoomtpymfiea
+          done
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Generate TypeScript types
+        run: |
+          supabase gen types typescript \
+            --project-id pvqjooezhoomtpymfiea \
+            > src/integrations/supabase/types.ts
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Commit updated types
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/integrations/supabase/types.ts
+          git diff --cached --quiet || git commit -m "chore: update supabase types [skip ci]"
+          git push

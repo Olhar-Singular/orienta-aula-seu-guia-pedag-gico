@@ -94,7 +94,7 @@ make sb-status           # Pegar VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_K
 | Editor      | TipTap                                       |
 | Export      | @react-pdf/renderer + docx                   |
 | Testes      | Vitest + Testing Library + jsdom             |
-| Deploy      | Cloudflare Pages (GitHub Actions)            |
+| Deploy      | Vercel (GitHub Actions)                      |
 | Pacotes     | Bun (CI) / npm (dev)                         |
 
 ## Variáveis de Ambiente
@@ -237,9 +237,9 @@ Toda alteração de código segue o ciclo **Red → Green → Refactor**:
 
 Pipeline em `.github/workflows/deploy.yml`:
 ```
-Lint → Test → Build → Deploy (Cloudflare Pages)
+Lint → Test → Build
 ```
-Usa Bun com `--frozen-lockfile`. Requer secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, vars Supabase.
+Usa Bun com `--frozen-lockfile`. Requer secrets: vars Supabase. Deploy feito automaticamente pelo Vercel via integração nativa com GitHub.
 
 ## Segurança
 

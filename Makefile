@@ -164,6 +164,7 @@ db-new:
 # ─────────────────────────────────────────────
 FUNCTIONS := adapt-activity \
              admin-ai-usage-report \
+             admin-manage-schools \
              admin-manage-teachers \
              analyze-barriers \
              chat \

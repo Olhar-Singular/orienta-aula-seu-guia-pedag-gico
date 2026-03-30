@@ -122,13 +122,14 @@ render(<Component />, { wrapper: createTestWrapper("/route") });
 ## Deploy
 
 ```
-GitHub push main → Actions: Lint → Test → Build → Cloudflare Pages
+GitHub push main → Actions: Lint → Test → Build
+                 → Vercel (integração nativa): Deploy
 ```
 
 - Package manager: Bun (`--frozen-lockfile`)
 - Build output: `dist/`
-- Hosting: Cloudflare Pages (static)
-- Wrangler: `pages deploy dist --project-name=orientador-digital`
+- Hosting: Vercel (static)
+- Deploy: integração nativa Vercel + GitHub (automático no push para `main`)
 
 ## LaTeX Rendering
 
