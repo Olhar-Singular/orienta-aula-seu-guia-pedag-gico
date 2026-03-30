@@ -625,7 +625,7 @@ export default function TeacherManagement() {
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => editTeacher?.email && handleResetPassword(editTeacher.email)}
+              onClick={() => editTeacher?.email && handleResetPassword(editTeacher.email, editTeacher.school_id)}
             >
               <KeyRound className="w-4 h-4" /> Enviar link para redefinir senha
             </Button>
