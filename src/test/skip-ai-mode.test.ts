@@ -106,8 +106,8 @@ describe("Manual Mode Flow (TEST-02)", () => {
     });
 
     it("choice step appears after barriers in both modes", () => {
-      const aiSteps: string[] = getStepsForMode("ai");
-      const manualSteps: string[] = getStepsForMode("manual");
+      const aiSteps = getStepsForMode("ai");
+      const manualSteps = getStepsForMode("manual");
       expect(aiSteps.indexOf("choice")).toBe(aiSteps.indexOf("barriers") + 1);
       expect(manualSteps.indexOf("choice")).toBe(manualSteps.indexOf("barriers") + 1);
     });
