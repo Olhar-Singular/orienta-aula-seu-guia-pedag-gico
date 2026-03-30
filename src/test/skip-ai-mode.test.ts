@@ -99,7 +99,7 @@ describe("Manual Mode Flow (TEST-02)", () => {
     });
 
     it("getStepsForMode('ai') returns 6-step array with barriers and choice before result", () => {
-      const steps: string[] = getStepsForMode("ai");
+      const steps = getStepsForMode("ai");
       expect(steps).toHaveLength(6);
       expect(steps).toEqual(["type", "content", "barriers", "choice", "result", "export"]);
       expect(steps).not.toContain("editor");
