@@ -6,6 +6,7 @@ interface UseAiUsageReportOptions {
   period: "day" | "week" | "month";
   model?: string;
   actionType?: string;
+  schoolId?: string;
 }
 
 export function useAiUsageReport(options: UseAiUsageReportOptions) {
@@ -15,6 +16,7 @@ export function useAiUsageReport(options: UseAiUsageReportOptions) {
       const params = new URLSearchParams({ period: options.period });
       if (options.model) params.set("model", options.model);
       if (options.actionType) params.set("action_type", options.actionType);
+      if (options.schoolId) params.set("school_id", options.schoolId);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");

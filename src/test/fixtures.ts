@@ -13,6 +13,19 @@ export const MOCK_SESSION = {
   user: MOCK_USER,
 };
 
+// ─── User fixtures (roles) ───
+export const MOCK_GESTOR_USER = {
+  id: "user-002",
+  email: "gestor@escola.com.br",
+  user_metadata: { name: "Carlos Souza" },
+};
+
+export const MOCK_ADMIN_USER = {
+  id: "user-003",
+  email: "admin@sistema.com.br",
+  user_metadata: { name: "Ana Admin" },
+};
+
 // ─── Profile fixtures ───
 export const MOCK_PROFILE = {
   id: "profile-001",
@@ -25,8 +38,37 @@ export const MOCK_PROFILE = {
   education_level: "fundamental_2",
   main_subject: "Matemática",
   onboarding_completed: true,
+  is_super_admin: false,
+  is_active: true,
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-01T00:00:00Z",
+};
+
+export const MOCK_GESTOR_PROFILE = {
+  ...MOCK_PROFILE,
+  id: "profile-002",
+  user_id: MOCK_GESTOR_USER.id,
+  name: "Carlos Souza",
+  display_name: "Carlos",
+  email: MOCK_GESTOR_USER.email,
+};
+
+export const MOCK_ADMIN_PROFILE = {
+  ...MOCK_PROFILE,
+  id: "profile-003",
+  user_id: MOCK_ADMIN_USER.id,
+  name: "Ana Admin",
+  display_name: "Ana",
+  email: MOCK_ADMIN_USER.email,
+  is_super_admin: true,
+};
+
+export const MOCK_INACTIVE_PROFILE = {
+  ...MOCK_PROFILE,
+  id: "profile-004",
+  user_id: "user-004",
+  name: "Inativo",
+  is_active: false,
 };
 
 // ─── Class fixtures ───

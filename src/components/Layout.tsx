@@ -3,7 +3,7 @@ import { LayoutDashboard, PenTool, MessageCircle, FolderOpen, User, LogOut, Menu
 import { useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserSchool } from "@/hooks/useUserSchool";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useNavigate } from "react-router-dom";
 import logoTransparentImg from "@/assets/logo-olho-transparent.png";
 
@@ -22,8 +22,13 @@ const navItems = [
   { path: "/profile", label: "Perfil", icon: User },
 ];
 
+const gestorItems = [
+  { path: "/admin/professores", label: "Gestão de Professores", icon: ShieldCheck },
+];
+
 const adminItems = [
   { path: "/admin/professores", label: "Gestão de Professores", icon: ShieldCheck },
+  { path: "/admin/escolas", label: "Gestão de Escolas", icon: Users },
   { path: "/admin/ai-usage", label: "Uso de IA", icon: Brain },
 ];
 
@@ -31,12 +36,18 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { memberRole } = useUserSchool();
+  const { role } = useUserRole();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
 
-  const isAdmin = memberRole === "admin";
-  const allNavItems = isAdmin ? [...navItems, ...adminItems] : navItems;
+  let allNavItems;
+  if (role === "admin") {
+    allNavItems = adminItems;
+  } else if (role === "gestor") {
+    allNavItems = [...navItems, ...gestorItems];
+  } else {
+    allNavItems = navItems;
+  }
 
   const handleLogout = async () => {
     await signOut();
