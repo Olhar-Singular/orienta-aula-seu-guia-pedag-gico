@@ -305,7 +305,7 @@ export default function TeacherManagement() {
         body: {
           action: "remove",
           member_id: removeTeacher.id,
-          school_id: schoolId,
+          school_id: removeTeacher.school_id || schoolId,
         },
       });
       if (error) throw error;
