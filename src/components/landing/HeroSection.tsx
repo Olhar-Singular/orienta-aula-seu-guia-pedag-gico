@@ -15,6 +15,9 @@ export default function HeroSection() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
+              <p className="text-base text-primary-foreground/90 leading-relaxed mb-6 italic font-medium max-w-xl">
+                A IA faz o trabalho operacional para que o professor possa focar no que é insubstituível: o olhar humano sobre cada aluno. A Olhar Singular é sobre dar ao professor uma ferramenta poderosa para que nenhum aluno precise enfrentar uma barreira que poderia ser removida.
+              </p>
               <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-extrabold text-primary-foreground leading-tight mb-5">
                 Crie adaptações pedagógicas para PEI com inteligência artificial
               </h1>

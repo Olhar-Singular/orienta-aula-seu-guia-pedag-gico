@@ -28,10 +28,10 @@ export default function PeiSection() {
           className="bg-card rounded-2xl p-8 lg:p-10 border border-border shadow-card"
         >
           <p className="text-foreground leading-relaxed text-lg mb-6">
-            O <strong>PEI (Plano Educacional Individualizado)</strong> é um documento pedagógico e legalmente obrigatório que traça estratégias de ensino personalizadas para estudantes com necessidades especiais — como <strong>deficiência, autismo e altas habilidades</strong>.
+            O <strong>PEI (Plano Educacional Individualizado)</strong> é um documento pedagógico e legalmente obrigatório que traça estratégias de ensino personalizadas para estudantes com necessidades especiais, como <strong>deficiência, autismo e altas habilidades</strong>.
           </p>
           <p className="text-muted-foreground leading-relaxed mb-6">
-            Ele define metas, adaptações curriculares e recursos necessários para garantir a <strong>inclusão educacional</strong> e o aprendizado no ritmo de cada aluno. Não é apenas uma simplificação do currículo regular — é um plano estratégico completo.
+            Ele define metas, adaptações curriculares e recursos necessários para garantir a <strong>inclusão educacional</strong> e o aprendizado no ritmo de cada aluno. Não é apenas uma simplificação do currículo regular, é um plano estratégico completo.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4 mt-8">

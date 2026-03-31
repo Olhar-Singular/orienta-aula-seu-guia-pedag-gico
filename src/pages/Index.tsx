@@ -5,7 +5,7 @@ import PainPointsSection from "@/components/landing/PainPointsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import BenefitsSection from "@/components/landing/BenefitsSection";
 import FaqSection from "@/components/landing/FaqSection";
-import SocialProofSection from "@/components/landing/SocialProofSection";
+import DuaSection from "@/components/landing/DuaSection";
 import CtaSection from "@/components/landing/CtaSection";
 import LandingFooter from "@/components/landing/LandingFooter";
 
@@ -15,11 +15,11 @@ export default function Index() {
       <LandingHeader />
       <HeroSection />
       <PeiSection />
+      <DuaSection />
       <PainPointsSection />
       <HowItWorksSection />
       <BenefitsSection />
       <FaqSection />
-      <SocialProofSection />
       <CtaSection />
       <LandingFooter />
     </div>
