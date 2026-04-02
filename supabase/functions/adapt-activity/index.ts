@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
 import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { getAiConfig } from "../_shared/aiConfig.ts";
 
 
 const corsHeaders = {
@@ -402,13 +403,8 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-pro");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -642,7 +638,6 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
     const SYSTEM_PROMPT_FINAL = buildSystemPrompt(barriers);
 
     // Call AI — using pro model for complex pedagogical reasoning
-    const modelName = "google/gemini-2.5-pro";
     const aiStartTime = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90_000);
@@ -652,10 +647,10 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
     let aiDurationMs: number;
 
     try {
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      aiResponse = await fetch(`${ai.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${ai.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
