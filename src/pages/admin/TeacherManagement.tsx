@@ -143,6 +143,14 @@ export default function TeacherManagement() {
   const [showPassword, setShowPassword] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
 
+  const handleAddDialogClose = (open: boolean) => {
+    if (!open) {
+      setAddForm({ name: "", email: "", password: "", role: "teacher", school_id: "" });
+      setShowPassword(false);
+    }
+    setAddOpen(open);
+  };
+
   const handleAdd = async () => {
     if (!addForm.name || !addForm.email || !addForm.password) {
       toast.error("Nome, e-mail e senha são obrigatórios.");
@@ -177,8 +185,7 @@ export default function TeacherManagement() {
           ? "Professor existente vinculado à escola!"
           : "Professor cadastrado com sucesso!"
       );
-      setAddOpen(false);
-      setAddForm({ name: "", email: "", password: "", role: "teacher", school_id: "" });
+      handleAddDialogClose(false);
       queryClient.invalidateQueries({ queryKey: ["school-teachers"] });
     } catch (e: any) {
       toast.error(e.message || "Erro ao cadastrar professor.");
@@ -458,7 +465,7 @@ export default function TeacherManagement() {
       </Card>
 
       {/* ─── ADD TEACHER DIALOG ─── */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+      <Dialog open={addOpen} onOpenChange={handleAddDialogClose}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Professor</DialogTitle>
@@ -540,7 +547,7 @@ export default function TeacherManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => handleAddDialogClose(false)}>Cancelar</Button>
             <Button onClick={handleAdd} disabled={addLoading}>
               {addLoading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
               Adicionar
