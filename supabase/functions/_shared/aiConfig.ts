@@ -14,7 +14,8 @@ const MODEL_MAP: Record<string, string> = {
 
 type EnvGetter = (key: string) => string | undefined;
 
-export function getAiConfig(env: EnvGetter = (k) => Deno.env.get(k)): AiConfig {
+// deno-lint-ignore no-explicit-any
+export function getAiConfig(env: EnvGetter = (k) => (globalThis as any).Deno?.env?.get(k)): AiConfig {
   const lovableKey = env("LOVABLE_API_KEY");
   const googleKey = env("AI_API_KEY");
 
