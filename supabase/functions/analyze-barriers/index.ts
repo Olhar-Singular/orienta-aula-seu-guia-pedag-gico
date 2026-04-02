@@ -167,7 +167,7 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
       model: "google/gemini-2.5-flash",
       input_tokens: data.usage?.prompt_tokens || 0,
       output_tokens: data.usage?.completion_tokens || 0,
-      prompt_text: (data.usage?.prompt_tokens || 0) === 0 ? activity : undefined,
+      prompt_text: (data.usage?.prompt_tokens || 0) === 0 ? activity_text : undefined,
       response_text: (data.usage?.completion_tokens || 0) === 0 ? JSON.stringify(data.choices?.[0]) : undefined,
       request_duration_ms: Date.now() - barrierStartTime,
       status: "success",

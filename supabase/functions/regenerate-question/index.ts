@@ -263,13 +263,13 @@ Regenere esta questão melhorando clareza, scaffolding e adequação às barreir
     // Log AI usage
     const inputTokens = aiData.usage?.prompt_tokens || 0;
     const outputTokens = aiData.usage?.completion_tokens || 0;
-    await logAiUsage(admin, {
+    await logAiUsage({
       user_id: user.id,
-      feature: "regenerate-question",
+      action_type: "regenerate-question",
       model: modelName,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
-      duration_ms: aiDuration,
+      request_duration_ms: aiDuration,
       school_id: school_id || null,
     });
 

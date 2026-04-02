@@ -21,8 +21,9 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 3.5);
 }
 
+// deno-lint-ignore no-explicit-any
 async function getModelPricing(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   model: string
 ): Promise<{ input: number; output: number }> {
   try {
@@ -35,8 +36,8 @@ async function getModelPricing(
 
     if (data) {
       return {
-        input: Number(data.price_input_per_million),
-        output: Number(data.price_output_per_million),
+        input: Number((data as any).price_input_per_million),
+        output: Number((data as any).price_output_per_million),
       };
     }
   } catch {

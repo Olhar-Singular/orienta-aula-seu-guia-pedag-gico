@@ -15,7 +15,7 @@ export function useUserRole() {
       if (!user) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("is_super_admin, is_active")
+        .select("*")
         .eq("user_id", user.id)
         .single();
       return data;
