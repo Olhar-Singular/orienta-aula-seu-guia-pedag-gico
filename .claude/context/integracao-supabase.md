@@ -29,8 +29,27 @@ Fallback hardcoded em `vite.config.ts` para dev (project ID + anon key).
 | `regenerate-question` | POST | Bearer token | JSON |
 | `extract-questions` | POST | Bearer token | JSON |
 | `generate-question-image` | POST | Bearer token | JSON (image URL) |
+| `generate-pei` | POST | Bearer token | JSON |
+| `generate-adaptation` | POST | Bearer token | JSON |
+| `analyze-barriers` | POST | Bearer token | JSON |
+| `chat` | POST | Bearer token | JSON |
 | `admin-ai-usage-report` | POST | Bearer token | JSON (report) |
 | `admin-manage-teachers` | POST | Bearer token | JSON |
+
+### Shared Helper: aiConfig.ts
+
+Todas as edge functions (exceto admin) usam `getAiConfig()` de `_shared/aiConfig.ts`.
+Nunca ler `LOVABLE_API_KEY` ou `AI_API_KEY` diretamente nas funções — usar o helper.
+
+```typescript
+import { getAiConfig, resolveImagePayloadFields } from "../_shared/aiConfig.ts";
+
+const ai = getAiConfig(); // throws se nenhuma key configurada
+fetch(`${ai.baseUrl}/chat/completions`, {
+  headers: { Authorization: `Bearer ${ai.apiKey}` },
+  body: JSON.stringify({ model: ai.resolveModel("google/gemini-2.5-pro"), ... }),
+});
+```
 
 ### Padrão de Chamada
 
