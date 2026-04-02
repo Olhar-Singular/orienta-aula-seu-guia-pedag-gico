@@ -22,6 +22,7 @@ import AdaptationEditModal, { type AdaptationQuestionEditPayload } from "@/compo
 import { parseAdaptedQuestions, replaceQuestionInAdaptedContent, type ParsedAdaptedQuestion } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
 import { exportToDocx } from "@/lib/exportDocx";
+import { getVersionText } from "@/lib/structuredMigration";
 
 const ACTIVITY_TYPES: Record<string, string> = {
   prova: "Prova",
@@ -230,8 +231,8 @@ export default function MyAdaptations() {
         adapted_text: "",
         teacher_guidance: "",
         justification: "",
-        version_universal: result?.version_universal || "",
-        version_directed: result?.version_directed || "",
+        version_universal: getVersionText(result?.version_universal || ""),
+        version_directed: getVersionText(result?.version_directed || ""),
         pedagogical_justification: result?.pedagogical_justification || "",
         original_activity: item.raw.original_activity || "",
       });
@@ -741,7 +742,7 @@ export default function MyAdaptations() {
                         </h4>
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
-                            content={result.version_universal || ""}
+                            content={getVersionText(result.version_universal || "")}
                             questionImages={imageMapUniversal}
                           />
                         </div>
@@ -752,7 +753,7 @@ export default function MyAdaptations() {
                         </h4>
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
-                            content={result.version_directed || ""}
+                            content={getVersionText(result.version_directed || "")}
                             questionImages={imageMapDirected}
                           />
                         </div>

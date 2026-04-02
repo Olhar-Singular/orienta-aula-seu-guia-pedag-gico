@@ -30,6 +30,22 @@ Frontend (streamAI.ts) → fetch POST → Edge Function → LLM API → SSE stre
 
 **Decisão**: Fetch + ReadableStream ao invés de EventSource para controle de headers (Authorization, Content-Type).
 
+## AI Provider Fallback
+
+Todas as edge functions usam `getAiConfig()` de `_shared/aiConfig.ts` para resolver endpoint e key:
+
+```
+LOVABLE_API_KEY presente? → usa gateway Lovable (https://ai.gateway.lovable.dev/v1)
+Só AI_API_KEY?           → usa Google AI Studio direto (https://generativelanguage.googleapis.com/v1beta/openai)
+Nenhuma?                 → throws com mensagem descritiva
+```
+
+- Mapeamento de modelos: no fallback Google, prefixo `google/` é removido e alguns nomes são remapeados (ex: `google/gemini-3-flash-preview` → `gemini-2.0-flash`)
+- `generate-question-image`: usa `modalities` (Lovable) ou `response_modalities` (Google direto) via `resolveImagePayloadFields()`
+- `logAiUsage.ts`: endpoint não é mais hardcoded como Lovable — armazena `null` quando não passado explicitamente
+
+**Decisão**: Injeção de dependência no `getAiConfig(env?)` permite testar sem Deno (testes Vitest passam o env como parâmetro).
+
 ## Dual Format (String vs Structured)
 
 O resultado da IA pode vir em dois formatos:

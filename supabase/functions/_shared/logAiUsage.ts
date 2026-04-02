@@ -104,7 +104,7 @@ export async function logAiUsage(log: AiUsageLog): Promise<void> {
       school_id: schoolId,
       action_type: log.action_type,
       model: log.model,
-      endpoint: log.endpoint || "https://ai.gateway.lovable.dev/v1/chat/completions",
+      endpoint: log.endpoint || null,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       total_tokens: totalTokens,

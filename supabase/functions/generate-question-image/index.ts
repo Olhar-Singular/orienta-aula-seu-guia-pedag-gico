@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getAiConfig, resolveImagePayloadFields } from "../_shared/aiConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,8 +15,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const ai = getAiConfig();
 
     // Auth
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -55,18 +55,18 @@ REGRAS:
 - Se for geografia, use mapas ou representações geográficas precisas
 - Se for matemática, use representações geométricas precisas`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(`${ai.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${ai.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
+        model: ai.resolveModel("google/gemini-3.1-flash-image-preview"),
         messages: [
           { role: "user", content: imagePrompt },
         ],
-        modalities: ["image", "text"],
+        ...resolveImagePayloadFields(ai.isLovable),
       }),
     });
 

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { getAiConfig } from "../_shared/aiConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,8 +54,7 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ai = getAiConfig();
 
     const systemPrompt = `Você é um especialista em educação inclusiva e Design Universal para Aprendizagem (DUA).
 Analise a atividade escolar fornecida e identifique barreiras pedagógicas potenciais nas seguintes categorias de neurodivergência:
@@ -74,15 +74,15 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
 
     const barrierStartTime = Date.now();
     const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      `${ai.baseUrl}/chat/completions`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${ai.apiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: ai.resolveModel("google/gemini-2.5-flash"),
           messages: [
             { role: "system", content: systemPrompt },
             {

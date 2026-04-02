@@ -88,10 +88,10 @@ describe("Landing page (Index)", () => {
     expect(getAllByText(/Plano Educacional Individualizado/).length).toBeGreaterThan(0);
   });
 
-  it("renders social proof stats", () => {
+  it("renders benefits section", () => {
     const { getByText } = renderIndex();
-    expect(getByText("2.500+")).toBeTruthy();
-    expect(getByText("< 5min")).toBeTruthy();
+    expect(getByText("Primeira adaptação em menos de 5 minutos")).toBeTruthy();
+    expect(getByText("Feito para quem está na sala de aula")).toBeTruthy();
   });
 
   it("has PEI nav link", () => {

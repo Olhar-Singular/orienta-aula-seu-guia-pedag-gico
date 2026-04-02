@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
 import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { getAiConfig } from "../_shared/aiConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -96,13 +97,7 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const ai = getAiConfig();
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -226,15 +221,15 @@ ${hint ? `SUGESTÃO DO PROFESSOR: ${hint}` : ""}
 Regenere esta questão melhorando clareza, scaffolding e adequação às barreiras. Mantenha o conteúdo e nível cognitivo.`;
 
     // Use flash model for faster single-question regeneration
-    const modelName = "google/gemini-2.5-flash";
+    const modelName = ai.resolveModel("google/gemini-2.5-flash");
     const aiStartTime = Date.now();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60_000);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(`${ai.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${ai.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
