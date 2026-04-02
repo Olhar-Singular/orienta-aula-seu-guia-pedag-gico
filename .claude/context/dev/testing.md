@@ -7,6 +7,41 @@
 - Setup global: `src/test/setup.ts` (mocks de matchMedia, ResizeObserver, etc.)
 - Coverage thresholds: 60% statements, 55% branches
 
+### Mock de supabase.functions.invoke
+
+`vi.mock` é hoisted — variáveis externas não estão acessíveis na factory. Para obter referência ao mock de `invoke`:
+
+```typescript
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  },
+}));
+
+import { supabase } from "@/integrations/supabase/client";
+const mockInvoke = vi.mocked(supabase.functions.invoke); // referência tipada
+```
+
+### File.prototype.text em jsdom
+
+jsdom não implementa `File.prototype.text()`. Polyfill inline nos testes de CSV import:
+
+```typescript
+function makeFileWithText(content: string, name = "file.csv") {
+  const file = new File([content], name, { type: "text/csv" });
+  Object.defineProperty(file, "text", { value: () => Promise.resolve(content) });
+  return file;
+}
+```
+
+### Teste de submit sem validação HTML5 nativa
+
+`fireEvent.click` em botão `type="submit"` dispara o handler JS mas não ativa validação `required` do HTML5. Para testar o guard JS de campos vazios, use `fireEvent.submit` no `<form>`:
+
+```typescript
+fireEvent.submit(screen.getByRole("button", { name: /Entrar/i }).closest("form")!);
+```
+
 ## Fluxo TDD Obrigatório
 
 Toda alteração de código segue o ciclo **Red → Green → Refactor**:
