@@ -10,21 +10,19 @@ const corsHeaders = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Find a user by email without listing all users */
+// deno-lint-ignore no-explicit-any
 async function findUserByEmail(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   email: string
 ) {
-  // Use listUsers with a per-page of 1 — the Supabase admin API
-  // doesn't support email filter natively, so we query profiles table first
-  // as a fast path, then fall back to auth if needed.
   const { data: profile } = await admin
     .from("profiles")
     .select("user_id, email")
     .eq("email", email.toLowerCase())
     .maybeSingle();
 
-  if (profile?.user_id) {
-    const { data } = await admin.auth.admin.getUserById(profile.user_id);
+  if ((profile as any)?.user_id) {
+    const { data } = await admin.auth.admin.getUserById((profile as any).user_id);
     if (data?.user) return data.user;
   }
 
