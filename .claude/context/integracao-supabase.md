@@ -33,7 +33,7 @@ Fallback hardcoded em `vite.config.ts` para dev (project ID + anon key).
 | `generate-adaptation` | POST | Bearer token | JSON |
 | `analyze-barriers` | POST | Bearer token | JSON |
 | `chat` | POST | Bearer token | JSON |
-| `admin-ai-usage-report` | POST | Bearer token | JSON (report) |
+| `admin-ai-usage-report` | GET (query params) | Bearer token | JSON (report) |
 | `admin-manage-teachers` | POST | Bearer token | JSON |
 
 ### Shared Helper: aiConfig.ts
@@ -76,6 +76,16 @@ const { data, error } = await supabase.functions.invoke("function-name", {
 | RPC | Uso | Auth |
 |-----|-----|------|
 | `get_shared_adaptation(p_token)` | Buscar adaptação compartilhada | Sem auth (público) |
+| `is_super_admin(_user_id)` | Verificar se usuário é super-admin | Service role (edge functions) |
+
+### Padrão de verificação de admin nas edge functions
+
+**SEMPRE** usar a RPC `is_super_admin` — nunca verificar `role = "admin"` em `school_members` (esse valor foi renomeado para `"gestor"` em migration).
+
+```typescript
+const { data: isSuperAdmin } = await admin.rpc("is_super_admin", { _user_id: validatedUserId });
+if (!isSuperAdmin) return 403;
+```
 
 ## Padrões de Query
 

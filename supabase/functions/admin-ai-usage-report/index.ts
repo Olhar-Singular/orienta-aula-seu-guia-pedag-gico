@@ -50,24 +50,19 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify admin role for current authenticated user
-    const { data: membership, error: membershipError } = await admin
-      .from("school_members")
-      .select("id")
-      .eq("user_id", validatedUserId)
-      .eq("role", "admin")
-      .limit(1)
-      .maybeSingle();
+    // Verify super-admin via profiles.is_super_admin flag
+    const { data: isSuperAdmin, error: adminCheckError } = await admin
+      .rpc("is_super_admin", { _user_id: validatedUserId });
 
-    if (membershipError) {
-      console.error("Membership auth error:", membershipError.message);
+    if (adminCheckError) {
+      console.error("Admin check error:", adminCheckError.message);
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!membership) {
+    if (!isSuperAdmin) {
       return new Response(JSON.stringify({ error: "Acesso restrito a administradores." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

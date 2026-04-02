@@ -1,4 +1,4 @@
-PROJECT_ID := pvqjooezhoomtpymfiea
+PROJECT_ID := anpmokumbdlhebopclfi
 DC         := docker compose
 EXEC       := $(DC) exec app
 

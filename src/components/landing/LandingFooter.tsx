@@ -11,7 +11,6 @@ export default function LandingFooter() {
             <span className="text-sm text-primary-foreground/60">© 2026 Olhar Singular</span>
           </div>
           <nav className="flex items-center gap-6 text-sm text-primary-foreground/60" aria-label="Links do rodapé">
-            <Link to="/login" className="hover:text-primary-foreground transition-colors">Entrar</Link>
             <Link to="/login" className="hover:text-primary-foreground transition-colors">Acessar</Link>
           </nav>
         </div>

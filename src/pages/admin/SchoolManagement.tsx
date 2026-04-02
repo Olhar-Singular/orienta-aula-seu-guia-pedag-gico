@@ -52,10 +52,13 @@ export default function SchoolManagement() {
     createSchool(
       { name: createName.trim(), code: generateSchoolCode() },
       {
-        onSettled: () => {
+        onSuccess: () => {
           setCreateLoading(false);
           setCreateOpen(false);
           setCreateName("");
+        },
+        onError: () => {
+          setCreateLoading(false);
         },
       }
     );
@@ -72,9 +75,12 @@ export default function SchoolManagement() {
     updateSchool(
       { school_id: editSchool.id, name: editName.trim() },
       {
-        onSettled: () => {
+        onSuccess: () => {
           setEditLoading(false);
           setEditSchool(null);
+        },
+        onError: () => {
+          setEditLoading(false);
         },
       }
     );
