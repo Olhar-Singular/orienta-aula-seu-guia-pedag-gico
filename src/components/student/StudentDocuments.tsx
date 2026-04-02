@@ -34,6 +34,7 @@ import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import AdaptedContentRenderer from "@/components/adaptation/AdaptedContentRenderer";
 import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
 import { exportToPdf } from "@/lib/exportPdf";
+import { getVersionText } from "@/lib/structuredMigration";
 
 const CATEGORIES = [
   { key: "prova", label: "Provas", icon: FileSpreadsheet },
@@ -269,7 +270,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
                 <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
               </h4>
               <div className="bg-secondary/50 rounded-lg p-3">
-                <AdaptedContentRenderer content={result.version_universal || ""} questionImages={buildImageMap(result.version_universal)} />
+                <AdaptedContentRenderer content={getVersionText(result.version_universal || "")} questionImages={buildImageMap(result.version_universal)} />
               </div>
             </div>
             <div>
@@ -277,7 +278,7 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
                 <Target className="w-4 h-4 text-primary" /> Versão Direcionada
               </h4>
               <div className="bg-secondary/50 rounded-lg p-3">
-                <AdaptedContentRenderer content={result.version_directed || ""} questionImages={buildImageMap(result.version_directed)} />
+                <AdaptedContentRenderer content={getVersionText(result.version_directed || "")} questionImages={buildImageMap(result.version_directed)} />
               </div>
             </div>
 
