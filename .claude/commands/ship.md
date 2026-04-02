@@ -75,3 +75,47 @@ Mostre ao usuário:
 - Resumo do que foi feito
 - O que ficou pendente (se houver)
 - Próximos passos recomendados
+## Passo 6: Atualizar Contextos
+
+Após o PR ser criado, revise tudo que foi feito e atualize os arquivos de contexto relevantes:
+
+### Mapa dos arquivos de contexto
+
+| Arquivo | Atualizar quando... |
+| ------- | ------------------- |
+| `context/architecture/overview.md` | Mudou estrutura de pastas, fluxo do wizard, controle de acesso, tipos estruturados, edge functions ou CI/CD |
+| `context/architecture/fragile-areas.md` | Identificou nova área frágil, mudou limites de memória/performance, alterou pool de workers |
+| `context/business/adaptation-flow.md` | Mudou steps do wizard, adicionou/removeu modo de operação, alterou tipos estruturados da atividade |
+| `context/decisoes-tecnicas.md` | Tomou decisão técnica relevante (nova lib, mudança de padrão de estado, novo padrão de query, novo formato de export, alteração no deploy) |
+| `context/dev/security.md` | Mudou política de auth, tokens, validação de upload ou regras de branch |
+| `context/dev/testing.md` | Mudou padrões de mock, helpers de teste, thresholds de coverage ou fluxo TDD |
+| `context/integracao-supabase.md` | Adicionou/alterou tabela, edge function, RPC, padrão de query ou relacionamento |
+
+### Para cada arquivo relevante
+
+1. Leia o arquivo atual
+2. Identifique o que mudou com o PR
+3. Atualize apenas o trecho afetado — não reescreva o que não mudou
+
+### Criar novo arquivo de contexto
+
+Só crie um novo arquivo se a mudança não couber em nenhum dos existentes (ex: nova área de produto com lógica própria). Use o padrão:
+
+- `context/architecture/<topico>.md`
+- `context/business/<topico>.md`
+- `context/dev/<topico>.md`
+
+### Atualizar `CLAUDE.md`
+
+- Se alterou stack ou dependências: atualize a tabela de Stack
+- Se criou nova edge function: atualize a seção "Edge Functions"
+- Se identificou nova área frágil: adicione em "Áreas Frágeis"
+- Se adicionou novas convenções: documente em "Convenções de Código"
+
+### Commit de documentação (se houver mudanças)
+
+```bash
+git add .claude/ CLAUDE.md
+git commit -m "docs: update context after PR #<número>"
+git push origin <branch>
+```
