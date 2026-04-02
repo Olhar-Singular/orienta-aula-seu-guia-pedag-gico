@@ -38,7 +38,7 @@ export type Database = {
           teacher_guidance: string | null
           topic: string
           type: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           adapted_text?: string | null
@@ -63,7 +63,7 @@ export type Database = {
           teacher_guidance?: string | null
           topic: string
           type: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           adapted_text?: string | null
@@ -88,7 +88,7 @@ export type Database = {
           teacher_guidance?: string | null
           topic?: string
           type?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -219,7 +219,7 @@ export type Database = {
           status: string | null
           tokens_source: string | null
           total_tokens: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           action_type: string
@@ -239,7 +239,7 @@ export type Database = {
           status?: string | null
           tokens_source?: string | null
           total_tokens?: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           action_type?: string
@@ -259,7 +259,7 @@ export type Database = {
           status?: string | null
           tokens_source?: string | null
           total_tokens?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -277,21 +277,21 @@ export type Database = {
           id: string
           title: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -403,54 +403,27 @@ export type Database = {
           },
         ]
       }
-      credit_usage: {
-        Row: {
-          action: string
-          created_at: string
-          credits_used: number
-          id: string
-          reference_id: string | null
-          user_id: string
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          credits_used?: number
-          id?: string
-          reference_id?: string | null
-          user_id: string
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          credits_used?: number
-          id?: string
-          reference_id?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       hidden_activities: {
         Row: {
           activity_id: string
           activity_type: string
           hidden_at: string
           id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           activity_id: string
           activity_type: string
           hidden_at?: string
           id?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           activity_id?: string
           activity_type?: string
           hidden_at?: string
           id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -463,7 +436,7 @@ export type Database = {
           questions_extracted: number | null
           school_id: string | null
           uploaded_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           description?: string | null
@@ -473,7 +446,7 @@ export type Database = {
           questions_extracted?: number | null
           school_id?: string | null
           uploaded_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           description?: string | null
@@ -483,7 +456,7 @@ export type Database = {
           questions_extracted?: number | null
           school_id?: string | null
           uploaded_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -495,39 +468,6 @@ export type Database = {
           },
         ]
       }
-      plans: {
-        Row: {
-          created_at: string
-          display_name: string
-          features: Json
-          id: string
-          is_active: boolean
-          monthly_credits: number
-          name: string
-          price_cents: number
-        }
-        Insert: {
-          created_at?: string
-          display_name: string
-          features?: Json
-          id?: string
-          is_active?: boolean
-          monthly_credits?: number
-          name: string
-          price_cents?: number
-        }
-        Update: {
-          created_at?: string
-          display_name?: string
-          features?: Json
-          id?: string
-          is_active?: boolean
-          monthly_credits?: number
-          name?: string
-          price_cents?: number
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           created_at: string
@@ -536,6 +476,8 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          is_active: boolean
+          is_super_admin: boolean
           main_goal: string | null
           main_subject: string | null
           name: string | null
@@ -553,6 +495,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
+          is_super_admin?: boolean
           main_goal?: string | null
           main_subject?: string | null
           name?: string | null
@@ -570,6 +514,8 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
+          is_super_admin?: boolean
           main_goal?: string | null
           main_subject?: string | null
           name?: string | null
@@ -888,56 +834,11 @@ export type Database = {
           },
         ]
       }
-      user_subscriptions: {
-        Row: {
-          created_at: string
-          current_period_end: string
-          current_period_start: string
-          id: string
-          kiwify_subscription_id: string | null
-          plan_id: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          current_period_end?: string
-          current_period_start?: string
-          id?: string
-          kiwify_subscription_id?: string | null
-          plan_id: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          current_period_end?: string
-          current_period_start?: string
-          id?: string
-          kiwify_subscription_id?: string | null
-          plan_id?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_subscriptions_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "plans"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_credits_used: { Args: { p_user_id: string }; Returns: number }
       get_school_id_by_code: { Args: { _code: string }; Returns: string }
       get_shared_adaptation: {
         Args: { p_token: string }
@@ -963,10 +864,16 @@ export type Database = {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      is_school_gestor: {
+        Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_school_member: {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_user_active: { Args: { _user_id: string }; Returns: boolean }
       sanitize_input: {
         Args: { input: string; max_length?: number }
         Returns: string
