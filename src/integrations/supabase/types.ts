@@ -588,6 +588,7 @@ export type Database = {
           created_at: string | null
           created_by: string
           difficulty: string | null
+          figure_description: string | null
           id: string
           image_url: string | null
           is_public: boolean | null
@@ -606,6 +607,7 @@ export type Database = {
           created_at?: string | null
           created_by: string
           difficulty?: string | null
+          figure_description?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean | null
@@ -624,6 +626,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           difficulty?: string | null
+          figure_description?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean | null
