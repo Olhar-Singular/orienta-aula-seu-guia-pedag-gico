@@ -266,136 +266,111 @@ REGRAS DE FORMATAÇÃO
 1. FRAÇÕES: SEMPRE envolva expressões LaTeX com delimitadores de cifrão. Exemplos: $\\frac{a}{b}$, $\\frac{23}{24} = \\frac{?}{48}$, $\\sqrt{2}$
 2. Notação escolar Unicode para variáveis: v₀, v², Δv
 3. Preserve fórmulas, símbolos e unidades integralmente
-4. NUNCA use asteriscos (**) ou markdown.
-5. NUNCA escreva comandos LaTeX como \\frac ou \\sqrt sem delimitadores $...$. Sempre use $...$
+4. NUNCA use asteriscos (**) ou nenhum marcador markdown no texto.
+5. NUNCA escreva comandos LaTeX sem delimitadores $...$. Sempre use $...$
 
-IMPORTANTE: Você DEVE responder usando a ferramenta deliver_adaptation com dados JSON estruturados.
-Cada questão deve ser um objeto com number, type, statement e alternatives (se múltipla escolha).
-Tipos válidos: multiple_choice, open_ended, fill_blank, true_false.
+FORMATO DE RESPOSTA OBRIGATÓRIO
+Responda EXATAMENTE com as 5 seções abaixo, separadas pelos marcadores ===.
+ATENÇÃO: As seções ===VERSAO_UNIVERSAL=== e ===VERSAO_DIRECIONADA=== devem conter APENAS questões numeradas no formato DSL abaixo. Nenhum texto de prosa, passo a passo, parágrafo explicativo ou guia narrativo — apenas questões e apoios.
 
-EXEMPLO DE RESPOSTA ESTRUTURADA:
-{
-  "version_universal": {
-    "sections": [
-      {
-        "title": "Frações",
-        "questions": [
-          {
-            "number": 1,
-            "type": "multiple_choice",
-            "statement": "Qual fração representa metade?",
-            "instruction": "Observe e escolha a alternativa correta.",
-            "alternatives": [
-              { "letter": "a", "text": "$\\\\frac{1}{2}$" },
-              { "letter": "b", "text": "$\\\\frac{1}{4}$" },
-              { "letter": "c", "text": "$\\\\frac{3}{4}$" }
-            ],
-            "scaffolding": ["Pense: quantas partes iguais tem o todo?"]
-          },
-          {
-            "number": 2,
-            "type": "open_ended",
-            "statement": "Explique com suas palavras o que é uma fração."
-          }
-        ]
-      }
-    ]
-  }
-}`;
+===VERSAO_UNIVERSAL===
+> Instrução geral da atividade (opcional).
+
+# Título da Seção
+
+1) Enunciado da questão de múltipla escolha
+a) Primeira alternativa
+b*) Alternativa correta (marque com * na letra da correta)
+c) Terceira alternativa
+> Apoio: Dica de scaffolding.
+
+2) Questão discursiva aberta
+[linhas:4]
+> Apoio: Passo a passo resumido.
+
+3) Complete: O resultado de $\\frac{1}{2} + \\frac{1}{4}$ é ___.
+[banco: 3/4, 1/2, 1/3]
+
+4) Marque Verdadeiro ou Falso:
+( ) O Sol é uma estrela.
+( ) A Lua é um planeta.
+
+===VERSAO_DIRECIONADA===
+REGRA CRÍTICA: A versão direcionada DEVE ter os MESMOS números de questões que a universal (1, 2, 3, 4...) no MESMO formato DSL. A diferença está no conteúdo: enunciados mais simples, mais alternativas com scaffolding, apoios mais detalhados. NÃO escreva guias, passo a passo narrativo ou parágrafos de explicação — apenas questões DSL com > Apoio:.
+
+> Instrução adaptada ao perfil do aluno.
+
+# Título da Seção
+
+1) Enunciado simplificado da mesma questão 1
+a) Primeira alternativa
+b*) Alternativa correta
+c) Terceira alternativa
+> Apoio: Dica mais detalhada adaptada às barreiras do aluno.
+
+2) Enunciado simplificado da mesma questão 2
+[linhas:4]
+> Apoio: Apoio passo a passo mais estruturado.
+
+3) Complete: O resultado de $\\frac{1}{2} + \\frac{1}{4}$ é ___.
+[banco: 3/4, 1/2, 1/3]
+> Apoio: Dica contextualizada.
+
+4) Marque Verdadeiro ou Falso:
+( ) O Sol é uma estrela.
+( ) A Lua é um planeta.
+> Apoio: Pense em cada afirmação separadamente.
+
+===ESTRATEGIAS===
+- Estratégia pedagógica 1
+- Estratégia pedagógica 2
+
+===JUSTIFICATIVA===
+Texto da justificativa pedagógica das adaptações realizadas.
+
+===DICAS===
+- Dica prática 1 para o professor implementar
+- Dica prática 2`;
 }
 
-const ACTIVITY_SCHEMA = {
-  type: "object",
-  properties: {
-    sections: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          introduction: { type: "string" },
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                number: { type: "integer" },
-                type: {
-                  type: "string",
-                  enum: ["multiple_choice", "open_ended", "fill_blank", "true_false"],
-                },
-                statement: { type: "string", description: "Enunciado da questão (pode conter LaTeX com $...$)" },
-                instruction: { type: "string", description: "Instrução opcional antes da questão" },
-                alternatives: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      letter: { type: "string" },
-                      text: { type: "string" },
-                    },
-                    required: ["letter", "text"],
-                  },
-                },
-                scaffolding: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Passos de apoio DUA para o aluno",
-                },
-              },
-              required: ["number", "type", "statement"],
-            },
-          },
-        },
-        required: ["questions"],
-      },
-    },
-    general_instructions: { type: "string" },
-  },
-  required: ["sections"],
-};
+// ─── Parser da resposta DSL do AI ───
+function parseDslResponse(content: string): Record<string, unknown> {
+  type Marker = { key: string; marker: string };
+  const markers: Marker[] = [
+    { key: "version_universal", marker: "===VERSAO_UNIVERSAL===" },
+    { key: "version_directed", marker: "===VERSAO_DIRECIONADA===" },
+    { key: "strategies_raw", marker: "===ESTRATEGIAS===" },
+    { key: "justification_raw", marker: "===JUSTIFICATIVA===" },
+    { key: "tips_raw", marker: "===DICAS===" },
+  ];
 
-const ADAPTATION_TOOL = {
-  type: "function" as const,
-  function: {
-    name: "deliver_adaptation",
-    description: "Entrega a atividade adaptada em formato JSON estruturado com questões tipadas",
-    parameters: {
-      type: "object",
-      properties: {
-        version_universal: {
-          ...ACTIVITY_SCHEMA,
-          description: "Versão universal (DUA) da atividade adaptada",
-        },
-        version_directed: {
-          ...ACTIVITY_SCHEMA,
-          description: "Versão direcionada ao perfil específico do aluno",
-        },
-        strategies_applied: {
-          type: "array",
-          items: { type: "string" },
-          description: "Lista de estratégias pedagógicas aplicadas",
-        },
-        pedagogical_justification: {
-          type: "string",
-          description: "Justificativa pedagógica curta das adaptações realizadas",
-        },
-        implementation_tips: {
-          type: "array",
-          items: { type: "string" },
-          description: "Dicas práticas de implementação para o professor",
-        },
-      },
-      required: [
-        "version_universal",
-        "version_directed",
-        "strategies_applied",
-        "pedagogical_justification",
-        "implementation_tips",
-      ],
-    },
-  },
-};
+  const sections: Record<string, string> = {};
+  for (let i = 0; i < markers.length; i++) {
+    const start = content.indexOf(markers[i].marker);
+    if (start === -1) {
+      console.warn(`parseDslResponse: marcador '${markers[i].marker}' não encontrado`);
+      continue;
+    }
+    const afterMarker = start + markers[i].marker.length;
+    const nextMarkerIdx = markers[i + 1]
+      ? content.indexOf(markers[i + 1].marker)
+      : -1;
+    sections[markers[i].key] = content
+      .slice(afterMarker, nextMarkerIdx !== -1 ? nextMarkerIdx : undefined)
+      .trim();
+  }
+
+  const parseList = (raw: string): string[] =>
+    raw.split("\n").map(l => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean);
+
+  return {
+    version_universal: sections.version_universal || "",
+    version_directed: sections.version_directed || "",
+    strategies_applied: parseList(sections.strategies_raw || ""),
+    pedagogical_justification: sections.justification_raw || "",
+    implementation_tips: parseList(sections.tips_raw || ""),
+  };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -659,8 +634,6 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
             { role: "system", content: SYSTEM_PROMPT_FINAL },
             { role: "user", content: userPrompt },
           ],
-          tools: [ADAPTATION_TOOL],
-          tool_choice: { type: "function", function: { name: "deliver_adaptation" } },
         }),
         signal: controller.signal,
       });
@@ -727,8 +700,15 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
     }
 
     aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const responseContent: string = aiData.choices?.[0]?.message?.content || "";
     const tokensUsed = aiData.usage?.total_tokens ?? null;
+
+    if (!responseContent) {
+      return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Log AI usage (fire-and-forget)
     logAiUsage({
@@ -739,7 +719,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
       input_tokens: aiData.usage?.prompt_tokens || 0,
       output_tokens: aiData.usage?.completion_tokens || 0,
       prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? userPrompt : undefined,
-      response_text: (aiData.usage?.completion_tokens || 0) === 0 ? toolCall?.function?.arguments : undefined,
+      response_text: (aiData.usage?.completion_tokens || 0) === 0 ? responseContent : undefined,
       request_duration_ms: aiDurationMs,
       status: "success",
       metadata: {
@@ -750,17 +730,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
       },
     }).catch(() => {});
 
-    let adaptationResult: Record<string, any> = {};
-    if (toolCall?.function?.arguments) {
-      try {
-        adaptationResult = JSON.parse(toolCall.function.arguments);
-      } catch {
-        return new Response(JSON.stringify({ error: "Resposta da IA em formato inválido." }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-    }
+    const adaptationResult = parseDslResponse(responseContent);
 
     // Validate required fields in adaptation
     const requiredFields = [
@@ -769,9 +739,11 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
       "strategies_applied",
       "pedagogical_justification",
       "implementation_tips",
-    ];
+    ] as const;
     for (const field of requiredFields) {
-      if (!adaptationResult[field]) {
+      const value = adaptationResult[field];
+      const isEmpty = !value || (Array.isArray(value) && value.length === 0);
+      if (isEmpty) {
         return new Response(JSON.stringify({ error: `Resposta da IA incompleta: campo '${field}' ausente.` }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
