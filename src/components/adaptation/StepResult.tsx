@@ -26,6 +26,7 @@ import {
 } from "@/lib/adaptedQuestions";
 import { isStructuredActivity } from "@/types/adaptation";
 import type { StructuredActivity, StructuredQuestion } from "@/types/adaptation";
+import { markdownDslToStructured } from "@/lib/activityDslConverter";
 import ContextIndicator from "./ContextIndicator";
 
 type Props = {
@@ -353,23 +354,40 @@ export default function StepResult({ data, updateData, onNext, onPrev }: Props) 
       }
 
       const result = await resp.json();
-      const regeneratedQuestion = result.question as StructuredQuestion;
 
-      // Update the question in the activity
-      const content = data.result[field] as StructuredActivity;
-      const updatedSections = content.sections.map((section) => ({
-        ...section,
-        questions: section.questions.map((q) =>
-          q.number === question.number ? { ...regeneratedQuestion, number: question.number } : q
-        ),
-      }));
+      const fieldContent = data.result[field];
 
-      updateData({
-        result: {
-          ...data.result,
-          [field]: { ...content, sections: updatedSections },
-        } as AdaptationResult,
-      });
+      if (typeof fieldContent === "string") {
+        // New DSL path: substitute the question block in the DSL text
+        const questionDsl: string = result.question_dsl || "";
+        const questionNum = question.number;
+        // Match the question block from "N) ..." up to the next question or end of string
+        const questionBlockRegex = new RegExp(
+          `(^${questionNum}\\s*[.)]\\s+[\\s\\S]*?)(?=^\\d+\\s*[.)]\\s+|\\Z)`,
+          "m"
+        );
+        const updatedDsl = questionBlockRegex.test(fieldContent)
+          ? fieldContent.replace(questionBlockRegex, questionDsl + "\n\n")
+          : fieldContent;
+        updateData({
+          result: { ...data.result, [field]: updatedDsl } as AdaptationResult,
+        });
+      } else {
+        // Legacy StructuredActivity path: parse the DSL question and update the section
+        const content = fieldContent as StructuredActivity;
+        const parsedActivity = markdownDslToStructured(result.question_dsl || "");
+        const regeneratedQuestion: StructuredQuestion =
+          parsedActivity.sections[0]?.questions[0] ?? ({ number: question.number, type: "open_ended", statement: result.question_dsl || "" } as StructuredQuestion);
+        const updatedSections = content.sections.map((section) => ({
+          ...section,
+          questions: section.questions.map((q) =>
+            q.number === question.number ? { ...regeneratedQuestion, number: question.number } : q
+          ),
+        }));
+        updateData({
+          result: { ...data.result, [field]: { ...content, sections: updatedSections } } as AdaptationResult,
+        });
+      }
 
       toast({ title: `Questão ${question.number} regenerada` });
     } catch (e: any) {
