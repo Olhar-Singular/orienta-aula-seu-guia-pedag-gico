@@ -58,8 +58,8 @@ describe("Mode Selection Logic (TEST-01)", () => {
       expect(getNextStep("barriers", "manual")).toBe("choice");
     });
 
-    it("returns 'result' step after choice in ai mode", () => {
-      expect(getNextStep("choice", "ai")).toBe("result");
+    it("returns 'ai_editor' step after choice in ai mode", () => {
+      expect(getNextStep("choice", "ai")).toBe("ai_editor");
     });
 
     it("returns 'editor' step after choice in manual mode", () => {
@@ -95,13 +95,13 @@ describe("Manual Mode Flow (TEST-02)", () => {
       const steps = getStepsForMode("manual");
       expect(steps).toHaveLength(6);
       expect(steps).toEqual(["type", "content", "barriers", "choice", "editor", "export"]);
-      expect(steps).not.toContain("result");
+      expect(steps).not.toContain("ai_editor");
     });
 
-    it("getStepsForMode('ai') returns 6-step array with barriers and choice before result", () => {
+    it("getStepsForMode('ai') returns 6-step array with barriers and choice before ai_editor", () => {
       const steps = getStepsForMode("ai");
       expect(steps).toHaveLength(6);
-      expect(steps).toEqual(["type", "content", "barriers", "choice", "result", "export"]);
+      expect(steps).toEqual(["type", "content", "barriers", "choice", "ai_editor", "export"]);
       expect(steps).not.toContain("editor");
     });
 

@@ -250,9 +250,7 @@ Usa Bun com `--frozen-lockfile`. Requer secrets: vars Supabase. Deploy feito aut
 - Validação de magic bytes para uploads (PDF: `%PDF`, DOCX: `PK`, imagens: JPEG/PNG headers)
 - Auth via Supabase com session em localStorage + auto-refresh
 
-## Projeto Atual: Skip AI Mode
+## Modo de discussão
 
-Opção "Pular IA" no wizard de adaptação. Professores escolhem entre adaptação assistida por IA ou manual. Testes já definidos em `src/test/skip-ai-mode.test.ts`.
-
-**Fluxo manual**: `type → content → choice → editor → export`
-**Fluxo IA**: `type → content → barriers → result → export`
+- Quando eu disser "vamos discutir" ou "quero explorar uma ideia", entre em modo de brainstorming: faça perguntas clarificadoras antes de implementar qualquer coisa.
+- Só comece a codar quando eu disser "pode implementar" ou "vai em frente".

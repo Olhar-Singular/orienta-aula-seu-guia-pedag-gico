@@ -16,6 +16,7 @@ import {
 import { motion } from "framer-motion";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { toast } from "sonner";
+import { getVersionText } from "@/lib/structuredMigration";
 
 type ActivityItem = {
   id: string;
@@ -244,13 +245,13 @@ export default function AdaptationHistory() {
                 <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
                   <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
                 </h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{result.version_universal}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{getVersionText(result.version_universal)}</p>
               </div>
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
                   <Target className="w-4 h-4 text-primary" /> Versão Direcionada
                 </h4>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{result.version_directed}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{getVersionText(result.version_directed)}</p>
               </div>
               {result.pedagogical_justification && (
                 <div>

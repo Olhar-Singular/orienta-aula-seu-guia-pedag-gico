@@ -105,8 +105,32 @@ export const MOCK_STUDENT_BARRIERS = [
 
 // ─── Adaptation result fixtures ───
 export const MOCK_ADAPTATION_RESULT: AdaptationResult = {
-  version_universal: "Versão Universal: Resolva as questões abaixo. Cada questão possui opções de resposta.\n\n1) Quanto é 2 + 3?\na) 4\nb) 5 ✓\nc) 6",
-  version_directed: "Versão Dirigida para João Pedro:\n\n📝 Questão 1: Veja a imagem abaixo.\nQuanto é 2 + 3?\n➡️ Dica: conte nos dedos.\na) 4\nb) 5 ✓\nc) 6",
+  version_universal: `> Leia as questões com atenção e escolha a melhor resposta.
+
+# Adição
+
+1) Quanto é 2 + 3?
+a) 4
+b*) 5
+c) 6
+> Apoio: Conte nos dedos ou use uma régua numérica.
+
+2) Explique com suas palavras o que é uma soma.
+[linhas:3]
+> Apoio: Pense em juntar grupos de objetos.`,
+  version_directed: `> Leia com calma, uma questão de cada vez.
+
+# Adição
+
+1) Quanto é 2 + 3?
+a) 4
+b*) 5
+c) 6
+> Apoio: Use os dedos: levante 2 dedos, depois mais 3. Quantos são no total?
+
+2) O que é uma soma? Escreva com suas palavras.
+[linhas:4]
+> Apoio: Soma significa juntar. Por exemplo: 1 + 1 = 2.`,
   strategies_applied: [
     "Fragmentação de enunciados",
     "Apoio visual com ícones",

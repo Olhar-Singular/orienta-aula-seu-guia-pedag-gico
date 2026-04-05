@@ -2,15 +2,11 @@ import { describe, it, expect } from "vitest";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 
 describe("Wizard step navigation logic", () => {
-  it("has 5 steps defined", () => {
-    const STEPS = [
-      { label: "Tipo" },
-      { label: "Conteúdo" },
-      { label: "Barreiras" },
-      { label: "Resultado" },
-      { label: "Exportar" },
-    ];
-    expect(STEPS).toHaveLength(5);
+  it("has 6 steps defined for each mode", () => {
+    const AI_STEPS = ["type", "content", "barriers", "choice", "ai_editor", "export"];
+    const MANUAL_STEPS = ["type", "content", "barriers", "choice", "editor", "export"];
+    expect(AI_STEPS).toHaveLength(6);
+    expect(MANUAL_STEPS).toHaveLength(6);
   });
 
   it("validates activity type selection", () => {
@@ -132,5 +128,82 @@ describe("Barrier auto-loading from student profile", () => {
 
     const withActive = noActive.map((b, i) => (i === 0 ? { ...b, is_active: true } : b));
     expect(withActive.filter((b) => b.is_active).length).toBe(1);
+  });
+});
+
+describe("ai_editor step integration", () => {
+  const STEP_SEQUENCES = {
+    ai: ["type", "content", "barriers", "choice", "ai_editor", "export"],
+    manual: ["type", "content", "barriers", "choice", "editor", "export"],
+  } as const;
+
+  const STEP_META: Record<string, { label: string; description: string }> = {
+    type: { label: "Tipo", description: "Tipo de atividade" },
+    content: { label: "Conteúdo", description: "Conteúdo da atividade" },
+    choice: { label: "Modo", description: "Escolher modo" },
+    barriers: { label: "Barreiras", description: "Aluno e barreiras" },
+    ai_editor: { label: "Editor", description: "Editar atividade adaptada" },
+    editor: { label: "Editor", description: "Editar atividade" },
+    export: { label: "Exportar", description: "Salvar e exportar" },
+  };
+
+  it("ai mode has ai_editor as the step after choice", () => {
+    const steps = STEP_SEQUENCES.ai;
+    const choiceIdx = steps.indexOf("choice");
+    expect(steps[choiceIdx + 1]).toBe("ai_editor");
+  });
+
+  it("manual mode has editor (not ai_editor) as the step after choice", () => {
+    const steps = STEP_SEQUENCES.manual;
+    const choiceIdx = steps.indexOf("choice");
+    expect(steps[choiceIdx + 1]).toBe("editor");
+  });
+
+  it("ai_editor has correct meta label and description", () => {
+    expect(STEP_META.ai_editor.label).toBe("Editor");
+    expect(STEP_META.ai_editor.description).toBe("Editar atividade adaptada");
+  });
+
+  it("requestBack logic triggers confirmation when going back past ai_editor with result", () => {
+    const steps = STEP_SEQUENCES.ai;
+    const editorStepIndex = steps.indexOf("ai_editor");
+    const currentStep = editorStepIndex; // on ai_editor
+    const target = 0; // going back to type
+
+    // Simulated condition from AdaptationWizard.requestBack
+    const hasResult = true;
+    const shouldConfirm =
+      editorStepIndex !== -1 &&
+      currentStep >= editorStepIndex &&
+      target < editorStepIndex &&
+      hasResult;
+
+    expect(shouldConfirm).toBe(true);
+  });
+
+  it("requestBack does NOT trigger confirmation when no result", () => {
+    const steps = STEP_SEQUENCES.ai;
+    const editorStepIndex = steps.indexOf("ai_editor");
+    const currentStep = editorStepIndex;
+    const target = 0;
+
+    const hasResult = false;
+    const shouldConfirm =
+      editorStepIndex !== -1 &&
+      currentStep >= editorStepIndex &&
+      target < editorStepIndex &&
+      hasResult;
+
+    expect(shouldConfirm).toBe(false);
+  });
+
+  it("requestBack does NOT trigger confirmation in manual mode (no ai_editor)", () => {
+    const steps = STEP_SEQUENCES.manual;
+    const editorStepIndex = steps.indexOf("ai_editor");
+
+    expect(editorStepIndex).toBe(-1);
+    // condition short-circuits because editorStepIndex === -1
+    const shouldConfirm = editorStepIndex !== -1;
+    expect(shouldConfirm).toBe(false);
   });
 });

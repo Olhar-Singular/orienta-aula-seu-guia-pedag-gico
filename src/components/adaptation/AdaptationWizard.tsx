@@ -14,10 +14,10 @@ import {
 import StepActivityType from "./StepActivityType";
 import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
-import StepResult from "./StepResult";
 import StepExport from "./StepExport";
 import { StepChoice } from "./StepChoice";
 import { StepEditor } from "./StepEditor";
+import StepAIEditor from "./StepAIEditor";
 import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
 import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
@@ -73,7 +73,7 @@ export type WizardData = {
 };
 
 const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
-  ai: ["type", "content", "barriers", "choice", "result", "export"],
+  ai: ["type", "content", "barriers", "choice", "ai_editor", "export"],
   manual: ["type", "content", "barriers", "choice", "editor", "export"],
 } as const;
 
@@ -95,7 +95,7 @@ const STEP_META: Record<string, StepMeta> = {
   content: { label: "Conteúdo", description: "Inserir atividade" },
   choice: { label: "Modo", description: "Escolher modo" },
   barriers: { label: "Barreiras", description: "Aluno e barreiras" },
-  result: { label: "Resultado", description: "Adaptação da IA" },
+  ai_editor: { label: "Editor", description: "Editar atividade adaptada" },
   editor: { label: "Editor", description: "Editar atividade" },
   export: { label: "Exportar", description: "Salvar e exportar" },
 };
@@ -187,14 +187,12 @@ export default function AdaptationWizard() {
   }, [stepsMeta]);
 
   const requestBack = useCallback((target: number) => {
-    // If going backwards and there is a generated result, confirm discard
-    const resultStepIndex = steps.indexOf("result");
-    const hasResultStep = resultStepIndex !== -1;
-    if (hasResultStep && step >= resultStepIndex && target < resultStepIndex && data.result) {
+    // If going backwards past the ai_editor step and there is a result, confirm discard
+    const editorStepIndex = steps.indexOf("ai_editor");
+    if (editorStepIndex !== -1 && step >= editorStepIndex && target < editorStepIndex && data.result) {
       setPendingBackTarget(target);
       return;
     }
-    // For manual mode: if on export and going back, no special handling needed
     navigateTo(target);
   }, [step, steps, data.result, navigateTo]);
 
@@ -277,8 +275,10 @@ export default function AdaptationWizard() {
         Passo {step + 1} de {stepsMeta.length}: {stepsMeta[step]?.description}
       </p>
 
-      {/* Step Content with slide animation */}
-      <div className="min-h-[400px] relative overflow-x-hidden overflow-y-visible px-1">
+      {/* Step Content with slide animation.
+          overflow-x-hidden is needed for the slide animation but clips the full-width editor.
+          We disable it only for the ai_editor step. */}
+      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" ? "" : "overflow-x-hidden"}`}>
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={step}
@@ -325,8 +325,8 @@ export default function AdaptationWizard() {
                 onPrev={prev}
               />
             )}
-            {currentStepKey === "result" && (
-              <StepResult
+            {currentStepKey === "ai_editor" && (
+              <StepAIEditor
                 data={data}
                 updateData={updateData}
                 onNext={next}

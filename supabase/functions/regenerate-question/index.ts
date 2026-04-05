@@ -38,58 +38,22 @@ function getStrategiesForBarriers(barriers: Array<{ dimension?: string }>): stri
     .join("\n");
 }
 
-const QUESTION_SCHEMA = {
-  type: "object",
-  properties: {
-    number: { type: "integer" },
-    type: {
-      type: "string",
-      enum: ["multiple_choice", "open_ended", "fill_blank", "true_false"],
-    },
-    statement: { type: "string", description: "Enunciado da questão (pode conter LaTeX com $...$)" },
-    instruction: { type: "string", description: "Instrução opcional antes da questão" },
-    alternatives: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          letter: { type: "string" },
-          text: { type: "string" },
-        },
-        required: ["letter", "text"],
-      },
-    },
-    scaffolding: {
-      type: "array",
-      items: { type: "string" },
-      description: "Passos de apoio DUA para o aluno",
-    },
-  },
-  required: ["number", "type", "statement"],
-};
-
-const REGENERATE_TOOL = {
-  type: "function" as const,
-  function: {
-    name: "deliver_question",
-    description: "Entrega a questão regenerada em formato JSON estruturado",
-    parameters: {
-      type: "object",
-      properties: {
-        question: {
-          ...QUESTION_SCHEMA,
-          description: "A questão regenerada",
-        },
-        changes_made: {
-          type: "array",
-          items: { type: "string" },
-          description: "Lista das mudanças realizadas na questão",
-        },
-      },
-      required: ["question", "changes_made"],
-    },
-  },
-};
+// ─── Parser da resposta DSL para questão individual ───
+function parseDslQuestionResponse(content: string): { question_dsl: string; changes_made: string[] } {
+  const changesMarker = "===MUDANCAS===";
+  const changesIdx = content.indexOf(changesMarker);
+  const question_dsl = changesIdx !== -1
+    ? content.slice(0, changesIdx).trim()
+    : content.trim();
+  const changesRaw = changesIdx !== -1
+    ? content.slice(changesIdx + changesMarker.length).trim()
+    : "";
+  const changes_made = changesRaw
+    .split("\n")
+    .map(l => l.replace(/^[-•*]\s*/, "").trim())
+    .filter(Boolean);
+  return { question_dsl, changes_made };
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -190,7 +154,7 @@ Você está REGENERANDO UMA ÚNICA QUESTÃO de uma atividade adaptada.
 
 REGRAS:
 1. MANTENHA o número da questão: ${question.number}
-2. MANTENHA o tipo (${question.type}) a menos que claramente inadequado
+2. MANTENHA o tipo da questão a menos que claramente inadequado
 3. PRESERVE o nível cognitivo (Taxonomia de Bloom)
 4. PRESERVE o conteúdo/objetivo pedagógico
 5. MELHORE clareza, scaffolding e adequação às barreiras
@@ -200,11 +164,73 @@ REGRAS:
 ${strategies ? `ESTRATÉGIAS PARA O PERFIL:\n${strategies}` : ""}
 
 REGRAS DE FORMATAÇÃO:
-- FRAÇÕES: use $\\frac{a}{b}$
+- FRAÇÕES: use $\\frac{a}{b}$ (backslash simples, dentro de $...$)
 - Notação escolar: v₀, v², Δv
-- NUNCA use asteriscos (**) ou markdown
+- NUNCA use asteriscos (**) ou nenhum markdown no texto
 
-IMPORTANTE: Use a ferramenta deliver_question para retornar a questão regenerada.`;
+FORMATO DE RESPOSTA OBRIGATÓRIO:
+Retorne APENAS a questão no formato DSL abaixo, seguida do marcador ===MUDANCAS=== com a lista de mudanças.
+
+Exemplos de formato DSL por tipo:
+
+Múltipla escolha:
+${question.number}) Enunciado da questão
+a) Alternativa A
+b*) Alternativa correta (asterisco na letra correta)
+c) Alternativa C
+> Apoio: Dica de scaffolding.
+
+Discursiva:
+${question.number}) Enunciado da questão discursiva
+[linhas:4]
+> Apoio: Passo a passo de apoio.
+
+Lacuna:
+${question.number}) Complete: O resultado de $\\frac{1}{2} + \\frac{1}{4}$ e ___.
+[banco: 3/4, 1/2, 1/3]
+
+Verdadeiro/Falso:
+${question.number}) Marque Verdadeiro ou Falso:
+( ) Afirmacao 1.
+( ) Afirmacao 2.
+
+===MUDANCAS===
+- Mudanca realizada 1
+- Mudanca realizada 2`;
+
+    // Converter StructuredQuestion para DSL para contextualizar a IA
+    function questionToDsl(q: Record<string, unknown>): string {
+      const num = q.number;
+      const stmt = q.statement || "";
+      const lines: string[] = [];
+      if (q.instruction) lines.push(`> ${q.instruction}`);
+      if (q.type === "multiple_choice" && Array.isArray(q.alternatives)) {
+        lines.push(`${num}) ${stmt}`);
+        for (const alt of q.alternatives as Array<{ letter: string; text: string; correct?: boolean }>) {
+          const marker = alt.correct ? `${alt.letter}*` : alt.letter;
+          lines.push(`${marker}) ${alt.text}`);
+        }
+      } else if (q.type === "fill_blank") {
+        lines.push(`${num}) ${stmt}`);
+        const words = Array.isArray(q.word_bank) ? (q.word_bank as string[]).join(", ") : "";
+        if (words) lines.push(`[banco: ${words}]`);
+      } else if (q.type === "true_false") {
+        lines.push(`${num}) ${stmt}`);
+        if (Array.isArray(q.statements)) {
+          for (const s of q.statements as string[]) lines.push(`( ) ${s}`);
+        }
+      } else {
+        lines.push(`${num}) ${stmt}`);
+        const lineCount = typeof q.line_count === "number" ? q.line_count : 3;
+        lines.push(`[linhas:${lineCount}]`);
+      }
+      if (Array.isArray(q.scaffolding) && (q.scaffolding as string[]).length > 0) {
+        lines.push(`> Apoio: ${(q.scaffolding as string[]).join(" ")}`);
+      }
+      return lines.join("\n");
+    }
+
+    const questionDslContext = questionToDsl(question as Record<string, unknown>);
 
     let userPrompt = `REGENERAR QUESTÃO ${question.number} - ${versionLabel}
 
@@ -213,8 +239,8 @@ BARREIRAS DO ALUNO: ${activeBarriersList}
 
 ${studentContext ? `CONTEXTO DO ALUNO:\n${studentContext}` : ""}
 
-QUESTÃO ATUAL:
-${JSON.stringify(question, null, 2)}
+QUESTÃO ATUAL (formato DSL):
+${questionDslContext}
 
 ${hint ? `SUGESTÃO DO PROFESSOR: ${hint}` : ""}
 
@@ -238,8 +264,6 @@ Regenere esta questão melhorando clareza, scaffolding e adequação às barreir
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        tools: [REGENERATE_TOOL],
-        tool_choice: { type: "function", function: { name: "deliver_question" } },
         max_tokens: 2000,
         temperature: 0.7,
       }),
@@ -273,28 +297,27 @@ Regenere esta questão melhorando clareza, scaffolding e adequação às barreir
       school_id: school_id || null,
     });
 
-    // Extract tool call result
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function.name !== "deliver_question") {
+    // Parse DSL response
+    const responseContent: string = aiData.choices?.[0]?.message?.content || "";
+    if (!responseContent) {
+      return new Response(JSON.stringify({ error: "Resposta vazia da IA." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { question_dsl, changes_made } = parseDslQuestionResponse(responseContent);
+
+    if (!question_dsl) {
       return new Response(JSON.stringify({ error: "Resposta da IA em formato inesperado." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    let parsed;
-    try {
-      parsed = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      return new Response(JSON.stringify({ error: "Erro ao parsear resposta da IA." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     return new Response(JSON.stringify({
-      question: parsed.question,
-      changes_made: parsed.changes_made || [],
+      question_dsl,
+      changes_made,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
