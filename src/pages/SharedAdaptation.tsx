@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import logoImg from "@/assets/logo-olhar-singular-sm.png";
+import { getVersionText } from "@/lib/structuredMigration";
 
 type SharedData = {
   expires_at: string;
@@ -131,7 +132,7 @@ export default function SharedAdaptation() {
           <Card className="border-primary/20 bg-primary/5">
             <CardHeader><CardTitle className="text-base">Versão Universal (DUA)</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{result.version_universal}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{getVersionText(result.version_universal)}</p>
             </CardContent>
           </Card>
         )}
@@ -141,7 +142,7 @@ export default function SharedAdaptation() {
           <Card className="border-border">
             <CardHeader><CardTitle className="text-base">Versão Direcionada</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{result.version_directed}</p>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{getVersionText(result.version_directed)}</p>
             </CardContent>
           </Card>
         )}
