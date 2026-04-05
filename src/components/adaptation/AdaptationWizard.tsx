@@ -14,7 +14,6 @@ import {
 import StepActivityType from "./StepActivityType";
 import StepActivityInput from "./StepActivityInput";
 import StepBarrierSelection from "./StepBarrierSelection";
-import StepResult from "./StepResult";
 import StepExport from "./StepExport";
 import { StepChoice } from "./StepChoice";
 import { StepEditor } from "./StepEditor";
@@ -96,7 +95,6 @@ const STEP_META: Record<string, StepMeta> = {
   content: { label: "Conteúdo", description: "Inserir atividade" },
   choice: { label: "Modo", description: "Escolher modo" },
   barriers: { label: "Barreiras", description: "Aluno e barreiras" },
-  result: { label: "Resultado", description: "Adaptação da IA" },
   ai_editor: { label: "Editor", description: "Editar atividade adaptada" },
   editor: { label: "Editor", description: "Editar atividade" },
   export: { label: "Exportar", description: "Salvar e exportar" },
@@ -321,14 +319,6 @@ export default function AdaptationWizard() {
             )}
             {currentStepKey === "barriers" && (
               <StepBarrierSelection
-                data={data}
-                updateData={updateData}
-                onNext={next}
-                onPrev={prev}
-              />
-            )}
-            {currentStepKey === "result" && (
-              <StepResult
                 data={data}
                 updateData={updateData}
                 onNext={next}
