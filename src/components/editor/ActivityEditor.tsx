@@ -1,8 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { HelpCircle, X } from "lucide-react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { HelpCircle, X, ImageIcon } from "lucide-react";
 import EditorToolbar from "./EditorToolbar";
 import ActivityPreview from "./ActivityPreview";
 import ActivityStatusBar from "./ActivityStatusBar";
+import ImageManagerModal from "./ImageManagerModal";
+import { registerAndGenerateDsl, scanAndRegisterUrls } from "./imageManagerUtils";
+import type { ImageItem, ImageRegistry } from "./imageManagerUtils";
 import { parseActivity } from "@/lib/activityParser";
 import "katex/dist/katex.min.css";
 
@@ -39,9 +42,26 @@ const HINT_ITEMS = [
 
 export default function ActivityEditor({ value, onChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewText, setPreviewText] = useState(value);
   const [showHelp, setShowHelp] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageRegistry, setImageRegistry] = useState<ImageRegistry>({});
+  const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
+  const registryEntries = useMemo(() => Object.entries(imageRegistry), [imageRegistry]);
+  const lastScannedRef = useRef("");
+
+  // Auto-detect raw URLs in text and register with short names
+  useEffect(() => {
+    if (value === lastScannedRef.current) return;
+    const result = scanAndRegisterUrls(value, imageRegistry);
+    if (result) {
+      lastScannedRef.current = result.cleanText;
+      setImageRegistry(result.updatedRegistry);
+      onChange(result.cleanText);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── History (undo / redo) ──────────────────────────────────────────────
   // Mutable history in refs to avoid triggering re-renders on every keystroke.
@@ -203,12 +223,57 @@ export default function ActivityEditor({ value, onChange }: Props) {
     [value, onChange, snapshotNow]
   );
 
+  // Detect which question the cursor is inside
+  const detectActiveQuestion = useCallback(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const textBefore = value.slice(0, pos);
+    // Find the last question header before cursor: "N) " or "N. " or "Questão N"
+    const matches = textBefore.match(/(?:^|\n)(\d+)\s*[.)]/g);
+    if (matches && matches.length > 0) {
+      const last = matches[matches.length - 1];
+      const num = last.match(/(\d+)/);
+      if (num) setActiveQuestion(parseInt(num[1], 10));
+    } else {
+      setActiveQuestion(null);
+    }
+  }, [value]);
+
   const handleTextareaChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       onChange(e.target.value);
     },
     [onChange]
   );
+
+  const handleImageInsert = useCallback(
+    (images: ImageItem[]) => {
+      if (images.length === 0) return;
+      const { dsl, updatedRegistry } = registerAndGenerateDsl(images, imageRegistry);
+      setImageRegistry(updatedRegistry);
+      handleInsert("\n" + dsl + "\n");
+    },
+    [handleInsert, imageRegistry]
+  );
+
+  // Build highlighted HTML: same text but [img:...] lines get a colored background
+  const highlightedHtml = useMemo(() => {
+    const escaped = value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return escaped.replace(
+      /^(\[img:[^\]]*\])$/gm,
+      '<mark class="img-highlight">$1</mark>'
+    );
+  }, [value]);
+
+  const syncScroll = useCallback(() => {
+    if (highlightRef.current && textareaRef.current) {
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  }, []);
 
   const handleImageResize = useCallback(
     (url: string, width: number) => {
@@ -222,6 +287,7 @@ export default function ActivityEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-0">
+      <style>{`.img-highlight { background: #d1fae5; color: transparent; border-radius: 3px; }`}</style>
       {/* Split layout: editor left, preview right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-[640px] h-[calc(100vh-260px)]">
         {/* ── LEFT: Editor panel ── */}
@@ -242,19 +308,56 @@ export default function ActivityEditor({ value, onChange }: Props) {
             onRedo={handleRedo}
             canUndo={canUndo}
             canRedo={canRedo}
+            onImageClick={() => setShowImageModal(true)}
           />
 
-          {/* Textarea */}
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            spellCheck={false}
-            placeholder="Cole ou digite a atividade aqui..."
-            className="flex-1 border-none outline-none resize-none p-3.5 font-mono text-[0.78rem] leading-[1.75] text-zinc-800 bg-background"
-            style={{ tabSize: 2 }}
-          />
+          {/* Textarea with highlight overlay */}
+          <div className="flex-1 relative min-h-0">
+            {/* Highlight layer — behind textarea, same font metrics */}
+            <div
+              ref={highlightRef}
+              aria-hidden
+              className="absolute inset-0 p-3.5 font-mono text-[0.78rem] leading-[1.75] overflow-hidden whitespace-pre-wrap break-words pointer-events-none text-transparent"
+              style={{ tabSize: 2 }}
+              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+            />
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              onKeyUp={detectActiveQuestion}
+              onClick={detectActiveQuestion}
+              onScroll={syncScroll}
+              spellCheck={false}
+              placeholder="Cole ou digite a atividade aqui..."
+              className="absolute inset-0 w-full h-full border-none outline-none resize-none p-3.5 font-mono text-[0.78rem] leading-[1.75] text-zinc-800 bg-transparent"
+              style={{ tabSize: 2, caretColor: "#27272a" }}
+            />
+          </div>
+
+          {/* Registered images bar */}
+          {registryEntries.length > 0 && (
+            <div className="border-t border-border bg-emerald-50/60 px-3 py-1.5 flex items-center gap-2 overflow-x-auto">
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
+              {registryEntries.map(([name, src]) => (
+                <div
+                  key={name}
+                  className="flex items-center gap-1.5 bg-white border border-emerald-200 rounded px-1.5 py-0.5 flex-shrink-0"
+                  title={name}
+                >
+                  <img
+                    src={src}
+                    alt={name}
+                    className="w-6 h-6 rounded object-cover"
+                  />
+                  <span className="text-[0.62rem] font-mono text-emerald-700 font-medium">
+                    {name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Help bar */}
           <div className="border-t border-border bg-muted/50">
@@ -302,13 +405,20 @@ export default function ActivityEditor({ value, onChange }: Props) {
 
           {/* Preview content */}
           <div className="flex-1 overflow-y-auto">
-            <ActivityPreview text={previewText} onImageResize={handleImageResize} />
+            <ActivityPreview text={previewText} onImageResize={handleImageResize} imageRegistry={imageRegistry} activeQuestion={activeQuestion} />
           </div>
         </div>
       </div>
 
       {/* Status bar */}
       <ActivityStatusBar text={previewText} />
+
+      {/* Image manager modal */}
+      <ImageManagerModal
+        open={showImageModal}
+        onClose={() => setShowImageModal(false)}
+        onConfirm={handleImageInsert}
+      />
     </div>
   );
 }
