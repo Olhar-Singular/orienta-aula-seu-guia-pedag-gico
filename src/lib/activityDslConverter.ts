@@ -174,8 +174,8 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
   }
 
   // Images
-  if (pq.image) {
-    q.images = [pq.image];
+  if (pq.images.length > 0) {
+    q.images = [...pq.images];
   }
 
   // Extract instruction from continuations

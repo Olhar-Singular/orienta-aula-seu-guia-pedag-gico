@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { ChevronDown, Undo2, Redo2 } from "lucide-react";
+import { ChevronDown, Undo2, Redo2, ImageIcon } from "lucide-react";
 
 type InsertType =
   | "section"
@@ -23,6 +23,7 @@ type Props = {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onImageClick?: () => void;
 };
 
 const TEMPLATES: Record<InsertType, (n: number) => string> = {
@@ -91,6 +92,7 @@ export default function EditorToolbar({
   onRedo,
   canUndo,
   canRedo,
+  onImageClick,
 }: Props) {
   const insertDD = useDropdown();
   const formatDD = useDropdown();
@@ -220,6 +222,19 @@ export default function EditorToolbar({
       >
         — Sep
       </button>
+
+      {/* Image */}
+      {onImageClick && (
+        <button
+          type="button"
+          onClick={onImageClick}
+          title="Adicionar imagens"
+          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-emerald-300 bg-background text-[0.72rem] font-medium text-emerald-700 hover:bg-emerald-50 cursor-pointer transition-colors"
+        >
+          <ImageIcon className="w-3.5 h-3.5" />
+          Imagem
+        </button>
+      )}
     </div>
   );
 }

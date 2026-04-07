@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { parseActivity } from "@/lib/activityParser";
 import type {
   ParsedQuestion,
@@ -9,11 +9,15 @@ import type {
 import { formatInline, renderKatexBlock } from "@/lib/activityFormatter";
 import { FileText, Info, ImageIcon, Check } from "lucide-react";
 import ImageResizer from "./ImageResizer";
+import { resolveImageSrc } from "./imageManagerUtils";
+import type { ImageRegistry } from "./imageManagerUtils";
 import "katex/dist/katex.min.css";
 
 type Props = {
   text: string;
   onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
+  activeQuestion?: number | null;
 };
 
 // ── Type labels & badge styles ──
@@ -341,18 +345,17 @@ function QuestionAnswerLines({ q }: { q: ParsedQuestion }) {
   );
 }
 
-function QuestionImage({
-  q,
+function SingleImage({
+  imgStr,
   onImageResize,
+  imageRegistry,
 }: {
-  q: ParsedQuestion;
+  imgStr: string;
   onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
 }) {
-  if (!q.image) return null;
-
-  // Check for width/align params: [img:URL width=300 align=center]
-  const urlParts = q.image.split(/\s+/);
-  const url = urlParts[0];
+  const urlParts = imgStr.split(/\s+/);
+  const ref = urlParts[0];
   let width: number | undefined;
   let align = "left";
 
@@ -362,18 +365,20 @@ function QuestionImage({
     if (key === "align") align = val;
   }
 
+  // Resolve reference through registry (e.g. "imagem-1" → actual base64/URL)
+  const resolvedSrc = resolveImageSrc(ref, imageRegistry || {});
+
   const alignClass =
     align === "center" ? "mx-auto" : align === "right" ? "ml-auto" : "";
 
-  // If URL starts with http or data:, show as actual image with resize handles
-  if (url.startsWith("http") || url.startsWith("data:")) {
+  if (resolvedSrc.startsWith("http") || resolvedSrc.startsWith("data:")) {
     if (onImageResize) {
       return (
         <div className={`mt-1.5 ${alignClass}`}>
           <ImageResizer
-            src={url}
+            src={resolvedSrc}
             initialWidth={width}
-            onResize={(w) => onImageResize(url, w)}
+            onResize={(w) => onImageResize(ref, w)}
           />
         </div>
       );
@@ -381,7 +386,7 @@ function QuestionImage({
     return (
       <div className={`mt-1.5 ${alignClass}`} style={width ? { width } : undefined}>
         <img
-          src={url}
+          src={resolvedSrc}
           alt="Imagem da questão"
           className="max-w-full rounded-md border border-zinc-200"
           style={width ? { width } : undefined}
@@ -390,12 +395,31 @@ function QuestionImage({
     );
   }
 
-  // Otherwise show as reference
   return (
     <div className="mt-1.5 flex items-center gap-1.5 text-[0.72rem] text-violet-700 bg-violet-50 px-2 py-1 rounded w-fit">
       <ImageIcon className="w-3 h-3" />
-      {url}
+      {ref}
     </div>
+  );
+}
+
+function QuestionImages({
+  q,
+  onImageResize,
+  imageRegistry,
+}: {
+  q: ParsedQuestion;
+  onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
+}) {
+  if (q.images.length === 0) return null;
+
+  return (
+    <>
+      {q.images.map((img, i) => (
+        <SingleImage key={i} imgStr={img} onImageResize={onImageResize} imageRegistry={imageRegistry} />
+      ))}
+    </>
   );
 }
 
@@ -404,12 +428,23 @@ function QuestionImage({
 function QuestionCard({
   q,
   onImageResize,
+  imageRegistry,
+  isActive,
 }: {
   q: ParsedQuestion;
   onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
+  isActive?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
   const badgeCls = TYPE_BADGE_CLASSES[q.type] || "bg-red-100 text-red-700";
   const label = TYPE_LABELS[q.type] || "?";
+
+  useEffect(() => {
+    if (isActive && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [isActive]);
 
   // Build full statement with continuations
   let statementHtml = formatInline(q.statement);
@@ -421,7 +456,7 @@ function QuestionCard({
         "</div>";
     } else if (c.startsWith("> ")) {
       statementHtml +=
-        `<div class="mt-2 py-2.5 px-3.5 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg text-sm text-indigo-800 leading-relaxed flex gap-2 items-start">` +
+        `<div class="mt-2 py-2.5 px-3.5 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg text-sm text-indigo-800 leading-relaxed">` +
         formatInline(c.slice(2)) +
         "</div>";
     } else if (c === "<!--blank-->") {
@@ -432,7 +467,14 @@ function QuestionCard({
   }
 
   return (
-    <div className="border border-zinc-200 rounded-lg p-3 px-3.5 mb-2.5 relative transition-colors hover:border-zinc-300">
+    <div
+      ref={cardRef}
+      className={`border rounded-lg p-3 px-3.5 mb-2.5 relative transition-all ${
+        isActive
+          ? "border-violet-400 ring-2 ring-violet-200 bg-violet-50/30"
+          : "border-zinc-200 hover:border-zinc-300"
+      }`}
+    >
       {/* Question number + metadata */}
       <div className="text-[0.66rem] font-bold text-muted-foreground mb-0.5 flex items-center gap-1.5">
         Questão {q.number}
@@ -457,8 +499,8 @@ function QuestionCard({
         dangerouslySetInnerHTML={{ __html: statementHtml }}
       />
 
-      {/* Image */}
-      <QuestionImage q={q} onImageResize={onImageResize} />
+      {/* Images */}
+      <QuestionImages q={q} onImageResize={onImageResize} imageRegistry={imageRegistry} />
 
       {/* Type-specific rendering */}
       <QuestionAlternatives q={q} />
@@ -478,13 +520,17 @@ function QuestionCard({
 function SectionItemRenderer({
   item,
   onImageResize,
+  imageRegistry,
+  activeQuestion,
 }: {
   item: SectionItem;
   onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
+  activeQuestion?: number | null;
 }) {
   switch (item.kind) {
     case "question":
-      return <QuestionCard q={item.data} onImageResize={onImageResize} />;
+      return <QuestionCard q={item.data} onImageResize={onImageResize} imageRegistry={imageRegistry} isActive={activeQuestion === item.data.number} />;
     case "instruction":
       return (
         <div className="py-2.5 px-3.5 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg mb-2.5 text-sm text-indigo-800 leading-relaxed flex gap-2 items-start">
@@ -515,9 +561,13 @@ function SectionItemRenderer({
 function SectionRenderer({
   section,
   onImageResize,
+  imageRegistry,
+  activeQuestion,
 }: {
   section: ParsedSection;
   onImageResize?: (url: string, width: number) => void;
+  imageRegistry?: ImageRegistry;
+  activeQuestion?: number | null;
 }) {
   return (
     <>
@@ -533,7 +583,7 @@ function SectionRenderer({
         </div>
       )}
       {section.items.map((item, i) => (
-        <SectionItemRenderer key={i} item={item} onImageResize={onImageResize} />
+        <SectionItemRenderer key={i} item={item} onImageResize={onImageResize} imageRegistry={imageRegistry} activeQuestion={activeQuestion} />
       ))}
     </>
   );
@@ -541,7 +591,7 @@ function SectionRenderer({
 
 // ── Main preview component ──
 
-export default function ActivityPreview({ text, onImageResize }: Props) {
+export default function ActivityPreview({ text, onImageResize, imageRegistry, activeQuestion }: Props) {
   const parsed = useMemo(() => parseActivity(text), [text]);
 
   const hasContent = parsed.sections.some(
@@ -560,7 +610,7 @@ export default function ActivityPreview({ text, onImageResize }: Props) {
   return (
     <div className="px-5 py-5">
       {parsed.sections.map((sec, i) => (
-        <SectionRenderer key={i} section={sec} onImageResize={onImageResize} />
+        <SectionRenderer key={i} section={sec} onImageResize={onImageResize} imageRegistry={imageRegistry} activeQuestion={activeQuestion} />
       ))}
     </div>
   );

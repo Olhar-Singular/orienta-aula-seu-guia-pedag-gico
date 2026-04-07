@@ -605,8 +605,39 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
 
     userPrompt += `\n\nATIVIDADE ORIGINAL:\n${sanitizedActivity}`;
 
+    // ─── Build user message content parts (text + images) ───
+    const userContent: any[] = [{ type: "text", text: userPrompt }];
+
     if (question_images && Array.isArray(question_images) && question_images.length > 0) {
-      userPrompt += `\n\nNOTA: A atividade contém ${question_images.length} imagem(ns). Preserve referências a figuras/imagens nas adaptações.`;
+      userContent[0].text += `\n\nA atividade contém ${question_images.length} imagem(ns) anexadas abaixo. Analise cada imagem para compreender figuras, diagramas, tabelas ou informações visuais das questões. Preserve e adapte referências a estas figuras nas adaptações.`;
+
+      for (const img of question_images) {
+        if (img.image_url) {
+          userContent.push({ type: "text", text: `\n[Imagem da questão: "${img.question_text || ""}"]` });
+          try {
+            // Rewrite image URL to use internal SUPABASE_URL (edge functions can't reach the frontend's host URL)
+            let fetchUrl = img.image_url;
+            const storagePath = img.image_url.match(/\/storage\/v1\/.+$/)?.[0];
+            if (storagePath) {
+              fetchUrl = `${supabaseUrl}${storagePath}`;
+            }
+            const imgResp = await fetch(fetchUrl);
+            if (imgResp.ok) {
+              const buf = await imgResp.arrayBuffer();
+              const contentType = imgResp.headers.get("content-type") || "image/png";
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+              userContent.push({
+                type: "image_url",
+                image_url: { url: `data:${contentType};base64,${base64}` },
+              });
+            } else {
+              console.warn(`Failed to fetch image: ${imgResp.status}`);
+            }
+          } catch (imgErr) {
+            console.warn("Failed to fetch question image:", imgErr);
+          }
+        }
+      }
     }
 
     // ─── Build dynamic system prompt (only relevant profiles) ───
@@ -632,7 +663,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
           model: modelName,
           messages: [
             { role: "system", content: SYSTEM_PROMPT_FINAL },
-            { role: "user", content: userPrompt },
+            { role: "user", content: userContent },
           ],
         }),
         signal: controller.signal,

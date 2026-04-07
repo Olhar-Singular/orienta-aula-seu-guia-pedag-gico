@@ -216,10 +216,25 @@ describe("activityParser", () => {
 
   // ── Image ──
 
-  describe("image", () => {
-    it("parses [img:url] inside question", () => {
+  describe("images", () => {
+    it("parses single [img:url] inside question", () => {
       const q = firstQ("1) Observe a figura.\n[img:https://example.com/img.png]");
-      expect(q.image).toBe("https://example.com/img.png");
+      expect(q.images).toEqual(["https://example.com/img.png"]);
+    });
+
+    it("parses multiple [img:url] inside same question", () => {
+      const q = firstQ(
+        "1) Observe as figuras.\n[img:https://example.com/a.png]\n[img:https://example.com/b.png]"
+      );
+      expect(q.images).toEqual([
+        "https://example.com/a.png",
+        "https://example.com/b.png",
+      ]);
+    });
+
+    it("returns empty array when question has no images", () => {
+      const q = firstQ("1) Sem imagem aqui.");
+      expect(q.images).toEqual([]);
     });
   });
 
@@ -236,6 +251,42 @@ describe("activityParser", () => {
     it("captures > Apoio: in question continuations when no alternatives", () => {
       const q = firstQ("1) Explique.\n[linhas:3]\n> Apoio: Pense com calma.");
       expect(q.continuations).toContain("> Apoio: Pense com calma.");
+    });
+  });
+
+  // ── Math block inside question ──
+
+  describe("math block inside question", () => {
+    it("attaches $$...$$ to question continuations when no alternatives", () => {
+      const q = firstQ("1) Resolva:\n$$x^2 + 1 = 0$$");
+      expect(q.continuations).toContain("$$x^2 + 1 = 0$$");
+    });
+
+    it("attaches $$...$$ to last alternative continuations", () => {
+      const q = firstQ("1) Qual?\na) Opcao A\nb) Opcao B\n$$2x + 3$$");
+      const lastAlt = q.alternatives[q.alternatives.length - 1];
+      expect(lastAlt.continuations).toContain("$$2x + 3$$");
+    });
+  });
+
+  // ── Continuation lines ──
+
+  describe("continuation lines", () => {
+    it("attaches plain continuation to last alternative", () => {
+      const q = firstQ("1) Pergunta\na) Opcao A\nTexto extra da alternativa");
+      const lastAlt = q.alternatives[q.alternatives.length - 1];
+      expect(lastAlt.continuations).toContain("Texto extra da alternativa");
+    });
+
+    it("attaches continuation to question when no alternatives", () => {
+      const q = firstQ("1) Pergunta\nTexto complementar");
+      expect(q.continuations).toContain("Texto complementar");
+    });
+
+    it("attaches continuation to question in tf mode (not to alternatives)", () => {
+      const q = firstQ("1) V ou F:\n( ) Afirmacao.\nTexto extra");
+      expect(q.type).toBe("true_false");
+      expect(q.continuations).toContain("Texto extra");
     });
   });
 
