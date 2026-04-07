@@ -174,6 +174,60 @@ describe("activityDslConverter", () => {
     });
   });
 
+  // ── mapQuestionType edge cases ──
+
+  describe("mapQuestionType via markdownDslToStructured", () => {
+    it("maps true_false DSL to true_false type", () => {
+      const dsl = "1) Marque V ou F:\n( ) Afirmacao A\n( ) Afirmacao B";
+      const result = markdownDslToStructured(dsl);
+      expect(result.sections[0].questions[0].type).toBe("true_false");
+    });
+
+    it("maps fill_blank DSL to fill_blank type", () => {
+      const dsl = "1) Complete: O resultado e ___.";
+      const result = markdownDslToStructured(dsl);
+      expect(result.sections[0].questions[0].type).toBe("fill_blank");
+    });
+
+    it("maps table DSL to open_ended type", () => {
+      const dsl = "1) Complete a tabela:\n|Col A|Col B|\n|---|---|\n|Val 1|Val 2|";
+      const result = markdownDslToStructured(dsl);
+      expect(result.sections[0].questions[0].type).toBe("open_ended");
+    });
+  });
+
+  // ── Images array in conversion ──
+
+  describe("images array conversion", () => {
+    it("preserves multiple images in round-trip", () => {
+      const activity: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "open_ended",
+            statement: "Observe as figuras.",
+            images: ["https://example.com/a.png", "https://example.com/b.png"],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(activity);
+      expect(dsl).toContain("[img:https://example.com/a.png]");
+      expect(dsl).toContain("[img:https://example.com/b.png]");
+
+      const roundTripped = markdownDslToStructured(dsl);
+      expect(roundTripped.sections[0].questions[0].images).toEqual([
+        "https://example.com/a.png",
+        "https://example.com/b.png",
+      ]);
+    });
+
+    it("does not include images key when question has none", () => {
+      const dsl = "1) Sem imagem aqui.";
+      const result = markdownDslToStructured(dsl);
+      expect(result.sections[0].questions[0].images).toBeUndefined();
+    });
+  });
+
   // ── Round-trip ──
 
   describe("round-trip", () => {

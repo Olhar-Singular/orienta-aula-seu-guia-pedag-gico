@@ -35,7 +35,7 @@ export type ParsedQuestion = {
   matchPairs: MatchPair[];
   orderItems: OrderItem[];
   tableRows: string[][];
-  image: string | null;
+  images: string[];
   answerLines: number;
   wordbank: string[] | null;
   points: number | null;
@@ -121,7 +121,7 @@ function makeEmptyQuestion(number: number, statement: string): PartialQuestion {
     matchPairs: [],
     orderItems: [],
     tableRows: [],
-    image: null,
+    images: [],
     answerLines: 0,
     wordbank: null,
     points: null,
@@ -207,7 +207,7 @@ export function parseActivity(rawText: string): ParsedActivity {
     // Image
     const imgM = line.match(RE.image);
     if (imgM) {
-      if (curQ) curQ.image = imgM[1];
+      if (curQ) curQ.images.push(imgM[1]);
       continue;
     }
 
