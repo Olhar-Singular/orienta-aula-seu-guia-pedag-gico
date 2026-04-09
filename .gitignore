@@ -32,6 +32,11 @@ docker-compose.override.yml
 # Supabase local
 supabase/.temp/
 
+# Claude Code — artefatos locais/efêmeros
+.claude/debug/
+.claude/plans/
+.claude/settings.local.json
+
 prompts
 
 coverage
