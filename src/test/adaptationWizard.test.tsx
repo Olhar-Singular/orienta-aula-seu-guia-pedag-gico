@@ -199,7 +199,7 @@ describe("ai_editor step integration", () => {
 
   it("requestBack does NOT trigger confirmation in manual mode (no ai_editor)", () => {
     const steps = STEP_SEQUENCES.manual;
-    const editorStepIndex = steps.indexOf("ai_editor");
+    const editorStepIndex = (steps as readonly string[]).indexOf("ai_editor");
 
     expect(editorStepIndex).toBe(-1);
     // condition short-circuits because editorStepIndex === -1
