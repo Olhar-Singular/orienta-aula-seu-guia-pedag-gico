@@ -1,10 +1,13 @@
+import { createRef } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import EditorToolbar from "@/components/editor/EditorToolbar";
 
 const defaultProps = {
+  textareaRef: createRef<HTMLTextAreaElement>(),
   onInsert: vi.fn(),
-  onFormat: vi.fn(),
+  onWrap: vi.fn(),
+  getNextQuestionNumber: vi.fn(() => 1),
   onUndo: vi.fn(),
   onRedo: vi.fn(),
   canUndo: false,

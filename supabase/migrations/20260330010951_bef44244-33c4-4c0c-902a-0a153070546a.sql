@@ -52,36 +52,56 @@ AS $$
 $$;
 
 -- 6) Super-admin RLS policies
+-- NOTE: these policies are also created by 20260329130002_rbac_super_admin_rls.sql.
+-- Guarded with DROP POLICY IF EXISTS so this consolidated migration is idempotent
+-- and `supabase db reset` (which replays all migrations) does not fail on duplicates.
+DROP POLICY IF EXISTS "super_admin_read_all_schools" ON public.schools;
 CREATE POLICY "super_admin_read_all_schools" ON public.schools
   FOR SELECT TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_update_all_schools" ON public.schools;
 CREATE POLICY "super_admin_update_all_schools" ON public.schools
   FOR UPDATE TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_delete_schools" ON public.schools;
 CREATE POLICY "super_admin_delete_schools" ON public.schools
   FOR DELETE TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_read_all_members" ON public.school_members;
 CREATE POLICY "super_admin_read_all_members" ON public.school_members
   FOR SELECT TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_read_all_ai_logs" ON public.ai_usage_logs;
 CREATE POLICY "super_admin_read_all_ai_logs" ON public.ai_usage_logs
   FOR SELECT TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_read_all_profiles" ON public.profiles;
 CREATE POLICY "super_admin_read_all_profiles" ON public.profiles
   FOR SELECT TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
+DROP POLICY IF EXISTS "super_admin_update_all_profiles" ON public.profiles;
 CREATE POLICY "super_admin_update_all_profiles" ON public.profiles
   FOR UPDATE TO authenticated
   USING (public.is_super_admin(auth.uid()));
 
 -- 7) Remove payment/plan/credit infrastructure
-DROP TRIGGER IF EXISTS update_user_subscriptions_updated_at ON public.user_subscriptions;
+-- NOTE: the work in this section is also done by 20260329120000_remove_plans_and_credits.sql,
+-- which runs first. By the time we get here, public.user_subscriptions is already gone, so
+-- `DROP TRIGGER IF EXISTS ... ON public.user_subscriptions` raises "relation does not exist"
+-- (DROP TRIGGER IF EXISTS only guards against a missing trigger, not a missing table).
+-- Guard the table-bound drops in a DO block so the migration is safe on `supabase db reset`.
+DO $$
+BEGIN
+  IF to_regclass('public.user_subscriptions') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS update_user_subscriptions_updated_at ON public.user_subscriptions;
+  END IF;
+END $$;
 DROP TRIGGER IF EXISTS on_auth_user_created_assign_plan ON auth.users;
 DROP FUNCTION IF EXISTS public.assign_free_plan();
 DROP FUNCTION IF EXISTS public.get_credits_used(uuid);
