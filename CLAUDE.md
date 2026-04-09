@@ -105,6 +105,39 @@ VITE_SUPABASE_PUBLISHABLE_KEY=  # Chave anon
 VITE_SUPABASE_PROJECT_ID=       # ID do projeto
 ```
 
+## MCP Servers
+
+Servidores MCP configurados em `.mcp.json` (auto-descobertos pelo Claude Code):
+
+| Servidor   | Transporte    | Uso                                                                        |
+|------------|---------------|----------------------------------------------------------------------------|
+| `supabase` | HTTP          | Queries, migrations e edge functions no projeto Supabase remoto            |
+| `context7` | stdio (`npx`) | Docs ao vivo: TipTap, @react-pdf/renderer, @dnd-kit, Radix, TanStack Query |
+
+### Quando consultar Context7
+
+Antes de escrever ou modificar código que usa API de lib externa complexa, consulte o Context7 para não adivinhar assinaturas:
+
+- Extensões TipTap (`src/lib/tiptap/`)
+- Templates PDF (`src/lib/pdf/templates/` e componentes `@react-pdf/renderer`)
+- Drag-and-drop (`@dnd-kit/*`)
+- Componentes Radix via shadcn
+- Opções avançadas do TanStack Query (v5)
+
+Fluxo: `resolve-library-id` (acha o ID canônico, ex: `/ueberdosis/tiptap-docs`) → `query-docs` (busca a seção relevante).
+
+### API key opcional
+
+Context7 funciona sem autenticação (rate limit anônimo). Se hit limit, obtenha key em context7.com/dashboard e adicione em `.mcp.json`:
+
+```json
+"context7": {
+  "command": "npx",
+  "args": ["-y", "@upstash/context7-mcp"],
+  "env": { "CONTEXT7_API_KEY": "ctx7sk-..." }
+}
+```
+
 ## Estrutura
 
 ```
