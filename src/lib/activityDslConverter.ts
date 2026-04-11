@@ -199,7 +199,7 @@ function buildFullStatement(pq: ParsedQuestion): string {
   let stmt = pq.statement;
   // Append non-instruction continuations to statement
   const textConts = pq.continuations.filter(
-    (c) => !c.startsWith("> ") && !c.startsWith("$$")
+    (c) => !c.startsWith("> ") && !c.startsWith("$$") && c !== "<!--blank-->"
   );
   if (textConts.length > 0) {
     stmt += " " + textConts.join(" ");
