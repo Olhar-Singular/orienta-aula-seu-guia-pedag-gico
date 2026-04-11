@@ -91,17 +91,17 @@ describe("Mode Selection Logic (TEST-01)", () => {
 // ─── Manual Mode Flow (TEST-02) ───
 describe("Manual Mode Flow (TEST-02)", () => {
   describe("Step sequence", () => {
-    it("getStepsForMode('manual') returns 6-step array with barriers and choice before editor", () => {
+    it("getStepsForMode('manual') returns 7-step array with barriers, choice, editor, and pdf_preview", () => {
       const steps = getStepsForMode("manual");
-      expect(steps).toHaveLength(6);
-      expect(steps).toEqual(["type", "content", "barriers", "choice", "editor", "export"]);
+      expect(steps).toHaveLength(7);
+      expect(steps).toEqual(["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"]);
       expect(steps).not.toContain("ai_editor");
     });
 
-    it("getStepsForMode('ai') returns 6-step array with barriers and choice before ai_editor", () => {
+    it("getStepsForMode('ai') returns 7-step array with barriers, choice, ai_editor, and pdf_preview", () => {
       const steps = getStepsForMode("ai");
-      expect(steps).toHaveLength(6);
-      expect(steps).toEqual(["type", "content", "barriers", "choice", "ai_editor", "export"]);
+      expect(steps).toHaveLength(7);
+      expect(steps).toEqual(["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"]);
       expect(steps).not.toContain("editor");
     });
 

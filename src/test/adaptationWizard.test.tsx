@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 
 describe("Wizard step navigation logic", () => {
-  it("has 6 steps defined for each mode", () => {
-    const AI_STEPS = ["type", "content", "barriers", "choice", "ai_editor", "export"];
-    const MANUAL_STEPS = ["type", "content", "barriers", "choice", "editor", "export"];
-    expect(AI_STEPS).toHaveLength(6);
-    expect(MANUAL_STEPS).toHaveLength(6);
+  it("has 7 steps defined for each mode", () => {
+    const AI_STEPS = ["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"];
+    const MANUAL_STEPS = ["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"];
+    expect(AI_STEPS).toHaveLength(7);
+    expect(MANUAL_STEPS).toHaveLength(7);
   });
 
   it("validates activity type selection", () => {

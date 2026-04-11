@@ -275,4 +275,26 @@ describe("activityDslConverter", () => {
       expect(q2.type).toBe("open_ended");
     });
   });
+
+  describe("blank markers", () => {
+    it("strips <!--blank--> markers from statement during DSL-to-structured conversion", () => {
+      const dsl = `## Secao
+
+1. Leia o poema para responder.
+
+<!--blank-->
+
+O anel de vidro
+
+<!--blank-->
+
+Qual o tema do poema?`;
+
+      const result = markdownDslToStructured(dsl);
+      const stmt = result.sections[0].questions[0].statement;
+
+      expect(stmt).not.toContain("<!--blank-->");
+      expect(stmt).toContain("Leia o poema para responder.");
+    });
+  });
 });
