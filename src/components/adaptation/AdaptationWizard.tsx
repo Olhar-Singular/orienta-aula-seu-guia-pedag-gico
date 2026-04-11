@@ -18,9 +18,12 @@ import StepExport from "./StepExport";
 import { StepChoice } from "./StepChoice";
 import { StepEditor } from "./StepEditor";
 import StepAIEditor from "./StepAIEditor";
+import StepPdfPreview from "./StepPdfPreview";
 import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
-import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
+import { isStructuredActivity } from "@/types/adaptation";
+import type { StructuredActivity, SelectedQuestion, PdfLayoutConfig } from "@/types/adaptation";
+import type { EditableActivity } from "@/lib/pdf/editableActivity";
 
 export type { SelectedQuestion };
 
@@ -70,11 +73,13 @@ export type WizardData = {
   contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
   wizardMode?: WizardMode;
+  pdfLayout?: PdfLayoutConfig;
+  editableActivity?: EditableActivity;
 };
 
 const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
-  ai: ["type", "content", "barriers", "choice", "ai_editor", "export"],
-  manual: ["type", "content", "barriers", "choice", "editor", "export"],
+  ai: ["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"],
+  manual: ["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"],
 } as const;
 
 export function getStepsForMode(mode: WizardMode): readonly string[] {
@@ -97,6 +102,7 @@ const STEP_META: Record<string, StepMeta> = {
   barriers: { label: "Barreiras", description: "Aluno e barreiras" },
   ai_editor: { label: "Editor", description: "Editar atividade adaptada" },
   editor: { label: "Editor", description: "Editar atividade" },
+  pdf_preview: { label: "Layout", description: "Preview e layout do PDF" },
   export: { label: "Exportar", description: "Salvar e exportar" },
 };
 
@@ -167,6 +173,8 @@ export default function AdaptationWizard() {
       ...prev,
       result: null,
       contextPillars: null,
+      editableActivity: undefined,
+      pdfLayout: undefined,
       questionImages: { version_universal: {}, version_directed: {} },
     }));
   }, []);
@@ -276,9 +284,9 @@ export default function AdaptationWizard() {
       </p>
 
       {/* Step Content with slide animation.
-          overflow-x-hidden is needed for the slide animation but clips the full-width editor.
-          We disable it only for the ai_editor step. */}
-      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" ? "" : "overflow-x-hidden"}`}>
+          overflow-x-hidden is needed for the slide animation but clips full-width steps.
+          We disable it for ai_editor and pdf_preview (both use split layouts). */}
+      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" || currentStepKey === "pdf_preview" ? "" : "overflow-x-hidden"}`}>
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={step}
@@ -352,6 +360,31 @@ export default function AdaptationWizard() {
                 onPrev={prev}
               />
             )}
+            {currentStepKey === "pdf_preview" && data.result && (() => {
+              const version = data.result.version_universal;
+              const structured: StructuredActivity = isStructuredActivity(version)
+                ? version
+                : { sections: [{ questions: [{ number: 1, type: "open_ended" as const, statement: String(version) }] }] };
+              return (
+                <StepPdfPreview
+                  structuredActivity={structured}
+                  header={{
+                    schoolName: "",
+                    subject: "",
+                    teacherName: "",
+                    className: "",
+                    date: new Date().toLocaleDateString("pt-BR"),
+                    showStudentLine: true,
+                  }}
+                  questionImages={data.questionImages.version_universal}
+                  savedActivity={data.editableActivity}
+                  onNext={next}
+                  onBack={prev}
+                  onLayoutChange={(config) => updateData({ pdfLayout: config })}
+                  onActivityChange={(activity) => updateData({ editableActivity: activity })}
+                />
+              );
+            })()}
             {currentStepKey === "export" && (
               <StepExport data={data} onPrev={prev} onRestart={() => {
                 setStep(0);

@@ -80,6 +80,7 @@ const App = () => (
               </Route>
 
               <Route path="/compartilhado/:token" element={<ErrorBoundary><SharedAdaptation /></ErrorBoundary>} />
+              {/* Protótipo descartável - editor de layout de PDF */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
