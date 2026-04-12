@@ -38,9 +38,16 @@ if ! git status --porcelain 2>/dev/null | grep -qE '(src/|supabase/functions/)';
 fi
 
 # vitest --changed = testes afetados por mudanças no working tree
-output=$(NODE_OPTIONS='--max-old-space-size=19456' \
-  npx vitest --changed --run --reporter=dot --passWithNoTests 2>&1)
-status=$?
+# Roda dentro do container Docker (host pode ter Node antigo)
+if docker compose ps --status running 2>/dev/null | grep -q 'app'; then
+  output=$(docker compose exec -T app sh -c \
+    "NODE_OPTIONS='--max-old-space-size=19456' npx vitest --changed --run --reporter=dot --passWithNoTests" 2>&1)
+  status=$?
+else
+  output=$(NODE_OPTIONS='--max-old-space-size=19456' \
+    npx vitest --changed --run --reporter=dot --passWithNoTests 2>&1)
+  status=$?
+fi
 
 if [ $status -ne 0 ]; then
   printf '%s\n' "$output" | tail -80 >&2
