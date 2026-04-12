@@ -42,7 +42,6 @@ const HINT_ITEMS = [
 
 export default function ActivityEditor({ value, onChange }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const highlightRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewText, setPreviewText] = useState(value);
   const [showHelp, setShowHelp] = useState(false);
@@ -223,7 +222,9 @@ export default function ActivityEditor({ value, onChange }: Props) {
     [value, onChange, snapshotNow]
   );
 
-  // Detect which question the cursor is inside
+  const [activeImageName, setActiveImageName] = useState<string | null>(null);
+
+  // Detect which question the cursor is inside + which image line it's on
   const detectActiveQuestion = useCallback(() => {
     const ta = textareaRef.current;
     if (!ta) return;
@@ -238,6 +239,12 @@ export default function ActivityEditor({ value, onChange }: Props) {
     } else {
       setActiveQuestion(null);
     }
+    // Detect if cursor is on an [img:...] line
+    const lineStart = value.lastIndexOf("\n", pos - 1) + 1;
+    const lineEnd = value.indexOf("\n", pos);
+    const currentLine = value.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
+    const imgMatch = currentLine.match(/^\[img:([^\]\s]+)/);
+    setActiveImageName(imgMatch ? imgMatch[1] : null);
   }, [value]);
 
   const handleTextareaChange = useCallback(
@@ -257,23 +264,6 @@ export default function ActivityEditor({ value, onChange }: Props) {
     [handleInsert, imageRegistry]
   );
 
-  // Build highlighted HTML: same text but [img:...] lines get a colored background
-  const highlightedHtml = useMemo(() => {
-    const escaped = value
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-    return escaped.replace(
-      /^(\[img:[^\]]*\])$/gm,
-      '<mark class="img-highlight">$1</mark>'
-    );
-  }, [value]);
-
-  const syncScroll = useCallback(() => {
-    if (highlightRef.current && textareaRef.current) {
-      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  }, []);
 
   const handleImageResize = useCallback(
     (url: string, width: number) => {
@@ -287,7 +277,6 @@ export default function ActivityEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-0">
-      <style>{`.img-highlight { background: #d1fae5; color: transparent; border-radius: 3px; }`}</style>
       {/* Split layout: editor left, preview right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 min-h-[640px] h-[calc(100vh-260px)]">
         {/* ── LEFT: Editor panel ── */}
@@ -311,16 +300,8 @@ export default function ActivityEditor({ value, onChange }: Props) {
             onImageClick={() => setShowImageModal(true)}
           />
 
-          {/* Textarea with highlight overlay */}
+          {/* Textarea */}
           <div className="flex-1 relative min-h-0">
-            {/* Highlight layer — behind textarea, same font metrics */}
-            <div
-              ref={highlightRef}
-              aria-hidden
-              className="absolute inset-0 p-3.5 font-mono text-[0.78rem] leading-[1.75] overflow-hidden whitespace-pre-wrap break-words pointer-events-none text-transparent"
-              style={{ tabSize: 2 }}
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-            />
             <textarea
               ref={textareaRef}
               value={value}
@@ -328,34 +309,36 @@ export default function ActivityEditor({ value, onChange }: Props) {
               onKeyDown={handleKeyDown}
               onKeyUp={detectActiveQuestion}
               onClick={detectActiveQuestion}
-              onScroll={syncScroll}
               spellCheck={false}
               placeholder="Cole ou digite a atividade aqui..."
-              className="absolute inset-0 w-full h-full border-none outline-none resize-none p-3.5 font-mono text-[0.78rem] leading-[1.75] text-zinc-800 bg-transparent"
-              style={{ tabSize: 2, caretColor: "#27272a" }}
+              className="absolute inset-0 w-full h-full border-none outline-none resize-none p-3.5 font-mono text-[0.78rem] leading-[1.75] text-zinc-800 bg-white"
+              style={{ tabSize: 2 }}
             />
           </div>
 
-          {/* Registered images bar */}
+          {/* Registered images bar — thumbnails with cursor-aware highlight */}
           {registryEntries.length > 0 && (
-            <div className="border-t border-border bg-emerald-50/60 px-3 py-1.5 flex items-center gap-2 overflow-x-auto">
+            <div className="border-t border-border bg-emerald-50/60 px-3 py-2 flex items-center gap-2.5 overflow-x-auto">
               <ImageIcon className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              {registryEntries.map(([name, src]) => (
-                <div
-                  key={name}
-                  className="flex items-center gap-1.5 bg-white border border-emerald-200 rounded px-1.5 py-0.5 flex-shrink-0"
-                  title={name}
-                >
-                  <img
-                    src={src}
-                    alt={name}
-                    className="w-6 h-6 rounded object-cover"
-                  />
-                  <span className="text-[0.62rem] font-mono text-emerald-700 font-medium">
-                    {name}
-                  </span>
-                </div>
-              ))}
+              {registryEntries.map(([name, src]) => {
+                const isActive = activeImageName === name;
+                return (
+                  <div
+                    key={name}
+                    className={`flex flex-col items-center gap-1 rounded-md px-1.5 py-1 flex-shrink-0 transition-all ${isActive ? "bg-emerald-100 ring-2 ring-emerald-400 shadow-sm" : "bg-white border border-emerald-200"}`}
+                    title={`Usado como [img:${name}]`}
+                  >
+                    <img
+                      src={src}
+                      alt={name}
+                      className={`rounded object-cover border ${isActive ? "w-14 h-10 border-emerald-400" : "w-10 h-7 border-emerald-200"}`}
+                    />
+                    <span className={`font-mono font-medium ${isActive ? "text-[0.68rem] text-emerald-800" : "text-[0.6rem] text-emerald-600"}`}>
+                      {name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           )}
 

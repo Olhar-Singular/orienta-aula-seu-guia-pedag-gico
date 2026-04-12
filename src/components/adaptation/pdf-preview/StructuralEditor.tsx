@@ -34,6 +34,17 @@ import type { ContentBlock, TextStyle, PdfFontFamily, ActivityHeader } from "@/t
 import { TEXT_STYLE_DEFAULTS } from "@/types/adaptation";
 import type { EditableActivity, EditableQuestion } from "@/lib/pdf/editableActivity";
 
+/** Strip properties that match TEXT_STYLE_DEFAULTS so we only store real overrides. */
+function stripDefaults(style: TextStyle): TextStyle | undefined {
+  const result: Partial<TextStyle> = {};
+  for (const key of Object.keys(style) as Array<keyof TextStyle>) {
+    if (style[key] !== TEXT_STYLE_DEFAULTS[key]) {
+      (result as Record<string, unknown>)[key] = style[key];
+    }
+  }
+  return Object.keys(result).length > 0 ? (result as TextStyle) : undefined;
+}
+
 type Props = {
   activity: EditableActivity;
   onChange: (next: EditableActivity) => void;
@@ -152,30 +163,30 @@ function TextBlockRow({
       {expanded && (
         <div className="space-y-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
           <div className="flex items-center gap-2">
-            <select value={s.fontFamily} onChange={(e) => onStyleChange({ ...block.style, fontFamily: e.target.value as PdfFontFamily })} className="h-7 rounded border border-gray-200 bg-white px-1.5 text-xs">
+            <select value={s.fontFamily} onChange={(e) => onStyleChange({ ...s, fontFamily: e.target.value as PdfFontFamily })} className="h-7 rounded border border-gray-200 bg-white px-1.5 text-xs">
               {FONT_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
             </select>
             <div className="flex items-center gap-1 rounded border border-gray-200 bg-white px-1 py-0.5">
-              <button onClick={() => onStyleChange({ ...block.style, fontSize: Math.max(6, s.fontSize - 1) })} className="text-gray-500 hover:text-gray-900"><Minus className="h-3 w-3" /></button>
-              <select value={s.fontSize} onChange={(e) => onStyleChange({ ...block.style, fontSize: Number(e.target.value) })} className="h-5 w-10 border-0 bg-transparent text-center text-xs focus:ring-0">
+              <button onClick={() => onStyleChange({ ...s, fontSize: Math.max(6, s.fontSize - 1) })} className="text-gray-500 hover:text-gray-900"><Minus className="h-3 w-3" /></button>
+              <select value={s.fontSize} onChange={(e) => onStyleChange({ ...s, fontSize: Number(e.target.value) })} className="h-5 w-10 border-0 bg-transparent text-center text-xs focus:ring-0">
                 {FONT_SIZES.map((sz) => (<option key={sz} value={sz}>{sz}</option>))}
               </select>
-              <button onClick={() => onStyleChange({ ...block.style, fontSize: Math.min(36, s.fontSize + 1) })} className="text-gray-500 hover:text-gray-900"><Plus className="h-3 w-3" /></button>
+              <button onClick={() => onStyleChange({ ...s, fontSize: Math.min(36, s.fontSize + 1) })} className="text-gray-500 hover:text-gray-900"><Plus className="h-3 w-3" /></button>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex overflow-hidden rounded border border-gray-200 bg-white">
-              <button onClick={() => onStyleChange({ ...block.style, bold: !s.bold })} className={`px-1.5 py-0.5 ${s.bold ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Negrito"><Bold className="h-3.5 w-3.5" /></button>
-              <button onClick={() => onStyleChange({ ...block.style, italic: !s.italic })} className={`px-1.5 py-0.5 ${s.italic ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Italico"><Italic className="h-3.5 w-3.5" /></button>
+              <button onClick={() => onStyleChange({ ...s, bold: !s.bold })} className={`px-1.5 py-0.5 ${s.bold ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Negrito"><Bold className="h-3.5 w-3.5" /></button>
+              <button onClick={() => onStyleChange({ ...s, italic: !s.italic })} className={`px-1.5 py-0.5 ${s.italic ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Italico"><Italic className="h-3.5 w-3.5" /></button>
             </div>
             <div className="flex overflow-hidden rounded border border-gray-200 bg-white">
               {([{ v: "left", I: AlignLeft }, { v: "center", I: AlignCenter }, { v: "right", I: AlignRight }, { v: "justify", I: AlignJustify }] as const).map(({ v, I }) => (
-                <button key={v} onClick={() => onStyleChange({ ...block.style, textAlign: v })} className={`px-1.5 py-0.5 ${s.textAlign === v ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title={v}><I className="h-3.5 w-3.5" /></button>
+                <button key={v} onClick={() => onStyleChange({ ...s, textAlign: v })} className={`px-1.5 py-0.5 ${s.textAlign === v ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title={v}><I className="h-3.5 w-3.5" /></button>
               ))}
             </div>
             <div className="flex items-center gap-1 text-[10px] text-gray-500">
               <span className="whitespace-nowrap">Linha:</span>
-              <select value={s.lineHeight} onChange={(e) => onStyleChange({ ...block.style, lineHeight: Number(e.target.value) })} className="h-5 rounded border border-gray-200 bg-white px-1 text-xs">
+              <select value={s.lineHeight} onChange={(e) => onStyleChange({ ...s, lineHeight: Number(e.target.value) })} className="h-5 rounded border border-gray-200 bg-white px-1 text-xs">
                 {[1, 1.2, 1.5, 1.8, 2, 2.5].map((lh) => (<option key={lh} value={lh}>{lh}x</option>))}
               </select>
             </div>
@@ -538,7 +549,7 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
                 onImageSizeChange={(bi, w) => updateQuestion(q.id, (qq) => ({ ...qq, content: qq.content.map((b, j) => j === bi && b.type === "image" ? { ...b, width: w } : b) }))}
                 onImageAlignmentChange={(bi, a) => updateQuestion(q.id, (qq) => ({ ...qq, content: qq.content.map((b, j) => j === bi && b.type === "image" ? { ...b, alignment: a } : b) }))}
                 onTextStyleChange={(bi, style) => updateQuestion(q.id, (qq) => ({
-                  ...qq, content: qq.content.map((b, j) => j === bi && b.type === "text" ? { ...b, style: Object.keys(style).length > 0 ? style : undefined } : b),
+                  ...qq, content: qq.content.map((b, j) => j === bi && b.type === "text" ? { ...b, style: stripDefaults(style) } : b),
                 }))}
                 onQuestionUpdate={(patch) => updateQuestion(q.id, (qq) => ({ ...qq, ...patch }))}
                 onAlternativeReorder={(from, to) => handleAlternativeReorder(q.id, from, to)}

@@ -25,6 +25,7 @@ import type {
   StylePreset,
 } from "@/types/adaptation";
 import { STYLE_PRESETS } from "@/types/adaptation";
+import type { AdaptationResult } from "./AdaptationWizard";
 
 function useDebounced<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -50,73 +51,87 @@ function saveSavedTemplates(templates: StylePreset[]) {
   localStorage.setItem("pdf-editor-templates", JSON.stringify(templates));
 }
 
+type VersionKey = "universal" | "directed";
+
 type Props = {
-  structuredActivity: StructuredActivity;
-  header: ActivityHeader;
-  questionImages?: Record<string, string[]>;
-  savedActivity?: EditableActivity;
+  universalStructured: StructuredActivity;
+  directedStructured: StructuredActivity;
+  defaultHeader: ActivityHeader;
+  questionImagesUniversal?: Record<string, string[]>;
+  questionImagesDirected?: Record<string, string[]>;
+  savedUniversal?: EditableActivity;
+  savedDirected?: EditableActivity;
+  adaptationResult: AdaptationResult;
   onNext: () => void;
   onBack: () => void;
   onLayoutChange: (config: PdfLayoutConfig) => void;
-  onActivityChange?: (activity: EditableActivity) => void;
+  onUniversalChange?: (activity: EditableActivity) => void;
+  onDirectedChange?: (activity: EditableActivity) => void;
 };
 
 export default function StepPdfPreview({
-  structuredActivity,
-  header,
-  questionImages,
-  savedActivity,
+  universalStructured,
+  directedStructured,
+  defaultHeader,
+  questionImagesUniversal,
+  questionImagesDirected,
+  savedUniversal,
+  savedDirected,
+  adaptationResult,
   onNext,
   onBack,
   onLayoutChange,
-  onActivityChange,
+  onUniversalChange,
+  onDirectedChange,
 }: Props) {
-  // Restore from saved state if available, otherwise convert from structured
-  const initialActivity = savedActivity ?? toEditableActivity(structuredActivity, header, questionImages);
+  const [activeVersion, setActiveVersion] = useState<VersionKey>("universal");
 
-  const {
-    current: activity,
-    set: setActivityInternal,
-    undo: undoInternal,
-    redo: redoInternal,
-    reset,
-    canUndo,
-    canRedo,
-  } = useHistory<EditableActivity>(initialActivity);
+  // Initialize both versions
+  const initialUniversal = savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal);
+  const initialDirected = savedDirected ?? toEditableActivity(directedStructured, defaultHeader, questionImagesDirected);
+
+  // History for universal
+  const uHistory = useHistory<EditableActivity>(initialUniversal);
+  // History for directed
+  const dHistory = useHistory<EditableActivity>(initialDirected);
+
+  const history = activeVersion === "universal" ? uHistory : dHistory;
+  const activity = history.current;
+  const onParentChange = activeVersion === "universal" ? onUniversalChange : onDirectedChange;
 
   const [blob, setBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [showPresetMenu, setShowPresetMenu] = useState(false);
-  const [savedTemplates, setSavedTemplates] = useState<StylePreset[]>(
-    loadSavedTemplates,
-  );
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(
-    null,
-  );
+  const [savedTemplates, setSavedTemplates] = useState<StylePreset[]>(loadSavedTemplates);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const genTokenRef = useRef(0);
   const presetMenuRef = useRef<HTMLDivElement>(null);
 
-  // Wrap setActivity to also sync to WizardData
   function setActivity(next: EditableActivity) {
-    setActivityInternal(next);
-    onActivityChange?.(next);
-  }
-  function undo() {
-    undoInternal();
-  }
-  function redo() {
-    redoInternal();
+    history.set(next);
+    onParentChange?.(next);
   }
 
-  // Sync activity to parent after undo/redo (state changes via internal setState)
+  // Save both versions to wizard on mount (so directed is never undefined)
+  const didMount = useRef(false);
+  useEffect(() => {
+    if (!didMount.current) {
+      didMount.current = true;
+      onUniversalChange?.(uHistory.current);
+      onDirectedChange?.(dHistory.current);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sync active version to parent after undo/redo or tab switch
   const activityRef = useRef(activity);
   useEffect(() => {
     if (activityRef.current !== activity) {
       activityRef.current = activity;
-      onActivityChange?.(activity);
+      onParentChange?.(activity);
     }
-  }, [activity, onActivityChange]);
+  }, [activity, onParentChange]);
 
   const debouncedActivity = useDebounced(activity, 200);
 
@@ -141,14 +156,17 @@ export default function StepPdfPreview({
     })();
   }, [debouncedActivity]);
 
+  // Reset blob when switching versions so preview refreshes
+  useEffect(() => {
+    setBlob(null);
+    setSelectedQuestionId(null);
+  }, [activeVersion]);
+
   // Close preset menu on outside click
   useEffect(() => {
     if (!showPresetMenu) return;
     function handleClick(e: MouseEvent) {
-      if (
-        presetMenuRef.current &&
-        !presetMenuRef.current.contains(e.target as Node)
-      ) {
+      if (presetMenuRef.current && !presetMenuRef.current.contains(e.target as Node)) {
         setShowPresetMenu(false);
       }
     }
@@ -157,14 +175,16 @@ export default function StepPdfPreview({
   }, [showPresetMenu]);
 
   function handleExport() {
-    // Build PdfLayoutConfig from current state
+    // Ensure both versions are saved before navigating
+    onUniversalChange?.(uHistory.current);
+    onDirectedChange?.(dHistory.current);
+
     const config: PdfLayoutConfig = {
       header: activity.header,
       globalShowSeparators: activity.globalShowSeparators,
       questionLayouts: {},
       contentOverrides: {},
     };
-
     for (const q of activity.questions) {
       config.questionLayouts[q.id] = {
         spacingAfter: q.spacingAfter,
@@ -174,7 +194,6 @@ export default function StepPdfPreview({
       };
       config.contentOverrides[q.id] = q.content;
     }
-
     onLayoutChange(config);
     onNext();
   }
@@ -197,11 +216,7 @@ export default function StepPdfPreview({
     const firstTextBlock = activity.questions
       .flatMap((q) => q.content)
       .find((b) => b.type === "text");
-    const baseStyle =
-      firstTextBlock?.type === "text" && firstTextBlock.style
-        ? firstTextBlock.style
-        : {};
-
+    const baseStyle = firstTextBlock?.type === "text" && firstTextBlock.style ? firstTextBlock.style : {};
     const template: StylePreset = {
       id: `custom-${Date.now()}`,
       name,
@@ -217,7 +232,6 @@ export default function StepPdfPreview({
       questionSpacing: activity.questions[0]?.spacingAfter ?? 20,
       alternativeIndent: activity.questions[0]?.alternativeIndent ?? 12,
     };
-
     const next = [...savedTemplates, template];
     setSavedTemplates(next);
     saveSavedTemplates(next);
@@ -229,130 +243,82 @@ export default function StepPdfPreview({
     saveSavedTemplates(next);
   }
 
+  const initialForReset = activeVersion === "universal" ? initialUniversal : initialDirected;
+
   return (
     <div className="flex h-[calc(100vh-200px)] min-h-[600px] flex-col bg-white">
       {/* Toolbar */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
         <div className="flex items-center gap-4">
-          <div>
-            <h2 className="text-sm font-semibold text-gray-900">
-              Preview e Layout do PDF
-            </h2>
-            <p className="text-[10px] text-gray-500">
-              Ctrl+Z desfaz, Ctrl+Y refaz
-            </p>
+          {/* Version tabs */}
+          <div className="flex overflow-hidden rounded-md border border-gray-200">
+            <button
+              onClick={() => setActiveVersion("universal")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeVersion === "universal" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+            >
+              Universal
+            </button>
+            <button
+              onClick={() => setActiveVersion("directed")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeVersion === "directed" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+            >
+              Direcionada
+            </button>
           </div>
 
           {/* Undo/Redo */}
           <div className="flex items-center gap-0.5 rounded border border-gray-200 bg-white">
-            <button
-              onClick={undo}
-              disabled={!canUndo}
-              className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
-              title="Desfazer (Ctrl+Z)"
-            >
+            <button onClick={() => history.undo()} disabled={!history.canUndo} className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Desfazer (Ctrl+Z)">
               <Undo2 className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={redo}
-              disabled={!canRedo}
-              className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
-              title="Refazer (Ctrl+Y)"
-            >
+            <button onClick={() => history.redo()} disabled={!history.canRedo} className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Refazer (Ctrl+Y)">
               <Redo2 className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {/* Zoom */}
           <div className="flex items-center gap-0.5 rounded border border-gray-200 bg-white">
-            <button
-              onClick={handleZoomOut}
-              disabled={zoom <= ZOOM_STEPS[0]}
-              className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
-              title="Diminuir zoom"
-            >
+            <button onClick={handleZoomOut} disabled={zoom <= ZOOM_STEPS[0]} className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Diminuir zoom">
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <span className="w-10 text-center text-[10px] tabular-nums text-gray-700">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={handleZoomIn}
-              disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]}
-              className="px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30"
-              title="Aumentar zoom"
-            >
+            <span className="w-10 text-center text-[10px] tabular-nums text-gray-700">{Math.round(zoom * 100)}%</span>
+            <button onClick={handleZoomIn} disabled={zoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1]} className="px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Aumentar zoom">
               <ZoomIn className="h-3.5 w-3.5" />
             </button>
-            <button
-              onClick={() => setZoom(1)}
-              className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100"
-              title="Zoom 100%"
-            >
+            <button onClick={() => setZoom(1)} className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100" title="Zoom 100%">
               <Maximize className="h-3.5 w-3.5" />
             </button>
           </div>
 
           {/* Presets */}
           <div className="relative" ref={presetMenuRef}>
-            <button
-              onClick={() => setShowPresetMenu(!showPresetMenu)}
-              className="flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-            >
+            <button onClick={() => setShowPresetMenu(!showPresetMenu)} className="flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
               <Palette className="h-3.5 w-3.5" />
               Estilos
             </button>
             {showPresetMenu && (
               <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                  Presets
-                </div>
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Presets</div>
                 {STYLE_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleApplyPreset(p)}
-                    className="flex w-full flex-col px-3 py-2 text-left hover:bg-gray-50"
-                  >
-                    <span className="text-xs font-medium text-gray-900">
-                      {p.name}
-                    </span>
-                    <span className="text-[10px] text-gray-500">
-                      {p.description}
-                    </span>
+                  <button key={p.id} onClick={() => handleApplyPreset(p)} className="flex w-full flex-col px-3 py-2 text-left hover:bg-gray-50">
+                    <span className="text-xs font-medium text-gray-900">{p.name}</span>
+                    <span className="text-[10px] text-gray-500">{p.description}</span>
                   </button>
                 ))}
                 {savedTemplates.length > 0 && (
                   <>
                     <div className="mx-3 my-1 h-px bg-gray-100" />
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                      Meus Templates
-                    </div>
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Meus Templates</div>
                     {savedTemplates.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50"
-                      >
-                        <button
-                          onClick={() => handleApplyPreset(t)}
-                          className="text-xs font-medium text-gray-900"
-                        >
-                          {t.name}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTemplate(t.id)}
-                          className="text-[10px] text-red-500 hover:text-red-700"
-                        >
-                          remover
-                        </button>
+                      <div key={t.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-gray-50">
+                        <button onClick={() => handleApplyPreset(t)} className="text-xs font-medium text-gray-900">{t.name}</button>
+                        <button onClick={() => handleDeleteTemplate(t.id)} className="text-[10px] text-red-500 hover:text-red-700">remover</button>
                       </div>
                     ))}
                   </>
                 )}
                 <div className="mx-3 my-1 h-px bg-gray-100" />
-                <button
-                  onClick={handleSaveTemplate}
-                  className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50"
-                >
+                <button onClick={handleSaveTemplate} className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50">
                   <Save className="h-3 w-3" />
                   Salvar estilo atual como template
                 </button>
@@ -362,10 +328,7 @@ export default function StepPdfPreview({
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={() => reset(initialActivity)}
-            className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={() => history.reset(initialForReset)} className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <RotateCcw className="h-3 w-3" />
             Resetar
           </button>
@@ -383,27 +346,17 @@ export default function StepPdfPreview({
           />
         </div>
         <div className="w-3/5">
-          <PdfCanvasPreview
-            blob={blob}
-            isGenerating={isGenerating}
-            zoom={zoom}
-          />
+          <PdfCanvasPreview blob={blob} isGenerating={isGenerating} zoom={zoom} />
         </div>
       </div>
 
       {/* Navigation */}
       <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+        <button onClick={onBack} className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           <ArrowLeft className="h-4 w-4" />
           Voltar ao Editor
         </button>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
+        <button onClick={handleExport} className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
           Exportar
           <ArrowRight className="h-4 w-4" />
         </button>

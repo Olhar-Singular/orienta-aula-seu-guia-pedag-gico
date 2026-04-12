@@ -136,7 +136,7 @@ export function renderContentBlock(block: ContentBlock) {
     return (
       <Text
         key={block.id}
-        style={[styles.textBlock, textStyleToPdf(block.style)]}
+        style={{ ...styles.textBlock, ...textStyleToPdf(block.style) }}
       >
         {block.content}
       </Text>
