@@ -103,13 +103,30 @@ function buildQuestionImageMap(
   const parsedQuestions = parseAdaptedQuestions(sectionContent);
   if (parsedQuestions.length === 0 || selectedQuestions.length === 0) return {};
   const map: QuestionImageMapLocal = {};
-  selectedQuestions.forEach((sq, index) => {
-    if (!sq.image_url) return;
-    const adaptedQ = parsedQuestions[index];
-    if (!adaptedQ) return;
-    if (!map[adaptedQ.number]) map[adaptedQ.number] = [];
-    map[adaptedQ.number].push(sq.image_url);
-  });
+
+  for (const sq of selectedQuestions) {
+    if (!sq.image_url) continue;
+    // Match by text similarity: find the adapted question whose text best matches the original
+    const originalWords = new Set(sq.text.toLowerCase().split(/\s+/).filter((w) => w.length > 3));
+    let bestMatch: { number: string; score: number } | null = null;
+    for (const aq of parsedQuestions) {
+      const aqWords = aq.text.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+      const score = aqWords.filter((w) => originalWords.has(w)).length;
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { number: aq.number, score };
+      }
+    }
+    // Fallback to index-based if no text match found
+    if (!bestMatch) {
+      const idx = selectedQuestions.indexOf(sq);
+      const fallback = parsedQuestions[idx];
+      if (fallback) bestMatch = { number: fallback.number, score: 0 };
+    }
+    if (bestMatch) {
+      if (!map[bestMatch.number]) map[bestMatch.number] = [];
+      map[bestMatch.number].push(sq.image_url);
+    }
+  }
   return map;
 }
 
@@ -121,6 +138,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   const [universalText, setUniversalText] = useState("");
   const [directedText, setDirectedText] = useState("");
   const initialized = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Initialize editor text when result is available
   const initEditorText = useCallback(
@@ -204,6 +222,11 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   };
 
   const generate = useCallback(async () => {
+    // Abort any previous in-flight generation
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     initialized.current = false;
     try {
@@ -222,6 +245,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/adapt-activity`,
         {
           method: "POST",
+          signal: controller.signal,
           headers: {
             Authorization: `Bearer ${accessToken}`,
             "Content-Type": "application/json",
@@ -250,6 +274,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       }
 
       const result = await resp.json();
+      if (controller.signal.aborted) return;
       const adaptation: AdaptationResult = result.adaptation;
 
       updateData({
@@ -258,6 +283,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       });
 
       const mergedImages = await generateImagesForResult(accessToken);
+      if (controller.signal.aborted) return;
 
       const vUniversal = adaptation.version_universal;
       const vDirected = adaptation.version_directed;
@@ -315,10 +341,13 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       });
       initialized.current = true;
     } catch (e: any) {
+      if (e.name === "AbortError") return; // Superseded by a newer generation
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
-      setLoading(false);
-      setIsGeneratingImages(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+        setIsGeneratingImages(false);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, schoolId, updateData, initEditorText]);
@@ -334,7 +363,8 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       version_universal: markdownDslToStructured(universalText),
       version_directed: markdownDslToStructured(directedText),
     };
-    updateData({ result: updatedResult });
+    // Clear stale layout state so StepPdfPreview re-converts from the new result
+    updateData({ result: updatedResult, editableActivity: undefined, editableActivityDirected: undefined });
     onNext();
   };
 

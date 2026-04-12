@@ -158,13 +158,14 @@ export type SelectedQuestion = {
   difficulty: string | null;
 };
 
-// Type guard
+// Type guard — validates that sections contain question arrays
 export function isStructuredActivity(data: unknown): data is StructuredActivity {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'sections' in data &&
-    Array.isArray((data as any).sections)
+  if (typeof data !== 'object' || data === null || !('sections' in data)) return false;
+  const sections = (data as Record<string, unknown>).sections;
+  if (!Array.isArray(sections)) return false;
+  // Must have at least one section with a questions array
+  return sections.length > 0 && sections.every(
+    (s) => typeof s === 'object' && s !== null && Array.isArray((s as Record<string, unknown>).questions)
   );
 }
 

@@ -162,15 +162,20 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     statement: buildFullStatement(pq),
   };
 
-  // Alternatives (multiple choice)
+  // Alternatives (multiple choice) — filter out empty entries
   if (pq.alternatives.length > 0) {
-    q.alternatives = pq.alternatives.map(
-      (a): Alternative => ({
-        letter: a.letter,
-        text: a.text,
-        is_correct: a.correct || undefined,
-      })
-    );
+    const alts = pq.alternatives
+      .filter((a) => a.text.trim())
+      .map(
+        (a): Alternative => ({
+          letter: a.letter,
+          text: a.text,
+          is_correct: a.correct || undefined,
+        })
+      );
+    if (alts.length > 0) {
+      q.alternatives = alts;
+    }
   }
 
   // Images
@@ -178,16 +183,18 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     q.images = [...pq.images];
   }
 
-  // Extract instruction from continuations
-  const instrCont = pq.continuations.find((c) => c.startsWith("> "));
-  if (instrCont) {
-    q.instruction = instrCont.slice(2);
+  // Extract ALL instructions from continuations (not just the first)
+  const instructions = pq.continuations
+    .filter((c) => c.startsWith("> ") && !/^>\s*Apoio\s*:/i.test(c))
+    .map((c) => c.slice(2));
+  if (instructions.length > 0) {
+    q.instruction = instructions.join("\n");
   }
 
-  // Scaffolding from "> Apoio: " continuations
+  // Scaffolding from "> Apoio: " continuations — use regex for robustness
   const scaffolding = pq.continuations
-    .filter((c) => c.startsWith("> Apoio: "))
-    .map((c) => c.slice(9));
+    .filter((c) => /^>\s*Apoio\s*:/i.test(c))
+    .map((c) => c.replace(/^>\s*Apoio\s*:\s*/i, ""));
   if (scaffolding.length > 0) {
     q.scaffolding = scaffolding;
   }

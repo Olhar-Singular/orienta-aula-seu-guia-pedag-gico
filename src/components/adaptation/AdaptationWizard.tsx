@@ -22,6 +22,7 @@ import StepPdfPreview from "./StepPdfPreview";
 import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
 import { isStructuredActivity } from "@/types/adaptation";
+import { markdownDslToStructured } from "@/lib/activityDslConverter";
 import type { StructuredActivity, SelectedQuestion, PdfLayoutConfig } from "@/types/adaptation";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
 
@@ -75,6 +76,7 @@ export type WizardData = {
   wizardMode?: WizardMode;
   pdfLayout?: PdfLayoutConfig;
   editableActivity?: EditableActivity;
+  editableActivityDirected?: EditableActivity;
 };
 
 const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
@@ -361,27 +363,33 @@ export default function AdaptationWizard() {
               />
             )}
             {currentStepKey === "pdf_preview" && data.result && (() => {
-              const version = data.result.version_universal;
-              const structured: StructuredActivity = isStructuredActivity(version)
-                ? version
-                : { sections: [{ questions: [{ number: 1, type: "open_ended" as const, statement: String(version) }] }] };
+              const toStructured = (v: string | StructuredActivity): StructuredActivity =>
+                isStructuredActivity(v)
+                  ? v
+                  : markdownDslToStructured(String(v));
+              const defaultHeader = {
+                schoolName: "",
+                subject: "",
+                teacherName: "",
+                className: "",
+                date: new Date().toLocaleDateString("pt-BR"),
+                showStudentLine: true,
+              };
               return (
                 <StepPdfPreview
-                  structuredActivity={structured}
-                  header={{
-                    schoolName: "",
-                    subject: "",
-                    teacherName: "",
-                    className: "",
-                    date: new Date().toLocaleDateString("pt-BR"),
-                    showStudentLine: true,
-                  }}
-                  questionImages={data.questionImages.version_universal}
-                  savedActivity={data.editableActivity}
+                  universalStructured={toStructured(data.result.version_universal)}
+                  directedStructured={toStructured(data.result.version_directed)}
+                  defaultHeader={defaultHeader}
+                  questionImagesUniversal={data.questionImages.version_universal}
+                  questionImagesDirected={data.questionImages.version_directed}
+                  savedUniversal={data.editableActivity}
+                  savedDirected={data.editableActivityDirected}
+                  adaptationResult={data.result}
                   onNext={next}
                   onBack={prev}
                   onLayoutChange={(config) => updateData({ pdfLayout: config })}
-                  onActivityChange={(activity) => updateData({ editableActivity: activity })}
+                  onUniversalChange={(activity) => updateData({ editableActivity: activity })}
+                  onDirectedChange={(activity) => updateData({ editableActivityDirected: activity })}
                 />
               );
             })()}

@@ -39,10 +39,12 @@ function formatAlternatives(
 }
 
 /**
- * Merges external questionImages into the question, avoiding duplicates
- * with images already present in question.images.
+ * Resolves which images to use for a question.
+ * External images (from WizardData.questionImages) are the canonical source
+ * with resolved URLs. q.images may contain stale references (e.g. "imagem-1")
+ * that don't work as image src — so when externals exist, prefer them.
  */
-function mergeExternalImages(
+function resolveQuestionImages(
   q: StructuredQuestion,
   externalImages?: Record<string, string[]>,
 ): string[] | undefined {
@@ -50,17 +52,9 @@ function mergeExternalImages(
 
   const qKey = String(q.number);
   const external = externalImages[qKey];
-  if (!external || external.length === 0) return q.images;
+  if (external && external.length > 0) return external;
 
-  const existing = new Set(q.images ?? []);
-  const merged = [...(q.images ?? [])];
-  for (const src of external) {
-    if (!existing.has(src)) {
-      merged.push(src);
-    }
-  }
-
-  return merged.length > 0 ? merged : undefined;
+  return q.images;
 }
 
 /**
@@ -91,8 +85,7 @@ export function toEditableActivity(
           alternativeIndent: q.alternativeIndent,
         });
       } else {
-        // Merge external images before migration
-        const mergedImages = mergeExternalImages(q, questionImages);
+        const mergedImages = resolveQuestionImages(q, questionImages);
         const questionWithImages: StructuredQuestion = {
           ...q,
           images: mergedImages,
