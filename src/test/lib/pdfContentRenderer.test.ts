@@ -1,6 +1,37 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { resolveFontFamily, textStyleToPdf } from "@/lib/pdf/contentRenderer";
 import type { TextStyle } from "@/types/adaptation";
+
+// Use vi.hoisted so the variables are available inside the vi.mock factory (which is hoisted)
+const { MockView, MockText, MockImage } = vi.hoisted(() => {
+  const MockView = vi.fn((props: any) => props);
+  const MockText = vi.fn((props: any) => props);
+  const MockImage = vi.fn((props: any) => props);
+  return { MockView, MockText, MockImage };
+});
+
+// Mock @react-pdf/renderer — vi.mock is hoisted but the MockX vars are also hoisted via vi.hoisted
+vi.mock("@react-pdf/renderer", () => ({
+  View: MockView,
+  Text: MockText,
+  Image: MockImage,
+  StyleSheet: {
+    create: (styles: any) => styles,
+  },
+  Font: { register: vi.fn() },
+}));
+
+// Import after mock is set up
+import {
+  renderContentBlock,
+  renderActivityHeader,
+  renderAnswerLines,
+} from "@/lib/pdf/contentRenderer";
+import type { ContentBlock, ActivityHeader } from "@/types/adaptation";
+
+const CONTENT_WIDTH = 483;
+
+// ─── resolveFontFamily ───────────────────────────────────────────────────────
 
 describe("resolveFontFamily", () => {
   it("returns base font when no bold/italic", () => {
@@ -26,6 +57,8 @@ describe("resolveFontFamily", () => {
     expect(resolveFontFamily("Times-Roman", true, true)).toBe("Times-BoldItalic");
   });
 });
+
+// ─── textStyleToPdf ──────────────────────────────────────────────────────────
 
 describe("textStyleToPdf", () => {
   it("uses defaults when no style provided", () => {
@@ -79,5 +112,310 @@ describe("textStyleToPdf", () => {
       textAlign: "center",
       lineHeight: 2,
     });
+  });
+});
+
+// ─── renderContentBlock ──────────────────────────────────────────────────────
+
+describe("renderContentBlock", () => {
+  // text blocks
+  it("text block with undefined style renders Text with default style merged", () => {
+    const block: ContentBlock = { id: "b1", type: "text", content: "Hello" };
+    const el = renderContentBlock(block) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockText);
+    expect(el.props.children).toBe("Hello");
+    expect(el.props.style).toMatchObject({
+      fontSize: 11,
+      fontFamily: "Helvetica",
+      textAlign: "justify",
+      lineHeight: 1.5,
+    });
+  });
+
+  it("text block with fontSize:14 override renders Text with fontSize:14 and other defaults", () => {
+    const block: ContentBlock = {
+      id: "b2",
+      type: "text",
+      content: "Texto grande",
+      style: { fontSize: 14 },
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el.type).toBe(MockText);
+    expect(el.props.style).toMatchObject({ fontSize: 14 });
+    expect(el.props.style).toMatchObject({ lineHeight: 1.5, textAlign: "justify" });
+  });
+
+  it("text block with bold+italic renders resolved font variant", () => {
+    const block: ContentBlock = {
+      id: "b3",
+      type: "text",
+      content: "Bold italic",
+      style: { bold: true, italic: true, fontFamily: "Helvetica" },
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el.type).toBe(MockText);
+    expect(el.props.style).toMatchObject({ fontFamily: "Helvetica-BoldOblique" });
+  });
+
+  // image blocks — alignment
+  it("image block with alignment 'center' wraps with center style", () => {
+    const block: ContentBlock = {
+      id: "img1",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "center",
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockView);
+    const wrapperStyle = Array.isArray(el.props.style)
+      ? Object.assign({}, ...el.props.style)
+      : el.props.style;
+    expect(wrapperStyle).toMatchObject({ alignItems: "center" });
+  });
+
+  it("image block with alignment 'left' wraps with flex-start style", () => {
+    const block: ContentBlock = {
+      id: "img2",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "left",
+    };
+    const el = renderContentBlock(block) as any;
+
+    const wrapperStyle = Array.isArray(el.props.style)
+      ? Object.assign({}, ...el.props.style)
+      : el.props.style;
+    expect(wrapperStyle).toMatchObject({ alignItems: "flex-start" });
+  });
+
+  it("image block with alignment 'right' wraps with flex-end style", () => {
+    const block: ContentBlock = {
+      id: "img3",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "right",
+    };
+    const el = renderContentBlock(block) as any;
+
+    const wrapperStyle = Array.isArray(el.props.style)
+      ? Object.assign({}, ...el.props.style)
+      : el.props.style;
+    expect(wrapperStyle).toMatchObject({ alignItems: "flex-end" });
+  });
+
+  it("image block with caption renders Text with caption content", () => {
+    const block: ContentBlock = {
+      id: "img4",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "center",
+      caption: "Figura 1: Diagrama",
+    };
+    const el = renderContentBlock(block) as any;
+
+    const children = Array.isArray(el.props.children)
+      ? el.props.children
+      : [el.props.children];
+    const captionEl = children.find(
+      (c: any) => c && c.type === MockText,
+    );
+    expect(captionEl).toBeDefined();
+    expect(captionEl.props.children).toBe("Figura 1: Diagrama");
+  });
+
+  it("image block without caption does not render a caption Text", () => {
+    const block: ContentBlock = {
+      id: "img5",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "center",
+    };
+    const el = renderContentBlock(block) as any;
+
+    const children = Array.isArray(el.props.children)
+      ? el.props.children
+      : [el.props.children];
+    const captionEl = children.find(
+      (c: any) => c && c.type === MockText,
+    );
+    expect(captionEl ?? null).toBeNull();
+  });
+
+  it("image block respects width (0.5 → 50% of CONTENT_WIDTH)", () => {
+    const block: ContentBlock = {
+      id: "img6",
+      type: "image",
+      src: "https://example.com/img.png",
+      width: 0.5,
+      alignment: "center",
+    };
+    const el = renderContentBlock(block) as any;
+
+    const children = Array.isArray(el.props.children)
+      ? el.props.children
+      : [el.props.children];
+    const imgEl = children.find((c: any) => c && c.type === MockImage);
+    expect(imgEl).toBeDefined();
+    expect(imgEl.props.style).toMatchObject({ width: CONTENT_WIDTH * 0.5 });
+  });
+
+  // page_break
+  it("page_break block returns View with break prop", () => {
+    const block: ContentBlock = { id: "pb1", type: "page_break" };
+    const el = renderContentBlock(block) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockView);
+    expect(el.props.break).toBe(true);
+  });
+
+  // unknown type
+  it("unknown block type returns null", () => {
+    const block = { id: "unk1", type: "unknown" } as unknown as ContentBlock;
+    const el = renderContentBlock(block);
+
+    expect(el).toBeNull();
+  });
+});
+
+// ─── renderActivityHeader ────────────────────────────────────────────────────
+
+describe("renderActivityHeader", () => {
+  const BASE_HEADER: ActivityHeader = {
+    schoolName: "Escola Municipal Exemplo",
+    subject: "Matematica",
+    teacherName: "Prof. Silva",
+    className: "5A",
+    date: "11/04/2026",
+    showStudentLine: true,
+  };
+
+  /** Recursively searches the element tree for a node matching predicate */
+  function findNode(node: any, predicate: (n: any) => boolean): any {
+    if (!node || typeof node !== "object") return null;
+    if (predicate(node)) return node;
+    const kids = Array.isArray(node.props?.children)
+      ? node.props.children
+      : node.props?.children != null
+        ? [node.props.children]
+        : [];
+    for (const child of kids) {
+      const found = findNode(child, predicate);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /** Recursively collects all string text from Text nodes */
+  function collectText(node: any): string {
+    if (!node || typeof node !== "object") return String(node ?? "");
+    if (typeof node === "string") return node;
+    const kids = Array.isArray(node.props?.children)
+      ? node.props.children
+      : node.props?.children != null
+        ? [node.props.children]
+        : [];
+    return kids.map(collectText).join(" ");
+  }
+
+  it("basic header (all fields) renders a View with children", () => {
+    const el = renderActivityHeader(BASE_HEADER) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockView);
+    expect(el.props.children).toBeDefined();
+  });
+
+  it("header with logoSrc renders PdfImage", () => {
+    const header: ActivityHeader = {
+      ...BASE_HEADER,
+      logoSrc: "https://example.com/logo.png",
+      logoWidth: 60,
+    };
+    const el = renderActivityHeader(header) as any;
+
+    const imgEl = findNode(el, (n) => n.type === MockImage);
+    expect(imgEl).not.toBeNull();
+    expect(imgEl.props.src).toBe("https://example.com/logo.png");
+  });
+
+  it("header without logoSrc does NOT render PdfImage", () => {
+    const header: ActivityHeader = { ...BASE_HEADER, logoSrc: undefined };
+    const el = renderActivityHeader(header) as any;
+
+    const imgEl = findNode(el, (n) => n.type === MockImage);
+    expect(imgEl).toBeNull();
+  });
+
+  it("header with showStudentLine=true renders student line Text", () => {
+    const header: ActivityHeader = { ...BASE_HEADER, showStudentLine: true };
+    const el = renderActivityHeader(header) as any;
+
+    const allText = collectText(el);
+    expect(allText).toContain("Nome do aluno");
+  });
+
+  it("header with showStudentLine=false does not render student line", () => {
+    const header: ActivityHeader = { ...BASE_HEADER, showStudentLine: false };
+    const el = renderActivityHeader(header) as any;
+
+    const allText = collectText(el);
+    expect(allText).not.toContain("Nome do aluno");
+  });
+});
+
+// ─── renderAnswerLines ───────────────────────────────────────────────────────
+
+describe("renderAnswerLines", () => {
+  it("count=0 returns null", () => {
+    expect(renderAnswerLines(0)).toBeNull();
+  });
+
+  it("count=-1 returns null (edge case)", () => {
+    expect(renderAnswerLines(-1)).toBeNull();
+  });
+
+  it("count=1 returns View with 1 answer line child", () => {
+    const el = renderAnswerLines(1) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockView);
+
+    // Inner View holds the lines array
+    const innerView = Array.isArray(el.props.children)
+      ? el.props.children[0]
+      : el.props.children;
+    expect(innerView.type).toBe(MockView);
+
+    const lines = Array.isArray(innerView.props.children)
+      ? innerView.props.children
+      : [innerView.props.children];
+    expect(lines).toHaveLength(1);
+  });
+
+  it("count=5 returns View with 5 answer line children", () => {
+    const el = renderAnswerLines(5) as any;
+
+    expect(el).not.toBeNull();
+    expect(el.type).toBe(MockView);
+
+    const innerView = Array.isArray(el.props.children)
+      ? el.props.children[0]
+      : el.props.children;
+    const lines = Array.isArray(innerView.props.children)
+      ? innerView.props.children
+      : [innerView.props.children];
+    expect(lines).toHaveLength(5);
   });
 });
