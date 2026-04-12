@@ -275,4 +275,168 @@ describe("activityDslConverter", () => {
       expect(q2.type).toBe("open_ended");
     });
   });
+
+  describe("blank markers", () => {
+    it("strips <!--blank--> markers from statement during DSL-to-structured conversion", () => {
+      const dsl = `## Secao
+
+1. Leia o poema para responder.
+
+<!--blank-->
+
+O anel de vidro
+
+<!--blank-->
+
+Qual o tema do poema?`;
+
+      const result = markdownDslToStructured(dsl);
+      const stmt = result.sections[0].questions[0].statement;
+
+      expect(stmt).not.toContain("<!--blank-->");
+      expect(stmt).toContain("Leia o poema para responder.");
+    });
+  });
+
+  // ── parsedQuestionToStructured fixes ──
+
+  describe("parsedQuestionToStructured fixes", () => {
+    it("filters out empty alternatives", () => {
+      // alternative b) has empty text — it should be removed from output
+      const dsl = `1) Qual é a capital do Brasil?
+a) Rio de Janeiro
+b)
+c*) Brasília`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.alternatives).toHaveLength(2);
+      expect(q.alternatives!.map((a) => a.letter)).toEqual(["a", "c"]);
+    });
+
+    it("collects multiple non-apoio instructions joined with newline", () => {
+      const dsl = `1) Leia o trecho e responda.
+> Observe bem.
+> Pense antes de responder.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.instruction).toBe("Observe bem.\nPense antes de responder.");
+    });
+
+    it("collects multiple Apoio lines as separate scaffolding entries (open-ended question)", () => {
+      // For open-ended questions (no alternatives), > Apoio: lines land in pq.continuations
+      const dsl = `1) Explique o que é fotossíntese.
+[linhas:3]
+> Apoio: Conte nos dedos.
+> Apoio: Use uma régua numérica.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Conte nos dedos.", "Use uma régua numérica."]);
+    });
+
+    it("collects multiple Apoio lines via round-trip (multiple choice)", () => {
+      // structuredToMarkdownDsl produces > Apoio: after alternatives,
+      // then markdownDslToStructured must preserve them (they attach to lastAlt.continuations
+      // in the parser, which is separate from pq.continuations — scaffolding survives round-trip)
+      const original: StructuredActivity = {
+        sections: [
+          {
+            questions: [
+              {
+                number: 1,
+                type: "multiple_choice",
+                statement: "Calcule 2 + 3.",
+                alternatives: [
+                  { letter: "a", text: "4" },
+                  { letter: "b", text: "5", is_correct: true },
+                  { letter: "c", text: "6" },
+                ],
+                scaffolding: ["Conte nos dedos.", "Use uma régua numérica."],
+              },
+            ],
+          },
+        ],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      // DSL must contain the Apoio lines
+      expect(dsl).toContain("> Apoio: Conte nos dedos.");
+      expect(dsl).toContain("> Apoio: Use uma régua numérica.");
+    });
+
+    it("recognizes scaffolding with lowercase 'apoio' (open-ended question)", () => {
+      // open-ended so > apoio: lands in pq.continuations
+      const dsl = `1) Qual animal late?
+[linhas:2]
+> apoio: Pense nos animais domésticos.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Pense nos animais domésticos."]);
+    });
+
+    it("recognizes scaffolding with space before colon '> Apoio : X' (open-ended question)", () => {
+      // open-ended so > Apoio : ... lands in pq.continuations
+      const dsl = `1) Qual é a raiz quadrada de 9?
+[linhas:2]
+> Apoio : Use a tabuada de multiplicação.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Use a tabuada de multiplicação."]);
+    });
+
+    it("extracts scaffolding text correctly without including the prefix", () => {
+      const dsl = `1) Resolva a conta.
+> Apoio: Use os dedos`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      // scaffolding text should be ONLY "Use os dedos", not "> Apoio: Use os dedos"
+      expect(q.scaffolding).toEqual(["Use os dedos"]);
+      expect(q.scaffolding![0]).not.toMatch(/^>\s*Apoio/i);
+    });
+
+    it("does not treat Apoio line as an instruction (open-ended question)", () => {
+      // Both > lines land in pq.continuations for open-ended (no alternatives)
+      const dsl = `1) O que é fotossíntese?
+> Apoio: Lembre-se da aula de ciências.
+> Nota importante.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      // Apoio goes to scaffolding, the other > line goes to instruction
+      expect(q.scaffolding).toEqual(["Lembre-se da aula de ciências."]);
+      expect(q.instruction).toBe("Nota importante.");
+    });
+
+    it("handles question with mixed empty and non-empty alternatives — filters correctly", () => {
+      // DSL where b) is empty: verifies alternatives filtering
+      const dsl = `1) Qual é a cor do céu?
+a*) Azul
+b)
+c) Verde`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      // b) filtered out, only a and c remain
+      expect(q.alternatives).toHaveLength(2);
+      expect(q.alternatives!.map((a) => a.letter)).toEqual(["a", "c"]);
+    });
+
+    it("scaffolding and instruction survive full round-trip for open-ended question", () => {
+      // Verify structuredToMarkdownDsl -> markdownDslToStructured preserves scaffolding + instruction
+      const original: StructuredActivity = {
+        sections: [
+          {
+            questions: [
+              {
+                number: 1,
+                type: "open_ended",
+                statement: "O que é fotossíntese?",
+                scaffolding: ["Lembre-se da aula.", "Pense nas plantas."],
+              },
+            ],
+          },
+        ],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      const roundTripped = markdownDslToStructured(dsl);
+      const q = roundTripped.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Lembre-se da aula.", "Pense nas plantas."]);
+    });
+  });
 });

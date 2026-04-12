@@ -89,7 +89,8 @@ function renderExport() {
 describe("StepExport component", () => {
   it("renders export action cards", () => {
     const { getByText } = renderExport();
-    expect(getByText("Exportar PDF")).toBeTruthy();
+    expect(getByText("PDF Universal")).toBeTruthy();
+    expect(getByText("PDF Direcionada")).toBeTruthy();
     expect(getByText("Salvar no Histórico")).toBeTruthy();
   });
 
