@@ -168,12 +168,16 @@ src/
 
 ### Fluxo Principal: Wizard de Adaptação
 
+O wizard tem dois modos (escolhidos no step `choice`): **AI** (geração assistida pela IA) e **manual** (o professor edita direto). Ambos compartilham a maioria dos steps:
+
 ```
-[1] Tipo de Atividade → [2] Conteúdo → [3] Barreiras → [4] Resultado IA → [5] Exportar
-     (prova/exercício/     (texto/PDF/       (11 dimensões:       (universal +        (PDF/DOCX/
-      atividade_casa/       DOCX/imagem/      TEA, TDAH, etc.)     dirigida)           salvar/
-      trabalho)             banco questões)                                             compartilhar)
+[1] Tipo → [2] Conteúdo → [3] Barreiras → [4] Modo → [5] Editor → [6] Layout PDF → [7] Exportar
 ```
+
+- `[5] Editor`: `StepAIEditor` no modo AI (gera e edita DSL universal/dirigida), `StepEditor` no modo manual.
+- `[6] Layout PDF`: `StepPdfPreview` com editor visual dual-column (universal vs directed) e coloração inline por palavra.
+
+**Estado preservado** (ver `src/lib/adaptationWizardHelpers.ts`): `WizardData` mantém drafts do editor (`aiEditorUniversalDsl`, `aiEditorDirectedDsl`, `manualEditorDsl`) e o layout editado (`editableActivity`, `editableActivityDirected`, `pdfLayout`) ao navegar entre steps. Layout só é invalidado quando o texto do editor realmente muda. Ir pra trás do editor com resultado já gerado dispara diálogo de confirmação ("Descartar resultado?").
 
 ### Controle de Acesso
 

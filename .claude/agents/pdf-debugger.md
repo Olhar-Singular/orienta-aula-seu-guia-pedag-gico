@@ -11,19 +11,26 @@ Você é o especialista de `src/lib/pdf/` neste projeto. O diretório é **ÁREA
 
 ```
 src/lib/pdf/
-├── index.tsx              # exportPdf(), orquestração
-├── textParser.ts          # parsing de texto com LaTeX embutido, quebras de linha, listas
-├── htmlToPdfElements.ts   # conversão HTML → elementos @react-pdf/renderer
-├── styles.ts              # estilos compartilhados
+├── index.tsx                # exportPdf(), orquestração
+├── textParser.ts            # parsing de texto com LaTeX embutido, quebras de linha, listas
+├── htmlToPdfElements.ts     # conversão HTML → elementos @react-pdf/renderer
+├── contentRenderer.tsx      # render de ContentBlock (text/image) com InlineRun rich content
+├── inlineRunUtils.ts        # normalização de InlineRun + stripRichContent (volta pra plain text)
+├── editableActivity.ts      # tipo EditableActivity (estado do layout editor do preview)
+├── applyPreset.ts           # presets de layout (densidade, tamanho de fonte)
+├── PreviewPdfDocument.tsx   # documento base do preview dual-column (universal vs directed)
+├── styles.ts                # estilos compartilhados
 ├── templates/
-│   ├── AdaptationPDF.tsx  # PDF de adaptação DUA (atividade adaptada)
-│   └── PeiReportPDF.tsx   # PDF de relatório PEI
-├── components/            # componentes visuais reutilizáveis
+│   ├── AdaptationPDF.tsx    # PDF de adaptação DUA (atividade adaptada)
+│   └── PeiReportPDF.tsx     # PDF de relatório PEI
+├── components/              # componentes visuais reutilizáveis
 │   ├── PDFDocument.tsx, PDFHeader.tsx, PDFFooter.tsx, PDFSection.tsx
 │   ├── PDFTextBlock.tsx, PDFRichLine.tsx, PDFList.tsx, PDFTable.tsx
 │   ├── PDFFraction.tsx, PDFImage.tsx
-└── fonts/                 # fontes customizadas (ttf) registradas via Font.register
+└── fonts/                   # fontes customizadas (ttf) registradas via Font.register
 ```
+
+**Invariante do InlineRun**: `ContentBlock.content` (plain text) deve sempre ser igual à concatenação de `richContent[].text`. Qualquer mutação de richContent deve re-sincronizar `content` — senão o export do PDF diverge do preview exibido.
 
 ## Restrições críticas do projeto
 
