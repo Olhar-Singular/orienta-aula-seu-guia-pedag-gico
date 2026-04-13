@@ -136,9 +136,12 @@ describe("StepAIEditor", () => {
     await user.click(screen.getByRole("button", { name: /avançar/i }));
 
     expect(updateData).toHaveBeenCalled();
-    const updateCall = updateData.mock.calls[0][0];
-    // Should update result with structured data parsed from DSL
-    expect(updateCall.result).toBeDefined();
+    // Find the updateData call that writes back the edited result.
+    const resultCall = updateData.mock.calls
+      .map((c) => c[0])
+      .find((c) => "result" in c);
+    expect(resultCall).toBeDefined();
+    expect(resultCall.result).toBeDefined();
     expect(onNext).toHaveBeenCalled();
   });
 

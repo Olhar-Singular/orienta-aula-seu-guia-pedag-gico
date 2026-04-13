@@ -25,6 +25,8 @@ import { isStructuredActivity } from "@/types/adaptation";
 import { markdownDslToStructured } from "@/lib/activityDslConverter";
 import type { StructuredActivity, SelectedQuestion, PdfLayoutConfig } from "@/types/adaptation";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
+import { stripRichContent } from "@/lib/pdf/inlineRunUtils";
+import { buildManualEditorAdvancePatch, shouldConfirmDiscard } from "@/lib/adaptationWizardHelpers";
 
 export type { SelectedQuestion };
 
@@ -77,6 +79,9 @@ export type WizardData = {
   pdfLayout?: PdfLayoutConfig;
   editableActivity?: EditableActivity;
   editableActivityDirected?: EditableActivity;
+  aiEditorUniversalDsl?: string;
+  aiEditorDirectedDsl?: string;
+  manualEditorDsl?: string;
 };
 
 const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
@@ -171,13 +176,18 @@ export default function AdaptationWizard() {
   }, []);
 
   const clearResult = useCallback(() => {
+    setManualActivity(null);
     setData((prev) => ({
       ...prev,
       result: null,
       contextPillars: null,
       editableActivity: undefined,
+      editableActivityDirected: undefined,
       pdfLayout: undefined,
       questionImages: { version_universal: {}, version_directed: {} },
+      aiEditorUniversalDsl: undefined,
+      aiEditorDirectedDsl: undefined,
+      manualEditorDsl: undefined,
     }));
   }, []);
 
@@ -197,9 +207,7 @@ export default function AdaptationWizard() {
   }, [stepsMeta]);
 
   const requestBack = useCallback((target: number) => {
-    // If going backwards past the ai_editor step and there is a result, confirm discard
-    const editorStepIndex = steps.indexOf("ai_editor");
-    if (editorStepIndex !== -1 && step >= editorStepIndex && target < editorStepIndex && data.result) {
+    if (shouldConfirmDiscard(steps, step, target, Boolean(data.result))) {
       setPendingBackTarget(target);
       return;
     }
@@ -207,8 +215,15 @@ export default function AdaptationWizard() {
   }, [step, steps, data.result, navigateTo]);
 
   const prev = useCallback(() => {
+    if (currentStepKey === "pdf_preview") {
+      setData((prev) => ({
+        ...prev,
+        editableActivity: stripRichContent(prev.editableActivity),
+        editableActivityDirected: stripRichContent(prev.editableActivityDirected),
+      }));
+    }
     requestBack(step - 1);
-  }, [step, requestBack]);
+  }, [step, currentStepKey, requestBack]);
 
   const goTo = (s: number) => {
     if (s < step) {
@@ -287,8 +302,8 @@ export default function AdaptationWizard() {
 
       {/* Step Content with slide animation.
           overflow-x-hidden is needed for the slide animation but clips full-width steps.
-          We disable it for ai_editor and pdf_preview (both use split layouts). */}
-      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" || currentStepKey === "pdf_preview" ? "" : "overflow-x-hidden"}`}>
+          We disable it for editor steps and pdf_preview (all use full-bleed / split layouts). */}
+      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" || currentStepKey === "editor" || currentStepKey === "pdf_preview" ? "" : "overflow-x-hidden"}`}>
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={step}
@@ -346,17 +361,12 @@ export default function AdaptationWizard() {
             {currentStepKey === "editor" && (
               <StepEditor
                 structuredActivity={editorActivity}
-                onStructuredActivityChange={(updated) => setManualActivity(updated)}
-                onNext={() => {
-                  updateData({
-                    result: {
-                      version_universal: editorActivity,
-                      version_directed: editorActivity,
-                      strategies_applied: [],
-                      pedagogical_justification: "Atividade editada manualmente pelo professor.",
-                      implementation_tips: [],
-                    },
-                  });
+                dslDraft={data.manualEditorDsl}
+                onDslDraftChange={(dsl) => updateData({ manualEditorDsl: dsl })}
+                onNext={(updated) => {
+                  setManualActivity(updated);
+                  // Only invalidates layout state when the text actually changed.
+                  updateData(buildManualEditorAdvancePatch(updated, data));
                   next();
                 }}
                 onPrev={prev}
@@ -412,6 +422,9 @@ export default function AdaptationWizard() {
                   result: null,
                   contextPillars: null,
                   questionImages: { version_universal: {}, version_directed: {} },
+                  aiEditorUniversalDsl: undefined,
+                  aiEditorDirectedDsl: undefined,
+                  manualEditorDsl: undefined,
                 });
               }} />
             )}
