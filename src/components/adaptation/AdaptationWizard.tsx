@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -26,7 +26,8 @@ import { markdownDslToStructured } from "@/lib/activityDslConverter";
 import type { StructuredActivity, SelectedQuestion, PdfLayoutConfig } from "@/types/adaptation";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
 import { stripRichContent } from "@/lib/pdf/inlineRunUtils";
-import { buildManualEditorAdvancePatch, shouldConfirmDiscard } from "@/lib/adaptationWizardHelpers";
+import { buildManualEditorAdvancePatch, shouldConfirmDiscard, resyncStepForNewMode } from "@/lib/adaptationWizardHelpers";
+import type { HistoryState } from "@/hooks/useHistory";
 
 export type { SelectedQuestion };
 
@@ -60,7 +61,8 @@ export type ContextPillars = {
 export type QuestionImageMap = Record<string, string[]>;
 export type SectionQuestionImages = Record<"version_universal" | "version_directed", QuestionImageMap>;
 
-export type WizardMode = "ai" | "manual";
+export type { WizardMode } from "@/lib/wizardSteps";
+import type { WizardMode } from "@/lib/wizardSteps";
 
 export type WizardData = {
   activityType: ActivityType | null;
@@ -82,23 +84,12 @@ export type WizardData = {
   aiEditorUniversalDsl?: string;
   aiEditorDirectedDsl?: string;
   manualEditorDsl?: string;
+  pdfHistoryUniversal?: HistoryState<EditableActivity>;
+  pdfHistoryDirected?: HistoryState<EditableActivity>;
 };
 
-const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
-  ai: ["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"],
-  manual: ["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"],
-} as const;
-
-export function getStepsForMode(mode: WizardMode): readonly string[] {
-  return STEP_SEQUENCES[mode];
-}
-
-export function getNextStep(currentStep: string, mode: WizardMode): string {
-  const steps = STEP_SEQUENCES[mode];
-  const currentIndex = steps.indexOf(currentStep);
-  if (currentIndex === -1 || currentIndex >= steps.length - 1) return steps[steps.length - 1];
-  return steps[currentIndex + 1];
-}
+export { getStepsForMode, getNextStep } from "@/lib/wizardSteps";
+import { getStepsForMode } from "@/lib/wizardSteps";
 
 type StepMeta = { label: string; description: string };
 
@@ -158,6 +149,15 @@ export default function AdaptationWizard() {
   const stepsMeta = getStepsMeta(wizardMode);
   const currentStepKey = steps[step] ?? "type";
 
+  const prevStepKeyRef = useRef(currentStepKey);
+  useEffect(() => {
+    const nextIndex = resyncStepForNewMode(prevStepKeyRef.current, steps);
+    if (nextIndex !== step) setStep(nextIndex);
+    prevStepKeyRef.current = steps[nextIndex] ?? prevStepKeyRef.current;
+    // Only re-evaluate when the mode (and thus `steps`) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardMode]);
+
   const buildManualActivity = useCallback((): StructuredActivity => {
     if (data.selectedQuestions.length > 0) {
       return convertToStructuredActivity(data.selectedQuestions);
@@ -184,6 +184,8 @@ export default function AdaptationWizard() {
       editableActivity: undefined,
       editableActivityDirected: undefined,
       pdfLayout: undefined,
+      pdfHistoryUniversal: undefined,
+      pdfHistoryDirected: undefined,
       questionImages: { version_universal: {}, version_directed: {} },
       aiEditorUniversalDsl: undefined,
       aiEditorDirectedDsl: undefined,
@@ -394,12 +396,16 @@ export default function AdaptationWizard() {
                   questionImagesDirected={data.questionImages.version_directed}
                   savedUniversal={data.editableActivity}
                   savedDirected={data.editableActivityDirected}
+                  savedHistoryUniversal={data.pdfHistoryUniversal}
+                  savedHistoryDirected={data.pdfHistoryDirected}
                   adaptationResult={data.result}
                   onNext={next}
                   onBack={prev}
                   onLayoutChange={(config) => updateData({ pdfLayout: config })}
                   onUniversalChange={(activity) => updateData({ editableActivity: activity })}
                   onDirectedChange={(activity) => updateData({ editableActivityDirected: activity })}
+                  onHistoryUniversalChange={(state) => updateData({ pdfHistoryUniversal: state })}
+                  onHistoryDirectedChange={(state) => updateData({ pdfHistoryDirected: state })}
                 />
               );
             })()}

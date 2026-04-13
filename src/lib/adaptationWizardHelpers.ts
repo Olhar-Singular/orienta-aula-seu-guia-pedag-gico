@@ -61,10 +61,29 @@ export function buildAIEditorAdvancePatch(
   const directedChanged = textChangedFromResult(directedDsl, prevResult?.version_directed);
 
   const patch: Partial<WizardData> = { result: updatedResult };
-  if (universalChanged) patch.editableActivity = undefined;
-  if (directedChanged) patch.editableActivityDirected = undefined;
+  if (universalChanged) {
+    patch.editableActivity = undefined;
+    patch.pdfHistoryUniversal = undefined;
+  }
+  if (directedChanged) {
+    patch.editableActivityDirected = undefined;
+    patch.pdfHistoryDirected = undefined;
+  }
   if (universalChanged || directedChanged) patch.pdfLayout = undefined;
   return patch;
+}
+
+/** Re-resolve the wizard step index when the user switches mode. Tries to
+ *  keep the same step key; if the new mode lacks that key, falls back to
+ *  `choice` so the user re-enters a known state. Last resort: index 0. */
+export function resyncStepForNewMode(
+  currentStepKey: string,
+  newSteps: readonly string[],
+): number {
+  const directIdx = newSteps.indexOf(currentStepKey);
+  if (directIdx !== -1) return directIdx;
+  const choiceIdx = newSteps.indexOf("choice");
+  return choiceIdx !== -1 ? choiceIdx : 0;
 }
 
 /** True when going back from `currentStep` to `target` should trigger the
@@ -87,20 +106,40 @@ export function shouldConfirmDiscard(
 
 /** Build the partial WizardData patch written by the manual-mode editor.onNext
  *  handler. Only invalidates layout state when the updated activity differs
- *  from the previous result. */
+ *  from the previous result. Preserves `version_directed` when the editor text
+ *  is unchanged — the manual editor only edits the universal text, so any
+ *  customization the teacher did on the directed tab in the preview step must
+ *  survive round-trips through the editor. */
 export function buildManualEditorAdvancePatch(
   updated: StructuredActivity,
   prevData: WizardData,
 ): Partial<WizardData> {
-  const prevUniversal = prevData.result?.version_universal;
+  const prevResult = prevData.result;
+  const prevUniversal = prevResult?.version_universal;
+  const prevDirected = prevResult?.version_directed;
   const dsl = structuredToMarkdownDsl(updated);
   const changed = textChangedFromResult(dsl, prevUniversal);
 
-  const patch: Partial<WizardData> = { result: buildManualResult(updated) };
+  const result: AdaptationResult = {
+    strategies_applied: prevResult?.strategies_applied ?? [],
+    pedagogical_justification:
+      prevResult?.pedagogical_justification ??
+      "Atividade editada manualmente pelo professor.",
+    implementation_tips: prevResult?.implementation_tips ?? [],
+    version_universal: updated,
+    version_directed:
+      !changed && prevDirected !== undefined
+        ? prevDirected
+        : structuredClone(updated),
+  };
+
+  const patch: Partial<WizardData> = { result };
   if (changed) {
     patch.editableActivity = undefined;
     patch.editableActivityDirected = undefined;
     patch.pdfLayout = undefined;
+    patch.pdfHistoryUniversal = undefined;
+    patch.pdfHistoryDirected = undefined;
   }
   return patch;
 }

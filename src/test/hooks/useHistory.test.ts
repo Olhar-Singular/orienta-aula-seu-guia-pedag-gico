@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useHistory } from "@/hooks/useHistory";
+import { useHistory, type HistoryState } from "@/hooks/useHistory";
 
 describe("useHistory", () => {
   it("initializes with the given value", () => {
@@ -114,5 +114,95 @@ describe("useHistory", () => {
     act(() => result.current.undo());
 
     expect(result.current.current).toEqual({ name: "a", items: [1, 2] });
+  });
+
+  describe("seed + onChange (Bug 3 — history persistence across remount)", () => {
+    it("initializes from a seed instead of the initial value", () => {
+      const seed: HistoryState<string> = {
+        past: ["one", "two"],
+        present: "three",
+        future: ["four"],
+      };
+      const { result } = renderHook(() =>
+        useHistory("ignored", { seed }),
+      );
+
+      expect(result.current.current).toBe("three");
+      expect(result.current.canUndo).toBe(true);
+      expect(result.current.canRedo).toBe(true);
+    });
+
+    it("preserves the past stack from seed — undo walks it back", () => {
+      const seed: HistoryState<number> = {
+        past: [1, 2],
+        present: 3,
+        future: [],
+      };
+      const { result } = renderHook(() =>
+        useHistory(0, { seed }),
+      );
+
+      act(() => result.current.undo());
+      expect(result.current.current).toBe(2);
+      act(() => result.current.undo());
+      expect(result.current.current).toBe(1);
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it("preserves the future stack from seed — redo walks it forward", () => {
+      const seed: HistoryState<number> = {
+        past: [],
+        present: 1,
+        future: [2, 3],
+      };
+      const { result } = renderHook(() =>
+        useHistory(0, { seed }),
+      );
+
+      act(() => result.current.redo());
+      expect(result.current.current).toBe(2);
+      act(() => result.current.redo());
+      expect(result.current.current).toBe(3);
+      expect(result.current.canRedo).toBe(false);
+    });
+
+    it("calls onChange with full history state after set", () => {
+      const onChange = vi.fn();
+      const { result } = renderHook(() =>
+        useHistory("a", { onChange }),
+      );
+
+      act(() => result.current.set("b"));
+
+      const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+      expect(lastCall).toEqual({
+        past: ["a"],
+        present: "b",
+        future: [],
+      });
+    });
+
+    it("calls onChange with full history state after undo/redo", () => {
+      const onChange = vi.fn();
+      const { result } = renderHook(() =>
+        useHistory(1, { onChange }),
+      );
+
+      act(() => result.current.set(2));
+      act(() => result.current.set(3));
+      act(() => result.current.undo());
+
+      const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+      expect(lastCall.present).toBe(2);
+      expect(lastCall.past).toEqual([1]);
+      expect(lastCall.future).toEqual([3]);
+    });
+
+    it("onChange is not invoked for the initial seed (avoids parent loop)", () => {
+      const onChange = vi.fn();
+      renderHook(() => useHistory("a", { onChange }));
+
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 });

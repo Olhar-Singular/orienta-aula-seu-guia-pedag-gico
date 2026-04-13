@@ -15,7 +15,7 @@ import {
 import PreviewPdfDocument from "@/lib/pdf/PreviewPdfDocument";
 import PdfCanvasPreview from "./pdf-preview/PdfCanvasPreview";
 import StructuralEditor from "./pdf-preview/StructuralEditor";
-import { useHistory } from "@/hooks/useHistory";
+import { useHistory, type HistoryState } from "@/hooks/useHistory";
 import { toEditableActivity, type EditableActivity } from "@/lib/pdf/editableActivity";
 import { applyPreset } from "@/lib/pdf/applyPreset";
 import type {
@@ -61,12 +61,16 @@ type Props = {
   questionImagesDirected?: Record<string, string[]>;
   savedUniversal?: EditableActivity;
   savedDirected?: EditableActivity;
+  savedHistoryUniversal?: HistoryState<EditableActivity>;
+  savedHistoryDirected?: HistoryState<EditableActivity>;
   adaptationResult: AdaptationResult;
   onNext: () => void;
   onBack: () => void;
   onLayoutChange: (config: PdfLayoutConfig) => void;
   onUniversalChange?: (activity: EditableActivity) => void;
   onDirectedChange?: (activity: EditableActivity) => void;
+  onHistoryUniversalChange?: (state: HistoryState<EditableActivity>) => void;
+  onHistoryDirectedChange?: (state: HistoryState<EditableActivity>) => void;
 };
 
 export default function StepPdfPreview({
@@ -77,12 +81,16 @@ export default function StepPdfPreview({
   questionImagesDirected,
   savedUniversal,
   savedDirected,
+  savedHistoryUniversal,
+  savedHistoryDirected,
   adaptationResult,
   onNext,
   onBack,
   onLayoutChange,
   onUniversalChange,
   onDirectedChange,
+  onHistoryUniversalChange,
+  onHistoryDirectedChange,
 }: Props) {
   const [activeVersion, setActiveVersion] = useState<VersionKey>("universal");
 
@@ -90,10 +98,14 @@ export default function StepPdfPreview({
   const initialUniversal = savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal);
   const initialDirected = savedDirected ?? toEditableActivity(directedStructured, defaultHeader, questionImagesDirected);
 
-  // History for universal
-  const uHistory = useHistory<EditableActivity>(initialUniversal);
-  // History for directed
-  const dHistory = useHistory<EditableActivity>(initialDirected);
+  const uHistory = useHistory<EditableActivity>(initialUniversal, {
+    seed: savedHistoryUniversal,
+    onChange: onHistoryUniversalChange,
+  });
+  const dHistory = useHistory<EditableActivity>(initialDirected, {
+    seed: savedHistoryDirected,
+    onChange: onHistoryDirectedChange,
+  });
 
   const history = activeVersion === "universal" ? uHistory : dHistory;
   const activity = history.current;

@@ -5,7 +5,9 @@ import {
   buildAIEditorAdvancePatch,
   buildManualEditorAdvancePatch,
   shouldConfirmDiscard,
+  resyncStepForNewMode,
 } from "@/lib/adaptationWizardHelpers";
+import { getStepsForMode } from "@/lib/wizardSteps";
 import { structuredToMarkdownDsl } from "@/lib/activityDslConverter";
 import type { StructuredActivity } from "@/types/adaptation";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
@@ -203,6 +205,77 @@ describe("buildManualEditorAdvancePatch", () => {
     const patch = buildManualEditorAdvancePatch(sampleActivity(), prev);
     expect("editableActivity" in patch).toBe(true);
   });
+
+  it("preserves prev version_directed when text is unchanged (Bug 4)", () => {
+    const universal = sampleActivity();
+    const customDirected: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              number: 1,
+              type: "open_ended",
+              statement: "Versão direcionada customizada pelo professor",
+              images: ["https://example.com/custom.png"],
+            },
+          ],
+        },
+      ],
+    };
+    const prev = {
+      result: {
+        version_universal: universal,
+        version_directed: customDirected,
+        strategies_applied: [],
+        pedagogical_justification: "x",
+        implementation_tips: [],
+      },
+    } as unknown as WizardData;
+
+    const patch = buildManualEditorAdvancePatch(universal, prev);
+    const directed = patch.result!.version_directed as StructuredActivity;
+    expect(directed.sections[0].questions[0].statement).toBe(
+      "Versão direcionada customizada pelo professor",
+    );
+    expect(directed.sections[0].questions[0].images).toEqual([
+      "https://example.com/custom.png",
+    ]);
+  });
+
+  it("clones new universal to directed when text changed (Bug 4 — fresh diff wins)", () => {
+    const prev = {
+      result: buildManualResult(sampleActivity()),
+    } as unknown as WizardData;
+    const changed: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            { number: 1, type: "open_ended", statement: "Texto totalmente novo" },
+          ],
+        },
+      ],
+    };
+    const patch = buildManualEditorAdvancePatch(changed, prev);
+    const directed = patch.result!.version_directed as StructuredActivity;
+    expect(directed.sections[0].questions[0].statement).toBe("Texto totalmente novo");
+  });
+
+  it("falls back to clone when no previous directed exists", () => {
+    const prev = {
+      result: {
+        version_universal: sampleActivity(),
+        strategies_applied: [],
+        pedagogical_justification: "",
+        implementation_tips: [],
+      },
+    } as unknown as WizardData;
+    const activity = sampleActivity();
+    const patch = buildManualEditorAdvancePatch(activity, prev);
+    const directed = patch.result!.version_directed as StructuredActivity;
+    expect(directed.sections[0].questions[0].statement).toBe(
+      "Explique fotossintese",
+    );
+  });
 });
 
 describe("shouldConfirmDiscard", () => {
@@ -255,5 +328,57 @@ describe("shouldConfirmDiscard", () => {
     const currentStep = manualSteps.indexOf("pdf_preview");
     const target = manualSteps.indexOf("editor");
     expect(shouldConfirmDiscard(manualSteps, currentStep, target, true)).toBe(false);
+  });
+});
+
+describe("STEP_SEQUENCES invariant (Bug 6 — landmine prevention)", () => {
+  it("AI and manual sequences have the same length", () => {
+    const ai = getStepsForMode("ai");
+    const manual = getStepsForMode("manual");
+    expect(ai.length).toBe(manual.length);
+  });
+
+  it("shared step keys appear at the same index in both modes", () => {
+    const ai = getStepsForMode("ai");
+    const manual = getStepsForMode("manual");
+    for (const key of ai) {
+      const aiIdx = ai.indexOf(key);
+      const manualIdx = manual.indexOf(key);
+      if (manualIdx !== -1) {
+        expect(manualIdx, `step "${key}" diverges between modes`).toBe(aiIdx);
+      }
+    }
+  });
+
+  it("choice step is at the same index in both modes", () => {
+    expect(getStepsForMode("ai").indexOf("choice")).toBe(
+      getStepsForMode("manual").indexOf("choice"),
+    );
+  });
+});
+
+describe("resyncStepForNewMode (Bug 6)", () => {
+  const ai = ["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"] as const;
+  const manual = ["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"] as const;
+
+  it("returns the new index for a step key present in both modes", () => {
+    expect(resyncStepForNewMode("pdf_preview", manual)).toBe(
+      manual.indexOf("pdf_preview"),
+    );
+  });
+
+  it("falls back to choice when the current step key does not exist in the new mode", () => {
+    expect(resyncStepForNewMode("ai_editor", manual)).toBe(
+      manual.indexOf("choice"),
+    );
+  });
+
+  it("falls back to 0 when neither the current key nor choice exists", () => {
+    const weird = ["foo", "bar"] as const;
+    expect(resyncStepForNewMode("ai_editor", weird)).toBe(0);
+  });
+
+  it("returns the existing index when the key and mode already match (no-op)", () => {
+    expect(resyncStepForNewMode("barriers", ai)).toBe(ai.indexOf("barriers"));
   });
 });
