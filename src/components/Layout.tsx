@@ -187,7 +187,7 @@ export default function Layout({ children }: { children?: React.ReactNode }) {
         className="flex-1 mt-14 lg:mt-0 overflow-auto outline-none"
         role="main"
       >
-        <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="max-w-[1400px] mx-auto px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
           {children || <Outlet />}
         </div>
       </main>
