@@ -19,8 +19,12 @@ export const TEXT_STYLE_DEFAULTS: Required<TextStyle> = {
   lineHeight: 1.5,
 };
 
+// Inline run with optional color, used for word-level coloring in the layout editor.
+// Invariant: concatenated run texts must equal ContentBlock.content (plain text mirror).
+export type InlineRun = { text: string; color?: string };
+
 export type ContentBlock =
-  | { id: string; type: "text"; content: string; style?: TextStyle }
+  | { id: string; type: "text"; content: string; richContent?: InlineRun[]; style?: TextStyle }
   | {
       id: string;
       type: "image";

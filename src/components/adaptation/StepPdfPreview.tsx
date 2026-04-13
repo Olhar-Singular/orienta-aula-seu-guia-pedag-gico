@@ -246,10 +246,10 @@ export default function StepPdfPreview({
   const initialForReset = activeVersion === "universal" ? initialUniversal : initialDirected;
 
   return (
-    <div className="flex h-[calc(100vh-200px)] min-h-[600px] flex-col bg-white">
+    <div className="flex h-[calc(100vh-180px)] min-h-[600px] flex-col bg-white">
       {/* Toolbar */}
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4">
           {/* Version tabs */}
           <div className="flex overflow-hidden rounded-md border border-gray-200">
             <button
@@ -335,9 +335,9 @@ export default function StepPdfPreview({
         </div>
       </header>
 
-      {/* Split layout */}
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-2/5 border-r border-gray-200">
+      {/* Split layout — stacks on tablet/small screens, side-by-side on lg+ */}
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+        <div className="min-h-[300px] flex-1 border-b border-gray-200 lg:min-h-0 lg:w-2/5 lg:flex-none lg:border-b-0 lg:border-r">
           <StructuralEditor
             activity={activity}
             onChange={setActivity}
@@ -345,13 +345,13 @@ export default function StepPdfPreview({
             onSelectQuestion={setSelectedQuestionId}
           />
         </div>
-        <div className="w-3/5">
+        <div className="min-h-[300px] flex-1 lg:min-h-0 lg:w-3/5 lg:flex-none">
           <PdfCanvasPreview blob={blob} isGenerating={isGenerating} zoom={zoom} />
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
+      <div className="flex items-center justify-between gap-2 border-t border-gray-200 bg-white px-3 py-3 sm:px-6">
         <button onClick={onBack} className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
           <ArrowLeft className="h-4 w-4" />
           Voltar ao Editor

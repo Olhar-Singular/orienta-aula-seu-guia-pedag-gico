@@ -133,11 +133,21 @@ export function renderContentBlock(block: ContentBlock) {
   }
 
   if (block.type === "text") {
+    const parentStyle = { ...styles.textBlock, ...textStyleToPdf(block.style) };
+    const runs = block.richContent;
+    if (runs && runs.length > 0) {
+      return (
+        <Text key={block.id} style={parentStyle}>
+          {runs.map((run, i) => (
+            <Text key={i} style={run.color ? { color: run.color } : undefined}>
+              {run.text}
+            </Text>
+          ))}
+        </Text>
+      );
+    }
     return (
-      <Text
-        key={block.id}
-        style={{ ...styles.textBlock, ...textStyleToPdf(block.style) }}
-      >
+      <Text key={block.id} style={parentStyle}>
         {block.content}
       </Text>
     );

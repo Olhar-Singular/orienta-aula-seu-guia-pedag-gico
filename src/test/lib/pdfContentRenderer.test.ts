@@ -161,6 +161,60 @@ describe("renderContentBlock", () => {
     expect(el.props.style).toMatchObject({ fontFamily: "Helvetica-BoldOblique" });
   });
 
+  // richContent — inline colored runs
+  it("text block with richContent renders nested Text runs with colors", () => {
+    const block: ContentBlock = {
+      id: "b4",
+      type: "text",
+      content: "Leia com atencao",
+      richContent: [
+        { text: "Leia com " },
+        { text: "atencao", color: "#dc2626" },
+      ],
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el.type).toBe(MockText);
+    const children = Array.isArray(el.props.children)
+      ? el.props.children
+      : [el.props.children];
+    const runs = children.filter((c: any) => c && c.type === MockText);
+    expect(runs).toHaveLength(2);
+    expect(runs[0].props.children).toBe("Leia com ");
+    expect(runs[0].props.style?.color).toBeUndefined();
+    expect(runs[1].props.children).toBe("atencao");
+    expect(runs[1].props.style).toMatchObject({ color: "#dc2626" });
+  });
+
+  it("text block with empty richContent falls back to plain content", () => {
+    const block: ContentBlock = {
+      id: "b5",
+      type: "text",
+      content: "Fallback",
+      richContent: [],
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el.type).toBe(MockText);
+    expect(el.props.children).toBe("Fallback");
+  });
+
+  it("text block with richContent preserves block-level style on parent", () => {
+    const block: ContentBlock = {
+      id: "b6",
+      type: "text",
+      content: "Colorido grande",
+      style: { fontSize: 16, bold: true },
+      richContent: [
+        { text: "Colorido ", color: "#2563eb" },
+        { text: "grande" },
+      ],
+    };
+    const el = renderContentBlock(block) as any;
+
+    expect(el.props.style).toMatchObject({ fontSize: 16, fontFamily: "Helvetica-Bold" });
+  });
+
   // image blocks — alignment
   it("image block with alignment 'center' wraps with center style", () => {
     const block: ContentBlock = {
