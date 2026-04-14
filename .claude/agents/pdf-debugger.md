@@ -17,8 +17,9 @@ src/lib/pdf/
 ├── contentRenderer.tsx      # render de ContentBlock (text/image) com InlineRun rich content
 ├── inlineRunUtils.ts        # normalização de InlineRun + stripRichContent (volta pra plain text)
 ├── editableActivity.ts      # tipo EditableActivity (estado do layout editor do preview)
+├── resolveActivityImageSrcs.ts  # expande [img:imagem-N] → URL absoluta usando o registry do editor
 ├── applyPreset.ts           # presets de layout (densidade, tamanho de fonte)
-├── PreviewPdfDocument.tsx   # documento base do preview dual-column (universal vs directed)
+├── PreviewPdfDocument.tsx   # documento base do preview dual-column (Original vs Adaptada)
 ├── styles.ts                # estilos compartilhados
 ├── templates/
 │   ├── AdaptationPDF.tsx    # PDF de adaptação DUA (atividade adaptada)
@@ -31,6 +32,10 @@ src/lib/pdf/
 ```
 
 **Invariante do InlineRun**: `ContentBlock.content` (plain text) deve sempre ser igual à concatenação de `richContent[].text`. Qualquer mutação de richContent deve re-sincronizar `content` — senão o export do PDF diverge do preview exibido.
+
+**InlineRun extras**: além de `color`, runs carregam `bold` e `italic`. Os templates devem honrar os três flags ao renderizar; mudanças no shape do `InlineRun` exigem revisão de `contentRenderer.tsx`, `PDFRichLine.tsx` e `parseMarkdownInline.ts`.
+
+**Imagens via registry**: `[img:imagem-N]` é um placeholder do editor — não é resolvível pelo PDF. Sempre rode `resolveActivityImageSrcs(activity, registry)` no handoff editor → PDF. Se imagens "sumirem" no PDF mas aparecerem no preview, suspeite de registry não propagado.
 
 ## Restrições críticas do projeto
 
