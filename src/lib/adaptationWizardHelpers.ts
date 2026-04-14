@@ -5,6 +5,27 @@ import {
   structuredToMarkdownDsl,
 } from "@/lib/activityDslConverter";
 
+/** Partial WizardData patch that wipes every field derived from a generation:
+ *  the result, AI/manual editor drafts, layout state, history, and registries.
+ *  Used wherever a fresh adaptation must invalidate previous downstream state
+ *  (regenerate, restart, "descartar resultado"). User inputs (activityType,
+ *  barriers, etc.) are intentionally left untouched. */
+export function resetGeneratedState(): Partial<WizardData> {
+  return {
+    result: null,
+    contextPillars: null,
+    questionImages: { version_universal: {}, version_directed: {} },
+    editableActivity: undefined,
+    editableActivityDirected: undefined,
+    pdfHistoryUniversal: undefined,
+    pdfHistoryDirected: undefined,
+    aiEditorUniversalDsl: undefined,
+    aiEditorDirectedDsl: undefined,
+    manualEditorDsl: undefined,
+    editorImageRegistry: undefined,
+  };
+}
+
 export function buildManualResult(activity: StructuredActivity): AdaptationResult {
   return {
     version_universal: activity,
@@ -69,7 +90,6 @@ export function buildAIEditorAdvancePatch(
     patch.editableActivityDirected = undefined;
     patch.pdfHistoryDirected = undefined;
   }
-  if (universalChanged || directedChanged) patch.pdfLayout = undefined;
   return patch;
 }
 
@@ -137,7 +157,6 @@ export function buildManualEditorAdvancePatch(
   if (changed) {
     patch.editableActivity = undefined;
     patch.editableActivityDirected = undefined;
-    patch.pdfLayout = undefined;
     patch.pdfHistoryUniversal = undefined;
     patch.pdfHistoryDirected = undefined;
   }

@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { pdf } from "@react-pdf/renderer";
+import { toast } from "@/hooks/use-toast";
+import { useDebounced } from "@/hooks/useDebounced";
 import {
   Redo2,
   Undo2,
@@ -13,35 +15,52 @@ import {
   ArrowRight,
 } from "lucide-react";
 import PreviewPdfDocument from "@/lib/pdf/PreviewPdfDocument";
+import { resolveActivityImageSrcs } from "@/lib/pdf/resolveActivityImageSrcs";
 import PdfCanvasPreview from "./pdf-preview/PdfCanvasPreview";
 import StructuralEditor from "./pdf-preview/StructuralEditor";
 import { useHistory, type HistoryState } from "@/hooks/useHistory";
 import { toEditableActivity, type EditableActivity } from "@/lib/pdf/editableActivity";
 import { applyPreset } from "@/lib/pdf/applyPreset";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import type {
   StructuredActivity,
   ActivityHeader,
-  PdfLayoutConfig,
   StylePreset,
 } from "@/types/adaptation";
 import { STYLE_PRESETS } from "@/types/adaptation";
 import type { AdaptationResult } from "./AdaptationWizard";
 
-function useDebounced<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay);
-    return () => clearTimeout(t);
-  }, [value, delay]);
-  return debounced;
-}
-
 const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
+function isStylePreset(value: unknown): value is StylePreset {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.id === "string" &&
+    typeof v.name === "string" &&
+    typeof v.description === "string" &&
+    !!v.textStyle && typeof v.textStyle === "object" &&
+    typeof v.questionSpacing === "number" &&
+    typeof v.alternativeIndent === "number"
+  );
+}
 
 function loadSavedTemplates(): StylePreset[] {
   try {
     const raw = localStorage.getItem("pdf-editor-templates");
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isStylePreset) : [];
   } catch {
     return [];
   }
@@ -66,7 +85,6 @@ type Props = {
   adaptationResult: AdaptationResult;
   onNext: () => void;
   onBack: () => void;
-  onLayoutChange: (config: PdfLayoutConfig) => void;
   onUniversalChange?: (activity: EditableActivity) => void;
   onDirectedChange?: (activity: EditableActivity) => void;
   onHistoryUniversalChange?: (state: HistoryState<EditableActivity>) => void;
@@ -86,7 +104,6 @@ export default function StepPdfPreview({
   adaptationResult,
   onNext,
   onBack,
-  onLayoutChange,
   onUniversalChange,
   onDirectedChange,
   onHistoryUniversalChange,
@@ -94,9 +111,15 @@ export default function StepPdfPreview({
 }: Props) {
   const [activeVersion, setActiveVersion] = useState<VersionKey>("universal");
 
-  // Initialize both versions
-  const initialUniversal = savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal);
-  const initialDirected = savedDirected ?? toEditableActivity(directedStructured, defaultHeader, questionImagesDirected);
+  // Initialize both versions (memoized so reset target stays stable across renders)
+  const initialUniversal = useMemo(
+    () => savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal),
+    [savedUniversal, universalStructured, defaultHeader, questionImagesUniversal],
+  );
+  const initialDirected = useMemo(
+    () => savedDirected ?? toEditableActivity(directedStructured, defaultHeader, questionImagesDirected),
+    [savedDirected, directedStructured, defaultHeader, questionImagesDirected],
+  );
 
   const uHistory = useHistory<EditableActivity>(initialUniversal, {
     seed: savedHistoryUniversal,
@@ -117,8 +140,11 @@ export default function StepPdfPreview({
   const [showPresetMenu, setShowPresetMenu] = useState(false);
   const [savedTemplates, setSavedTemplates] = useState<StylePreset[]>(loadSavedTemplates);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [templateNameDraft, setTemplateNameDraft] = useState("");
   const genTokenRef = useRef(0);
   const presetMenuRef = useRef<HTMLDivElement>(null);
+  const imageCacheRef = useRef(new Map<string, string>());
 
   function setActivity(next: EditableActivity) {
     history.set(next);
@@ -154,14 +180,22 @@ export default function StepPdfPreview({
 
     (async () => {
       try {
+        const resolved = await resolveActivityImageSrcs(debouncedActivity, imageCacheRef.current);
+        if (token !== genTokenRef.current) return;
         const instance = pdf(
-          <PreviewPdfDocument activity={debouncedActivity} />,
+          <PreviewPdfDocument activity={resolved} />,
         );
         const newBlob = await instance.toBlob();
         if (token !== genTokenRef.current) return;
         setBlob(newBlob);
       } catch (err) {
+        if (token !== genTokenRef.current) return;
         console.error("[StepPdfPreview] PDF generation failed:", err);
+        toast({
+          title: "Erro ao gerar preview do PDF",
+          description: err instanceof Error ? err.message : "Tente novamente em instantes.",
+          variant: "destructive",
+        });
       } finally {
         if (token === genTokenRef.current) setIsGenerating(false);
       }
@@ -187,26 +221,8 @@ export default function StepPdfPreview({
   }, [showPresetMenu]);
 
   function handleExport() {
-    // Ensure both versions are saved before navigating
     onUniversalChange?.(uHistory.current);
     onDirectedChange?.(dHistory.current);
-
-    const config: PdfLayoutConfig = {
-      header: activity.header,
-      globalShowSeparators: activity.globalShowSeparators,
-      questionLayouts: {},
-      contentOverrides: {},
-    };
-    for (const q of activity.questions) {
-      config.questionLayouts[q.id] = {
-        spacingAfter: q.spacingAfter,
-        answerLines: q.answerLines,
-        showSeparator: q.showSeparator,
-        alternativeIndent: q.alternativeIndent,
-      };
-      config.contentOverrides[q.id] = q.content;
-    }
-    onLayoutChange(config);
     onNext();
   }
 
@@ -222,8 +238,14 @@ export default function StepPdfPreview({
     setShowPresetMenu(false);
   }
 
-  function handleSaveTemplate() {
-    const name = prompt("Nome do template:");
+  function openSaveTemplateDialog() {
+    setTemplateNameDraft("");
+    setTemplateDialogOpen(true);
+    setShowPresetMenu(false);
+  }
+
+  function confirmSaveTemplate() {
+    const name = templateNameDraft.trim();
     if (!name) return;
     const firstTextBlock = activity.questions
       .flatMap((q) => q.content)
@@ -247,6 +269,7 @@ export default function StepPdfPreview({
     const next = [...savedTemplates, template];
     setSavedTemplates(next);
     saveSavedTemplates(next);
+    setTemplateDialogOpen(false);
   }
 
   function handleDeleteTemplate(id: string) {
@@ -263,18 +286,24 @@ export default function StepPdfPreview({
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2 sm:px-4">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:gap-4">
           {/* Version tabs */}
-          <div className="flex overflow-hidden rounded-md border border-gray-200">
+          <div role="tablist" aria-label="Versão da atividade" className="flex overflow-hidden rounded-md border border-gray-200">
             <button
+              role="tab"
+              aria-selected={activeVersion === "universal"}
+              aria-controls="pdf-preview-panel"
               onClick={() => setActiveVersion("universal")}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeVersion === "universal" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
             >
-              Universal
+              Original
             </button>
             <button
+              role="tab"
+              aria-selected={activeVersion === "directed"}
+              aria-controls="pdf-preview-panel"
               onClick={() => setActiveVersion("directed")}
               className={`px-3 py-1.5 text-xs font-medium transition-colors ${activeVersion === "directed" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
             >
-              Direcionada
+              Adaptada
             </button>
           </div>
 
@@ -330,7 +359,7 @@ export default function StepPdfPreview({
                   </>
                 )}
                 <div className="mx-3 my-1 h-px bg-gray-100" />
-                <button onClick={handleSaveTemplate} className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50">
+                <button onClick={openSaveTemplateDialog} className="flex w-full items-center gap-1.5 px-3 py-2 text-xs text-blue-600 hover:bg-blue-50">
                   <Save className="h-3 w-3" />
                   Salvar estilo atual como template
                 </button>
@@ -348,7 +377,7 @@ export default function StepPdfPreview({
       </header>
 
       {/* Split layout — stacks on tablet/small screens, side-by-side on lg+ */}
-      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+      <div id="pdf-preview-panel" role="tabpanel" className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <div className="min-h-[300px] flex-1 border-b border-gray-200 lg:min-h-0 lg:w-2/5 lg:flex-none lg:border-b-0 lg:border-r">
           <StructuralEditor
             activity={activity}
@@ -373,6 +402,41 @@ export default function StepPdfPreview({
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
+
+      <Dialog open={templateDialogOpen} onOpenChange={setTemplateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Salvar template</DialogTitle>
+            <DialogDescription>
+              Dê um nome ao seu template de estilo. Ele ficará disponível na lista de presets.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-2">
+            <Label htmlFor="template-name">Nome do template</Label>
+            <Input
+              id="template-name"
+              autoFocus
+              value={templateNameDraft}
+              onChange={(e) => setTemplateNameDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && templateNameDraft.trim()) {
+                  e.preventDefault();
+                  confirmSaveTemplate();
+                }
+              }}
+              placeholder="Ex: Texto grande para deficiência visual"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTemplateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={confirmSaveTemplate} disabled={!templateNameDraft.trim()}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

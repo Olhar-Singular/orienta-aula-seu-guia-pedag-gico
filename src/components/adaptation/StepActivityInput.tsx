@@ -55,7 +55,7 @@ const difficulties = [
 ];
 
 export default function StepActivityInput({ value, onChange, selectedQuestions, onSelectedQuestionsChange, onNext, onPrev }: Props) {
-  const [tab, setTab] = useState<Tab>(() => (selectedQuestions.length > 0 ? "banco" : "manual"));
+  const [tab, setTab] = useState<Tab>("banco");
   const [showBankModal, setShowBankModal] = useState(false);
   const [bankQuestions, setBankQuestions] = useState<BankQuestion[]>([]);
   const [bankSearch, setBankSearch] = useState("");

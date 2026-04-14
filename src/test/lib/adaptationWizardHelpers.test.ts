@@ -6,6 +6,7 @@ import {
   buildManualEditorAdvancePatch,
   shouldConfirmDiscard,
   resyncStepForNewMode,
+  resetGeneratedState,
 } from "@/lib/adaptationWizardHelpers";
 import { getStepsForMode } from "@/lib/wizardSteps";
 import { structuredToMarkdownDsl } from "@/lib/activityDslConverter";
@@ -108,7 +109,6 @@ describe("buildAIEditorAdvancePatch", () => {
     result: baseResult,
     editableActivity: editable,
     editableActivityDirected: editable,
-    pdfLayout: { header: {}, globalShowSeparators: true, questionLayouts: {}, contentOverrides: {} },
   } as unknown as WizardData;
 
   it("preserves editableActivity and editableActivityDirected when neither DSL changed", () => {
@@ -118,7 +118,6 @@ describe("buildAIEditorAdvancePatch", () => {
     expect(patch.result).toBeDefined();
     expect("editableActivity" in patch).toBe(false);
     expect("editableActivityDirected" in patch).toBe(false);
-    expect("pdfLayout" in patch).toBe(false);
   });
 
   it("invalidates only editableActivity when universal DSL changed", () => {
@@ -137,14 +136,6 @@ describe("buildAIEditorAdvancePatch", () => {
     expect("editableActivityDirected" in patch).toBe(true);
     expect(patch.editableActivityDirected).toBeUndefined();
     expect("editableActivity" in patch).toBe(false);
-  });
-
-  it("invalidates pdfLayout when any version changed", () => {
-    const universalDsl = structuredToMarkdownDsl(baseResult.version_universal) + "\n99) nova";
-    const directedDsl = structuredToMarkdownDsl(baseResult.version_directed);
-    const patch = buildAIEditorAdvancePatch(baseData, universalDsl, directedDsl);
-    expect("pdfLayout" in patch).toBe(true);
-    expect(patch.pdfLayout).toBeUndefined();
   });
 
   it("result.version_universal/directed reflect parsed DSL", () => {
@@ -167,13 +158,11 @@ describe("buildManualEditorAdvancePatch", () => {
       result: buildManualResult(activity),
       editableActivity: editable,
       editableActivityDirected: editable,
-      pdfLayout: { header: {}, globalShowSeparators: true, questionLayouts: {}, contentOverrides: {} },
     } as unknown as WizardData;
     const patch = buildManualEditorAdvancePatch(activity, prev);
     expect(patch.result).toBeDefined();
     expect("editableActivity" in patch).toBe(false);
     expect("editableActivityDirected" in patch).toBe(false);
-    expect("pdfLayout" in patch).toBe(false);
   });
 
   it("invalidates layout state when the updated activity differs", () => {
@@ -181,7 +170,6 @@ describe("buildManualEditorAdvancePatch", () => {
       result: buildManualResult(sampleActivity()),
       editableActivity: editable,
       editableActivityDirected: editable,
-      pdfLayout: { header: {}, globalShowSeparators: true, questionLayouts: {}, contentOverrides: {} },
     } as unknown as WizardData;
     const changed: StructuredActivity = {
       sections: [
@@ -196,8 +184,6 @@ describe("buildManualEditorAdvancePatch", () => {
     expect("editableActivity" in patch).toBe(true);
     expect(patch.editableActivity).toBeUndefined();
     expect("editableActivityDirected" in patch).toBe(true);
-    expect("pdfLayout" in patch).toBe(true);
-    expect(patch.pdfLayout).toBeUndefined();
   });
 
   it("invalidates when previous result is null (first time through)", () => {
@@ -380,5 +366,52 @@ describe("resyncStepForNewMode (Bug 6)", () => {
 
   it("returns the existing index when the key and mode already match (no-op)", () => {
     expect(resyncStepForNewMode("barriers", ai)).toBe(ai.indexOf("barriers"));
+  });
+});
+
+describe("resetGeneratedState", () => {
+  it("clears every field derived from a generation (result, drafts, layout, history, registry)", () => {
+    const patch = resetGeneratedState();
+    const expectedKeys: Array<keyof WizardData> = [
+      "result",
+      "contextPillars",
+      "questionImages",
+      "editableActivity",
+      "editableActivityDirected",
+      "pdfHistoryUniversal",
+      "pdfHistoryDirected",
+      "aiEditorUniversalDsl",
+      "aiEditorDirectedDsl",
+      "manualEditorDsl",
+      "editorImageRegistry",
+    ];
+    for (const k of expectedKeys) {
+      expect(k in patch).toBe(true);
+    }
+    expect(patch.result).toBeNull();
+    expect(patch.contextPillars).toBeNull();
+    expect(patch.questionImages).toEqual({ version_universal: {}, version_directed: {} });
+    expect(patch.editableActivity).toBeUndefined();
+    expect(patch.editableActivityDirected).toBeUndefined();
+    expect(patch.pdfHistoryUniversal).toBeUndefined();
+    expect(patch.pdfHistoryDirected).toBeUndefined();
+    expect(patch.aiEditorUniversalDsl).toBeUndefined();
+    expect(patch.aiEditorDirectedDsl).toBeUndefined();
+    expect(patch.manualEditorDsl).toBeUndefined();
+    expect(patch.editorImageRegistry).toBeUndefined();
+  });
+
+  it("does not touch user-provided wizard inputs (activityType, barriers, classId etc.)", () => {
+    const patch = resetGeneratedState();
+    expect("activityType" in patch).toBe(false);
+    expect("activityText" in patch).toBe(false);
+    expect("selectedQuestions" in patch).toBe(false);
+    expect("classId" in patch).toBe(false);
+    expect("studentId" in patch).toBe(false);
+    expect("studentName" in patch).toBe(false);
+    expect("barriers" in patch).toBe(false);
+    expect("adaptForWholeClass" in patch).toBe(false);
+    expect("observationNotes" in patch).toBe(false);
+    expect("wizardMode" in patch).toBe(false);
   });
 });

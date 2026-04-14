@@ -5,7 +5,7 @@
  *   - When editableActivity IS set → calls pdf() (new PreviewPdfDocument renderer)
  *   - When editableActivity is NOT set → shows destructive toast with an error message
  *
- * Same logic is tested symmetrically for editableActivityDirected / "PDF Direcionada".
+ * Same logic is tested symmetrically for editableActivityDirected / "PDF Adaptada".
  *
  * Important: @react-pdf/renderer is fully mocked to avoid canvas issues in jsdom.
  * exportToPdf (legacy) is tracked to confirm it is NOT invoked by the new path.
@@ -147,7 +147,7 @@ describe("StepExport – export routing via editableActivity", () => {
     mockPdf.mockReturnValue({ toBlob: mockToBlob });
   });
 
-  describe("PDF Universal button", () => {
+  describe("PDF Original button", () => {
     it("calls pdf() (new renderer) when editableActivity is set", async () => {
       const Wrapper = createTestWrapper();
       const { getByText } = render(
@@ -159,7 +159,7 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      fireEvent.click(getByText("PDF Universal"));
+      fireEvent.click(getByText("PDF Original"));
 
       await waitFor(() => {
         expect(mockPdf).toHaveBeenCalledTimes(1);
@@ -181,12 +181,12 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      fireEvent.click(getByText("PDF Universal"));
+      fireEvent.click(getByText("PDF Original"));
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            title: expect.stringContaining("universal"),
+            title: expect.stringContaining("original"),
             variant: "destructive",
           })
         );
@@ -208,7 +208,7 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      fireEvent.click(getByText("PDF Universal"));
+      fireEvent.click(getByText("PDF Original"));
 
       await waitFor(() => {
         // Toast called, pdf not called
@@ -218,7 +218,7 @@ describe("StepExport – export routing via editableActivity", () => {
     });
   });
 
-  describe("PDF Direcionada button", () => {
+  describe("PDF Adaptada button", () => {
     it("calls pdf() when editableActivityDirected is set", async () => {
       const Wrapper = createTestWrapper();
       const { getByText } = render(
@@ -230,7 +230,7 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      fireEvent.click(getByText("PDF Direcionada"));
+      fireEvent.click(getByText("PDF Adaptada"));
 
       await waitFor(() => {
         expect(mockPdf).toHaveBeenCalledTimes(1);
@@ -251,12 +251,12 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      fireEvent.click(getByText("PDF Direcionada"));
+      fireEvent.click(getByText("PDF Adaptada"));
 
       await waitFor(() => {
         expect(mockToast).toHaveBeenCalledWith(
           expect.objectContaining({
-            title: expect.stringContaining("direcionada"),
+            title: expect.stringContaining("adaptada"),
             variant: "destructive",
           })
         );
@@ -278,8 +278,8 @@ describe("StepExport – export routing via editableActivity", () => {
         { wrapper: Wrapper }
       );
 
-      expect(getByText("PDF Universal")).toBeTruthy();
-      expect(getByText("PDF Direcionada")).toBeTruthy();
+      expect(getByText("PDF Original")).toBeTruthy();
+      expect(getByText("PDF Adaptada")).toBeTruthy();
       expect(getByText("Exportar Word")).toBeTruthy();
       expect(getByText("Salvar no Histórico")).toBeTruthy();
     });

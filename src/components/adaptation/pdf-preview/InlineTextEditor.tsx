@@ -35,6 +35,9 @@ type Props = {
 
 export default function InlineTextEditor({ content, richContent, onChange }: Props) {
   const editor = useEditor({
+    // Read-only text: edição de conteúdo mora no step do editor textual.
+    // Aqui só aplicamos estilo (cor) sobre seleções.
+    editable: false,
     extensions: [
       Document,
       Paragraph,
@@ -49,16 +52,6 @@ export default function InlineTextEditor({ content, richContent, onChange }: Pro
       attributes: {
         class:
           "prose prose-sm max-w-none focus:outline-none min-h-[60px] px-2 py-1.5",
-      },
-      handleKeyDown: (_view, event) => {
-        // Map Enter to a hard break so we don't fragment the single block
-        // into multiple <p>s (which would complicate run extraction).
-        if (event.key === "Enter" && !event.shiftKey) {
-          event.preventDefault();
-          editor?.chain().focus().setHardBreak().run();
-          return true;
-        }
-        return false;
       },
     },
     onUpdate: ({ editor: ed }) => {

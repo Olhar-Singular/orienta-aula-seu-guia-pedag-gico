@@ -134,7 +134,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
       expect(editor.value).toBe("rascunho universal");
     });
 
-    await user.click(screen.getByText("Versão Direcionada"));
+    await user.click(screen.getByText("Versão Adaptada"));
 
     await waitFor(() => {
       const editor = screen.getByTestId("mock-editor") as HTMLTextAreaElement;
@@ -179,7 +179,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
       { wrapper: createTestWrapper() }
     );
 
-    await user.click(screen.getByText("Versão Direcionada"));
+    await user.click(screen.getByText("Versão Adaptada"));
     const editor = (await screen.findByTestId("mock-editor")) as HTMLTextAreaElement;
     await user.clear(editor);
     await user.type(editor, "xyz");

@@ -6,12 +6,18 @@ import {
   structuredToMarkdownDsl,
   markdownDslToStructured,
 } from "@/lib/activityDslConverter";
+import {
+  expandImageRegistry,
+  type ImageRegistry,
+} from "@/components/editor/imageManagerUtils";
 import type { StructuredActivity } from "@/types/adaptation";
 
 type StepEditorProps = {
   structuredActivity: StructuredActivity;
   dslDraft?: string;
   onDslDraftChange: (dsl: string) => void;
+  imageRegistry?: ImageRegistry;
+  onImageRegistryChange?: (registry: ImageRegistry) => void;
   onNext: (activity: StructuredActivity) => void;
   onPrev: () => void;
 };
@@ -20,6 +26,8 @@ export function StepEditor({
   structuredActivity,
   dslDraft,
   onDslDraftChange,
+  imageRegistry,
+  onImageRegistryChange,
   onNext,
   onPrev,
 }: StepEditorProps) {
@@ -48,7 +56,10 @@ export function StepEditor({
   );
 
   const handleNext = () => {
-    onNext(markdownDslToStructured(value));
+    const expanded = imageRegistry
+      ? expandImageRegistry(value, imageRegistry)
+      : value;
+    onNext(markdownDslToStructured(expanded));
   };
 
   return (
@@ -66,7 +77,12 @@ export function StepEditor({
       {/* Editor full-bleed — same negative-margin pattern as StepAIEditor.
           Cancels Layout padding (px-3/sm:px-4/lg:px-6) + wizard px-1. */}
       <div className="-mx-4 sm:-mx-5 lg:-mx-7">
-        <ActivityEditor value={value} onChange={onDslDraftChange} />
+        <ActivityEditor
+          value={value}
+          onChange={onDslDraftChange}
+          imageRegistry={imageRegistry}
+          onImageRegistryChange={onImageRegistryChange}
+        />
       </div>
 
       <div className="flex justify-between pt-4">

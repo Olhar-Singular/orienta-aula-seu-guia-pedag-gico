@@ -63,6 +63,7 @@ describe("StepActivityInput", () => {
 
   it("shows the text editor on manual tab", () => {
     render(<StepActivityInput {...defaultProps} />);
+    fireEvent.click(screen.getByText("Colar Texto"));
     expect(screen.getByTestId("rich-editor")).toBeInTheDocument();
   });
 
@@ -98,6 +99,7 @@ describe("StepActivityInput", () => {
 
   it("shows character count on manual tab", () => {
     render(<StepActivityInput {...defaultProps} value="Hello" />);
+    fireEvent.click(screen.getByText("Colar Texto"));
     expect(screen.getByText("5 caracteres")).toBeInTheDocument();
   });
 

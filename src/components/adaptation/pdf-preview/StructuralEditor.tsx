@@ -423,6 +423,11 @@ function QuestionBlock({
         </button>
         <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">Questao {question.number}</span>
       </div>
+      {question.instruction && (
+        <p className="mb-2 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] italic text-gray-600">
+          {question.instruction}
+        </p>
+      )}
       <div className="space-y-0">
         <Slot id={slotId(question.id, 0)} onInsertPageBreak={() => onInsertPageBreak(0)} />
         {question.content.map((block, i) => (
@@ -442,6 +447,106 @@ function QuestionBlock({
           {question.alternatives.map((alt, i) => (
             <AlternativeRow key={i} text={alt} index={i} total={question.alternatives!.length} onMoveUp={() => onAlternativeReorder(i, i - 1)} onMoveDown={() => onAlternativeReorder(i, i + 1)} />
           ))}
+        </div>
+      )}
+      {question.checkItems && question.checkItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Caixas de seleção</div>
+          {question.checkItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+              <span className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm border border-gray-400 text-[9px] font-bold">
+                {item.checked ? "x" : ""}
+              </span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.tfItems && question.tfItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Verdadeiro / Falso</div>
+          {question.tfItems.map((item, i) => {
+            const mark = item.marked === true ? "V" : item.marked === false ? "F" : "";
+            return (
+              <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+                <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-gray-400 text-[9px] font-bold">
+                  {mark}
+                </span>
+                <span>{item.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {question.matchPairs && question.matchPairs.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Associação</div>
+          {question.matchPairs.map((pair, i) => (
+            <div key={i} className="flex items-center gap-1 py-0.5 text-xs text-gray-600">
+              <span className="flex-1 truncate font-medium">{pair.left}</span>
+              <span className="shrink-0 text-gray-400">—</span>
+              <span className="flex-1 truncate">{pair.right}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.orderItems && question.orderItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Ordenação</div>
+          {question.orderItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-gray-400 text-[9px]">
+                {item.n}
+              </span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.tableRows && question.tableRows.length > 0 && (
+        <div className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50">
+          <div className="px-2 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400">Tabela</div>
+          <table className="w-full border-collapse text-[11px]">
+            <tbody>
+              {question.tableRows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => {
+                    const trimmed = cell.trim();
+                    const isCircle = ri > 0 && ci > 0 && trimmed === "( )";
+                    const isSquare = ri > 0 && ci > 0 && trimmed === "[ ]";
+                    return (
+                      <td key={ci} className={`border border-gray-200 px-1.5 py-0.5 text-gray-600 ${ri === 0 ? "bg-gray-100 font-medium" : ""} ${isCircle || isSquare ? "text-center" : ""}`}>
+                        {isCircle ? (
+                          <span className="inline-block h-3 w-3 rounded-full border border-gray-500" />
+                        ) : isSquare ? (
+                          <span className="inline-block h-3 w-3 rounded-sm border border-gray-500" />
+                        ) : (
+                          cell
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {question.answerLines != null && question.answerLines > 0 && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="rounded bg-gray-100 px-2 py-0.5 font-medium">{question.answerLines} linhas de resposta</span>
+        </div>
+      )}
+      {question.scaffolding && question.scaffolding.length > 0 && (
+        <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <span>Apoio ({question.scaffolding.length} passos)</span>
+          </div>
+          <ol className="list-inside list-decimal space-y-0.5 pl-1 text-[11px] leading-snug text-amber-900">
+            {question.scaffolding.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
         </div>
       )}
       <QuestionLayoutControls question={question} onUpdate={onQuestionUpdate} />
@@ -549,10 +654,23 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
           <SeparatorHorizontal className="h-3.5 w-3.5 text-gray-400" />
           Separadores entre todas as questoes
         </label>
+        {activity.generalInstructions && (
+          <div className="mb-3 rounded-md border-l-4 border-gray-400 bg-gray-100 px-3 py-2 text-xs italic text-gray-700">
+            {activity.generalInstructions}
+          </div>
+        )}
         <div className="space-y-1">
           <QuestionSlot index={0} />
-          {activity.questions.map((q, i) => (
+          {activity.questions.map((q, i) => {
+            const prevTitle = i > 0 ? activity.questions[i - 1].sectionTitle : undefined;
+            const showTitle = q.sectionTitle && q.sectionTitle !== prevTitle;
+            return (
             <div key={q.id}>
+              {showTitle && (
+                <div className="mb-2 mt-3 border-b border-blue-200 pb-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                  {q.sectionTitle}
+                </div>
+              )}
               <QuestionBlock
                 question={q} isSelected={selectedQuestionId === q.id}
                 onSelect={() => onSelectQuestion(q.id)}
@@ -575,7 +693,8 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
               />
               <QuestionSlot index={i + 1} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <DragOverlay>

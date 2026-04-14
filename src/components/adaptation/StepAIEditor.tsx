@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
-import { buildAIEditorAdvancePatch } from "@/lib/adaptationWizardHelpers";
+import { buildAIEditorAdvancePatch, resetGeneratedState } from "@/lib/adaptationWizardHelpers";
+import { expandImageRegistry } from "@/components/editor/imageManagerUtils";
 
 type Props = {
   data: WizardData;
@@ -332,9 +333,12 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       }
 
       // Single updateData that atomically sets result, context, images, and seeded drafts.
-      // Regeneration counts as a fresh result — overwrite drafts here even if they exist.
+      // Regeneration counts as a fresh result — wipe ALL downstream state
+      // (editableActivity, pdfHistory, etc.) so the layout step rebuilds from
+      // the new content instead of reusing the previous generation.
       seededResultRef.current = adaptation;
       updateData({
+        ...resetGeneratedState(),
         result: adaptation,
         contextPillars: result.context_pillars || null,
         questionImages: {
@@ -366,9 +370,24 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   }, []);
 
   const handleNext = () => {
-    // Preserves editableActivity / pdfLayout when the user didn't actually
-    // change the text — only invalidates the version(s) that changed.
-    updateData(buildAIEditorAdvancePatch(data, universalValue, directedValue));
+    const registry = data.editorImageRegistry;
+    const expandedUniversal = registry
+      ? expandImageRegistry(universalValue, registry)
+      : universalValue;
+    const expandedDirected = registry
+      ? expandImageRegistry(directedValue, registry)
+      : directedValue;
+    // Preserves editableActivity when the user didn't actually change the
+    // text — only invalidates the version(s) that changed.
+    const patch = buildAIEditorAdvancePatch(data, expandedUniversal, expandedDirected);
+    // Keep drafts in sync with what we wrote to `result` (expanded URLs), so
+    // the next round-trip comparison sees the same representation on both
+    // sides instead of placeholders-vs-URLs.
+    updateData({
+      ...patch,
+      aiEditorUniversalDsl: expandedUniversal,
+      aiEditorDirectedDsl: expandedDirected,
+    });
     onNext();
   };
 
@@ -427,7 +446,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Versão Universal
+          Versão Original
         </button>
         <button
           type="button"
@@ -438,7 +457,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Versão Direcionada
+          Versão Adaptada
         </button>
       </div>
 
@@ -451,11 +470,15 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
           <ActivityEditor
             value={universalValue}
             onChange={(v) => updateData({ aiEditorUniversalDsl: v })}
+            imageRegistry={data.editorImageRegistry}
+            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
           />
         ) : (
           <ActivityEditor
             value={directedValue}
             onChange={(v) => updateData({ aiEditorDirectedDsl: v })}
+            imageRegistry={data.editorImageRegistry}
+            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
           />
         )}
       </div>

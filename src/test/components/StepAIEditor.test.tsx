@@ -75,8 +75,8 @@ describe("StepAIEditor", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText("Versão Universal")).toBeDefined();
-    expect(screen.getByText("Versão Direcionada")).toBeDefined();
+    expect(screen.getByText("Versão Original")).toBeDefined();
+    expect(screen.getByText("Versão Adaptada")).toBeDefined();
     expect(screen.getByRole("button", { name: /voltar/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /avançar/i })).toBeDefined();
   });
@@ -166,7 +166,7 @@ describe("StepAIEditor", () => {
     const universalText = (screen.getByTestId("mock-editor") as HTMLTextAreaElement).value;
 
     // Switch to directed
-    await user.click(screen.getByText("Versão Direcionada"));
+    await user.click(screen.getByText("Versão Adaptada"));
 
     await waitFor(() => {
       const editor = screen.getByTestId("mock-editor") as HTMLTextAreaElement;

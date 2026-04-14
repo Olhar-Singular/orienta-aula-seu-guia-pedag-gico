@@ -23,6 +23,87 @@ import StructuralEditor from "@/components/adaptation/pdf-preview/StructuralEdit
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
+const mockActivityWithCheckItems: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Selecione as corretas:" }],
+    questionType: "multiple_answer",
+    checkItems: [
+      { text: "Opção correta 1", checked: true },
+      { text: "Opção errada", checked: false },
+    ],
+  }],
+};
+
+const mockActivityWithTfItems: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Verdadeiro ou Falso:" }],
+    questionType: "true_false",
+    tfItems: [
+      { text: "Primeira afirmação", marked: null },
+      { text: "Segunda afirmação", marked: true },
+    ],
+  }],
+};
+
+const mockActivityWithMatchPairs: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Associe as colunas:" }],
+    questionType: "matching",
+    matchPairs: [
+      { left: "Brasil", right: "Brasília" },
+      { left: "Argentina", right: "Buenos Aires" },
+    ],
+  }],
+};
+
+const mockActivityWithOrderItems: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Ordene do menor para o maior:" }],
+    questionType: "ordering",
+    orderItems: [
+      { n: 1, text: "Célula" },
+      { n: 2, text: "Tecido" },
+    ],
+  }],
+};
+
+const mockActivityWithTableRows: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Marque a resposta:" }],
+    questionType: "table",
+    tableRows: [
+      ["", "Sim", "Não"],
+      ["Item 1", "( )", "( )"],
+    ],
+  }],
+};
+
+const mockActivityWithAnswerLines: EditableActivity = {
+  header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: false },
+  globalShowSeparators: false,
+  questions: [{
+    id: "q1", number: 1,
+    content: [{ id: "b1", type: "text", content: "Explique com suas palavras:" }],
+    questionType: "open_ended",
+    answerLines: 3,
+  }],
+};
+
 const mockActivity: EditableActivity = {
   header: {
     schoolName: "Escola X",
@@ -315,5 +396,67 @@ describe("StructuralEditor", () => {
         /Arraste questoes, blocos e imagens/i
       )
     ).toBeTruthy();
+  });
+
+  // ─── Body-type previews ──────────────────────────────────────────────────
+
+  it("renders checkItems preview section for multiple_answer questions", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithCheckItems)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Caixas de seleção")).toBeTruthy();
+    expect(screen.getByText("Opção correta 1")).toBeTruthy();
+    expect(screen.getByText("Opção errada")).toBeTruthy();
+  });
+
+  it("renders tfItems preview section for true_false questions", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithTfItems)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Verdadeiro / Falso")).toBeTruthy();
+    expect(screen.getByText("Primeira afirmação")).toBeTruthy();
+    expect(screen.getByText("Segunda afirmação")).toBeTruthy();
+  });
+
+  it("renders matchPairs preview section for matching questions", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithMatchPairs)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Associação")).toBeTruthy();
+    expect(screen.getByText("Brasil")).toBeTruthy();
+    expect(screen.getByText("Brasília")).toBeTruthy();
+    expect(screen.getByText("Argentina")).toBeTruthy();
+    expect(screen.getByText("Buenos Aires")).toBeTruthy();
+  });
+
+  it("renders orderItems preview section for ordering questions", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithOrderItems)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Ordenação")).toBeTruthy();
+    expect(screen.getByText("Célula")).toBeTruthy();
+    expect(screen.getByText("Tecido")).toBeTruthy();
+  });
+
+  it("renders tableRows preview section for table questions", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithTableRows)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("Tabela")).toBeTruthy();
+    expect(screen.getByText("Sim")).toBeTruthy();
+    expect(screen.getByText("Item 1")).toBeTruthy();
+  });
+
+  it("renders answerLines indicator when answerLines > 0", () => {
+    render(
+      <StructuralEditor {...makeDefaultProps(mockActivityWithAnswerLines)} />,
+      { wrapper: createTestWrapper() }
+    );
+    expect(screen.getByText("3 linhas de resposta")).toBeTruthy();
   });
 });
