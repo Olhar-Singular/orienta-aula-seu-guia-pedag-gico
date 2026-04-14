@@ -34,7 +34,7 @@ async function findUserByEmail(
     const { data } = await admin.auth.admin.listUsers({ page, perPage });
     if (!data?.users?.length) break;
     const found = data.users.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
+      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
     );
     if (found) return found;
     if (data.users.length < perPage) break;

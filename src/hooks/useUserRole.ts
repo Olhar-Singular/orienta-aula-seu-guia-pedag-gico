@@ -24,8 +24,9 @@ export function useUserRole() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const isSuperAdmin = profileQuery.data?.is_super_admin === true;
-  const isActive = profileQuery.data?.is_active !== false;
+  const profile = profileQuery.data as Record<string, unknown> | null | undefined;
+  const isSuperAdmin = profile?.is_super_admin === true;
+  const isActive = profile?.is_active !== false;
 
   let role: EffectiveRole = "teacher";
   if (isSuperAdmin) {
