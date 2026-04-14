@@ -1,4 +1,5 @@
 import type { ContentBlock, StructuredQuestion } from "@/types/adaptation";
+import { parseMarkdownInline } from "@/lib/parseMarkdownInline";
 
 /**
  * Type guard: returns true if the question uses the new ContentBlock[] format.
@@ -27,10 +28,12 @@ export function migrateToContentBlocks(
   const imgList = images ?? question.images;
 
   if (question.statement) {
+    const richContent = parseMarkdownInline(question.statement);
     blocks.push({
       id: generateId(),
       type: "text",
       content: question.statement,
+      ...(richContent ? { richContent } : {}),
     });
   }
 

@@ -191,7 +191,9 @@ function QuestionTrueFalse({ q }: { q: ParsedQuestion }) {
     <div className="mt-2 flex flex-col gap-1">
       {q.tfItems.map((t, i) => (
         <div key={i} className="flex items-start gap-1.5 text-sm text-zinc-700">
-          <div className="w-4 h-4 border-[1.5px] border-zinc-300 rounded-[3px] flex-shrink-0 mt-0.5" />
+          <div className="w-4 h-4 border-[1.5px] border-zinc-300 rounded-full flex-shrink-0 mt-0.5 flex items-center justify-center text-[0.6rem] font-bold text-zinc-600">
+            {t.marked === true ? "V" : t.marked === false ? "F" : ""}
+          </div>
           <span>
             <InlineHtml html={formatInline(t.text)} />
           </span>
@@ -267,6 +269,7 @@ function QuestionTable({ q }: { q: ParsedQuestion }) {
   return (
     <div className="mt-2.5 overflow-x-auto">
       <table className="w-full border-collapse text-sm">
+        <tbody>
         {q.tableRows.map((row, ri) => {
           const Tag = ri === 0 ? "th" : "td";
           return (
@@ -309,6 +312,7 @@ function QuestionTable({ q }: { q: ParsedQuestion }) {
             </tr>
           );
         })}
+        </tbody>
       </table>
     </div>
   );

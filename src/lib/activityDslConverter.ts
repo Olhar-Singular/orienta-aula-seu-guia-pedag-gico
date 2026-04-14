@@ -58,12 +58,50 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
           }
           break;
 
+        case "multiple_answer":
+          if (q.check_items && q.check_items.length > 0) {
+            for (const item of q.check_items) {
+              const mark = item.checked ? "x" : " ";
+              lines.push(`[${mark}] ${n(item.text)}`);
+            }
+          }
+          break;
+
         case "true_false":
-          // The StructuredActivity type doesn't have dedicated V/F items,
-          // but we can check if alternatives are used as V/F
-          // Default: add empty V/F placeholders
-          lines.push("( ) Verdadeiro");
-          lines.push("( ) Falso");
+          if (q.tf_items && q.tf_items.length > 0) {
+            for (const item of q.tf_items) {
+              if (item.marked === true) lines.push(`(V) ${n(item.text)}`);
+              else if (item.marked === false) lines.push(`(F) ${n(item.text)}`);
+              else lines.push(`( ) ${n(item.text)}`);
+            }
+          } else {
+            lines.push("( ) Verdadeiro");
+            lines.push("( ) Falso");
+          }
+          break;
+
+        case "matching":
+          if (q.match_pairs && q.match_pairs.length > 0) {
+            for (const pair of q.match_pairs) {
+              lines.push(`${n(pair.left)} -- ${n(pair.right)}`);
+            }
+          }
+          break;
+
+        case "ordering":
+          if (q.order_items && q.order_items.length > 0) {
+            for (const item of q.order_items) {
+              lines.push(`[${item.n}] ${n(item.text)}`);
+            }
+          }
+          break;
+
+        case "table":
+          if (q.table_rows && q.table_rows.length > 0) {
+            for (const row of q.table_rows) {
+              lines.push(`| ${row.map((c) => n(c)).join(" | ")} |`);
+            }
+          }
           break;
 
         case "fill_blank":
@@ -73,9 +111,11 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
           }
           break;
 
-        case "open_ended":
-          lines.push("[linhas:4]");
+        case "open_ended": {
+          const n_lines = q.answerLines && q.answerLines > 0 ? q.answerLines : 4;
+          lines.push(`[linhas:${n_lines}]`);
           break;
+        }
       }
 
       // Scaffolding as instructions
@@ -178,6 +218,39 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     }
   }
 
+  // Multiple-answer checkboxes
+  if (pq.checkItems.length > 0) {
+    q.check_items = pq.checkItems.map((c) => ({
+      text: c.text,
+      checked: c.checked,
+    }));
+  }
+
+  // True/false items
+  if (pq.tfItems.length > 0) {
+    q.tf_items = pq.tfItems.map((t) => ({ text: t.text, marked: t.marked }));
+  }
+
+  // Matching pairs
+  if (pq.matchPairs.length > 0) {
+    q.match_pairs = pq.matchPairs.map((p) => ({ left: p.left, right: p.right }));
+  }
+
+  // Ordering items
+  if (pq.orderItems.length > 0) {
+    q.order_items = pq.orderItems.map((o) => ({ n: o.n, text: o.text }));
+  }
+
+  // Table rows
+  if (pq.tableRows.length > 0) {
+    q.table_rows = pq.tableRows.map((row) => [...row]);
+  }
+
+  // Answer lines (from [linhas:N])
+  if (pq.answerLines > 0) {
+    q.answerLines = pq.answerLines;
+  }
+
   // Images
   if (pq.images.length > 0) {
     q.images = [...pq.images];
@@ -215,26 +288,21 @@ function buildFullStatement(pq: ParsedQuestion): string {
 }
 
 /**
- * Map extended parser types to the 4 StructuredActivity types.
- * Types not in StructuredActivity (matching, ordering, table, multiple_answer)
- * get mapped to the closest equivalent.
+ * Map parser types to StructuredActivity types.
+ * After Fase A, StructuredActivity preserves all 8 types (multiple_choice,
+ * multiple_answer, true_false, open_ended, fill_blank, matching, ordering, table).
  */
-function mapQuestionType(
-  parserType: string
-): "multiple_choice" | "open_ended" | "fill_blank" | "true_false" {
+function mapQuestionType(parserType: string): StructuredQuestion["type"] {
   switch (parserType) {
     case "multiple_choice":
-      return "multiple_choice";
     case "multiple_answer":
-      return "multiple_choice";
     case "true_false":
-      return "true_false";
     case "fill_blank":
-      return "fill_blank";
     case "matching":
     case "ordering":
     case "table":
     case "open_ended":
+      return parserType;
     default:
       return "open_ended";
   }
