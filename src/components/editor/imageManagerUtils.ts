@@ -85,3 +85,24 @@ export function scanAndRegisterUrls(
 
   return { cleanText, updatedRegistry: updated };
 }
+
+/**
+ * Expand [img:imagem-N ...] placeholders in text back to [img:URL ...].
+ * Used at editor → layout handoff to ensure the StructuredActivity carries
+ * renderable src values, since the layout path has no access to the registry.
+ *
+ * Tokens already containing a raw URL (http/data) pass through unchanged.
+ * Placeholders not found in the registry pass through unchanged.
+ */
+export function expandImageRegistry(
+  text: string,
+  registry: ImageRegistry,
+): string {
+  const pattern = /\[img:([^\s\]]+)((?:\s[^\]]*)?)\]/g;
+  return text.replace(pattern, (full, name: string, params: string) => {
+    if (/^(https?:\/\/|data:)/i.test(name)) return full;
+    const url = registry[name];
+    if (!url) return full;
+    return `[img:${url}${params ?? ""}]`;
+  });
+}
