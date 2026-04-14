@@ -215,6 +215,67 @@ describe("renderContentBlock", () => {
     expect(el.props.style).toMatchObject({ fontSize: 16, fontFamily: "Helvetica-Bold" });
   });
 
+  // bold/italic inline runs
+  it("run with bold:true gets Helvetica-Bold fontFamily override", () => {
+    const block: ContentBlock = {
+      id: "b7",
+      type: "text",
+      content: "Selecione **todas** as corretas:",
+      richContent: [
+        { text: "Selecione " },
+        { text: "todas", bold: true },
+        { text: " as corretas:" },
+      ],
+    };
+    const el = renderContentBlock(block) as any;
+    const children = Array.isArray(el.props.children) ? el.props.children : [el.props.children];
+    const runs = children.filter((c: any) => c && c.type === MockText);
+    // The bold run should have Helvetica-Bold
+    const boldRun = runs.find((r: any) => r.props.children === "todas");
+    expect(boldRun).toBeDefined();
+    expect(boldRun.props.style).toMatchObject({ fontFamily: "Helvetica-Bold" });
+    // The plain run should not have fontFamily override
+    const plainRun = runs.find((r: any) => r.props.children === "Selecione ");
+    expect(plainRun.props.style).toBeUndefined();
+  });
+
+  it("run with italic:true gets Helvetica-Oblique fontFamily override", () => {
+    const block: ContentBlock = {
+      id: "b8",
+      type: "text",
+      content: "Leia *com atenção*:",
+      richContent: [
+        { text: "Leia " },
+        { text: "com atenção", italic: true },
+        { text: ":" },
+      ],
+    };
+    const el = renderContentBlock(block) as any;
+    const children = Array.isArray(el.props.children) ? el.props.children : [el.props.children];
+    const runs = children.filter((c: any) => c && c.type === MockText);
+    const italicRun = runs.find((r: any) => r.props.children === "com atenção");
+    expect(italicRun).toBeDefined();
+    expect(italicRun.props.style).toMatchObject({ fontFamily: "Helvetica-Oblique" });
+  });
+
+  it("run with both bold and italic gets Helvetica-BoldOblique", () => {
+    const block: ContentBlock = {
+      id: "b9",
+      type: "text",
+      content: "texto ***importante***",
+      richContent: [
+        { text: "texto " },
+        { text: "importante", bold: true, italic: true },
+      ],
+    };
+    const el = renderContentBlock(block) as any;
+    const children = Array.isArray(el.props.children) ? el.props.children : [el.props.children];
+    const runs = children.filter((c: any) => c && c.type === MockText);
+    const biRun = runs.find((r: any) => r.props.children === "importante");
+    expect(biRun).toBeDefined();
+    expect(biRun.props.style).toMatchObject({ fontFamily: "Helvetica-BoldOblique" });
+  });
+
   // image blocks — alignment
   it("image block with alignment 'center' wraps with center style", () => {
     const block: ContentBlock = {

@@ -205,4 +205,287 @@ describe("toEditableActivity", () => {
 
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it("preserves scaffolding (apoios DUA) on the editable question", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              number: 1,
+              type: "open_ended",
+              statement: "Resolva o problema:",
+              scaffolding: [
+                "Leia o enunciado em voz alta",
+                "Identifique os dados numericos",
+                "Escolha a operacao correta",
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].scaffolding).toEqual([
+      "Leia o enunciado em voz alta",
+      "Identifique os dados numericos",
+      "Escolha a operacao correta",
+    ]);
+  });
+
+  it("preserves scaffolding when question already uses content blocks", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              number: 1,
+              type: "open_ended",
+              statement: "legacy",
+              content: [{ id: "b1", type: "text", content: "Qual e?" }],
+              scaffolding: ["Passo 1", "Passo 2"],
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].scaffolding).toEqual(["Passo 1", "Passo 2"]);
+  });
+
+  it("preserves instruction (per-question helper text)", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              number: 1,
+              type: "open_ended",
+              statement: "Enunciado",
+              instruction: "Leia com atencao antes de responder.",
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].instruction).toBe(
+      "Leia com atencao antes de responder.",
+    );
+  });
+
+  it("preserves section title on each question so groups survive reordering", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          title: "Parte 1 - Fracoes",
+          questions: [
+            { number: 1, type: "open_ended", statement: "Q1" },
+            { number: 2, type: "open_ended", statement: "Q2" },
+          ],
+        },
+        {
+          title: "Parte 2 - Decimais",
+          questions: [{ number: 3, type: "open_ended", statement: "Q3" }],
+        },
+      ],
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].sectionTitle).toBe("Parte 1 - Fracoes");
+    expect(result.questions[1].sectionTitle).toBe("Parte 1 - Fracoes");
+    expect(result.questions[2].sectionTitle).toBe("Parte 2 - Decimais");
+  });
+
+  it("preserves general_instructions at the activity level", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        { questions: [{ number: 1, type: "open_ended", statement: "Q1" }] },
+      ],
+      general_instructions: "Responda com caneta azul.",
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.generalInstructions).toBe("Responda com caneta azul.");
+  });
+
+  // ── Rich types propagation (Fase A) ──
+
+  describe("rich types propagation", () => {
+    it("propagates questionType for multiple_choice", () => {
+      const structured: StructuredActivity = {
+        sections: [
+          {
+            questions: [
+              {
+                number: 1,
+                type: "multiple_choice",
+                statement: "Qual?",
+                alternatives: [{ letter: "a", text: "X" }],
+              },
+            ],
+          },
+        ],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("multiple_choice");
+    });
+
+    it("propagates check_items for multiple_answer", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "multiple_answer",
+            statement: "Selecione:",
+            check_items: [
+              { text: "Certo", checked: true },
+              { text: "Errado", checked: false },
+            ],
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("multiple_answer");
+      expect(result.questions[0].checkItems).toEqual([
+        { text: "Certo", checked: true },
+        { text: "Errado", checked: false },
+      ]);
+    });
+
+    it("propagates tf_items for true_false", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "true_false",
+            statement: "V ou F:",
+            tf_items: [
+              { text: "Afirmacao A", marked: null },
+              { text: "Afirmacao B", marked: null },
+            ],
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("true_false");
+      expect(result.questions[0].tfItems).toEqual([
+        { text: "Afirmacao A", marked: null },
+        { text: "Afirmacao B", marked: null },
+      ]);
+    });
+
+    it("propagates match_pairs for matching", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "matching",
+            statement: "Associe:",
+            match_pairs: [
+              { left: "Brasil", right: "Brasilia" },
+              { left: "Chile", right: "Santiago" },
+            ],
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("matching");
+      expect(result.questions[0].matchPairs).toEqual([
+        { left: "Brasil", right: "Brasilia" },
+        { left: "Chile", right: "Santiago" },
+      ]);
+    });
+
+    it("propagates order_items for ordering", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "ordering",
+            statement: "Ordene:",
+            order_items: [
+              { n: 1, text: "Primeiro" },
+              { n: 2, text: "Segundo" },
+            ],
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("ordering");
+      expect(result.questions[0].orderItems).toEqual([
+        { n: 1, text: "Primeiro" },
+        { n: 2, text: "Segundo" },
+      ]);
+    });
+
+    it("propagates table_rows for table", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "table",
+            statement: "Marque:",
+            table_rows: [
+              ["", "Sim", "Nao"],
+              ["Item 1", "( )", "( )"],
+            ],
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].questionType).toBe("table");
+      expect(result.questions[0].tableRows).toEqual([
+        ["", "Sim", "Nao"],
+        ["Item 1", "( )", "( )"],
+      ]);
+    });
+
+    it("propagates answerLines for open_ended with [linhas:N]", () => {
+      const structured: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "open_ended",
+            statement: "Explique:",
+            answerLines: 5,
+          }],
+        }],
+      };
+      const result = toEditableActivity(structured, HEADER);
+      expect(result.questions[0].answerLines).toBe(5);
+    });
+  });
+
+  it("strips HTML tags from statement when migrating to content blocks", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              number: 1,
+              type: "open_ended",
+              statement: "<p>Calcule <strong>2+2</strong></p>",
+              statementFormat: "html",
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = toEditableActivity(structured, HEADER);
+    const textBlock = result.questions[0].content.find(
+      (b) => b.type === "text",
+    );
+    expect(textBlock).toBeDefined();
+    if (textBlock?.type === "text") {
+      expect(textBlock.content).not.toContain("<p>");
+      expect(textBlock.content).not.toContain("<strong>");
+      expect(textBlock.content).toContain("Calcule");
+      expect(textBlock.content).toContain("2+2");
+    }
+  });
 });

@@ -92,6 +92,21 @@ const styles = StyleSheet.create({
 export { styles as contentRendererStyles };
 
 /**
+ * Validates that an image src is something @react-pdf/renderer can fetch.
+ * Stale placeholders like "imagem-1" or empty strings cause "Not valid image
+ * extension" errors at PDF-generation time.
+ */
+export function isRenderableImageSrc(src: string | undefined): boolean {
+  if (!src) return false;
+  const trimmed = src.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith("data:image/")) return true;
+  if (/^https?:\/\//i.test(trimmed)) return true;
+  if (trimmed.startsWith("/") || trimmed.startsWith("./")) return true;
+  return false;
+}
+
+/**
  * Resolves @react-pdf/renderer font variant names.
  */
 export function resolveFontFamily(
@@ -134,15 +149,28 @@ export function renderContentBlock(block: ContentBlock) {
 
   if (block.type === "text") {
     const parentStyle = { ...styles.textBlock, ...textStyleToPdf(block.style) };
+    const baseFamily: PdfFontFamily =
+      (block.style as TextStyle | undefined)?.fontFamily ?? TEXT_STYLE_DEFAULTS.fontFamily;
+    const baseBold = (block.style as TextStyle | undefined)?.bold ?? TEXT_STYLE_DEFAULTS.bold;
+    const baseItalic = (block.style as TextStyle | undefined)?.italic ?? TEXT_STYLE_DEFAULTS.italic;
+
     const runs = block.richContent;
     if (runs && runs.length > 0) {
       return (
         <Text key={block.id} style={parentStyle}>
-          {runs.map((run, i) => (
-            <Text key={i} style={run.color ? { color: run.color } : undefined}>
-              {run.text}
-            </Text>
-          ))}
+          {runs.map((run, i) => {
+            const runBold = run.bold ?? baseBold;
+            const runItalic = run.italic ?? baseItalic;
+            const needsFontOverride = runBold !== baseBold || runItalic !== baseItalic;
+            const runStyle: Record<string, string> = {};
+            if (run.color) runStyle.color = run.color;
+            if (needsFontOverride) runStyle.fontFamily = resolveFontFamily(baseFamily, runBold, runItalic);
+            return (
+              <Text key={i} style={Object.keys(runStyle).length > 0 ? runStyle : undefined}>
+                {run.text}
+              </Text>
+            );
+          })}
         </Text>
       );
     }
@@ -154,6 +182,8 @@ export function renderContentBlock(block: ContentBlock) {
   }
 
   if (block.type === "image") {
+    if (!isRenderableImageSrc(block.src)) return null;
+
     const wrapperAlignStyle =
       block.alignment === "left"
         ? styles.imageWrapperLeft
@@ -189,12 +219,13 @@ export function renderContentBlock(block: ContentBlock) {
  * Renders an ActivityHeader to PDF elements.
  */
 export function renderActivityHeader(header: ActivityHeader) {
+  const hasValidLogo = isRenderableImageSrc(header.logoSrc);
   return (
     <View style={styles.headerRow} wrap={false}>
-      {header.logoSrc && (
+      {hasValidLogo && (
         <View style={styles.headerLogo}>
           <PdfImage
-            src={header.logoSrc}
+            src={header.logoSrc!}
             style={{
               width: header.logoWidth ?? 60,
               height: header.logoWidth ?? 60,
