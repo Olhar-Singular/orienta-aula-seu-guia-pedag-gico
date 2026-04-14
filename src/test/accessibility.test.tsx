@@ -102,8 +102,8 @@ describe("Layout responsiveness", () => {
     const { getByRole } = renderLayout();
     const main = getByRole("main");
     const innerDiv = main.querySelector("div");
-    expect(innerDiv?.className).toContain("p-4");
-    expect(innerDiv?.className).toContain("sm:p-6");
-    expect(innerDiv?.className).toContain("lg:p-8");
+    expect(innerDiv?.className).toContain("px-3");
+    expect(innerDiv?.className).toContain("sm:px-4");
+    expect(innerDiv?.className).toContain("lg:px-6");
   });
 });

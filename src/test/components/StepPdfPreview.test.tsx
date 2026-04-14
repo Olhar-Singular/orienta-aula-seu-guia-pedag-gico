@@ -92,7 +92,6 @@ function makeDefaultProps(overrides: Record<string, any> = {}) {
     adaptationResult: mockResult,
     onNext: vi.fn(),
     onBack: vi.fn(),
-    onLayoutChange: vi.fn(),
     onUniversalChange: vi.fn(),
     onDirectedChange: vi.fn(),
     ...overrides,
@@ -115,7 +114,7 @@ describe("StepPdfPreview", () => {
     const universalBtn = container.querySelector("button");
     const allButtons = container.querySelectorAll("button");
     const universalTabBtn = Array.from(allButtons).find(
-      (b) => b.textContent === "Universal"
+      (b) => b.textContent === "Original"
     );
     expect(universalTabBtn).toBeTruthy();
     expect(universalTabBtn!.className).toContain("bg-blue-600");
@@ -129,7 +128,7 @@ describe("StepPdfPreview", () => {
 
     const allButtons = container.querySelectorAll("button");
     const directedBtn = Array.from(allButtons).find(
-      (b) => b.textContent === "Direcionada"
+      (b) => b.textContent === "Adaptada"
     );
     expect(directedBtn).toBeTruthy();
 
@@ -138,13 +137,13 @@ describe("StepPdfPreview", () => {
     // After click, directed tab should be active
     const updatedButtons = container.querySelectorAll("button");
     const updatedDirected = Array.from(updatedButtons).find(
-      (b) => b.textContent === "Direcionada"
+      (b) => b.textContent === "Adaptada"
     );
     expect(updatedDirected!.className).toContain("bg-blue-600");
 
     // And universal should no longer be active
     const updatedUniversal = Array.from(updatedButtons).find(
-      (b) => b.textContent === "Universal"
+      (b) => b.textContent === "Original"
     );
     expect(updatedUniversal!.className).not.toContain("bg-blue-600");
   });
@@ -255,14 +254,12 @@ describe("StepPdfPreview", () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it("clicking Exportar calls onLayoutChange, onUniversalChange, onDirectedChange, and onNext", () => {
+  it("clicking Exportar calls onUniversalChange, onDirectedChange, and onNext", () => {
     const onNext = vi.fn();
-    const onLayoutChange = vi.fn();
     const onUniversalChange = vi.fn();
     const onDirectedChange = vi.fn();
     const props = makeDefaultProps({
       onNext,
-      onLayoutChange,
       onUniversalChange,
       onDirectedChange,
     });
@@ -276,7 +273,6 @@ describe("StepPdfPreview", () => {
     const exportBtn = screen.getByText("Exportar");
     fireEvent.click(exportBtn);
 
-    expect(onLayoutChange).toHaveBeenCalledTimes(1);
     expect(onUniversalChange).toHaveBeenCalledTimes(1);
     expect(onDirectedChange).toHaveBeenCalledTimes(1);
     expect(onNext).toHaveBeenCalledTimes(1);

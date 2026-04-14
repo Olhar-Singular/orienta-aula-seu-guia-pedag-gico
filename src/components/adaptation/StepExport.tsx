@@ -41,7 +41,7 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   const universalText = getVersionText(r.version_universal);
   const directedText = getVersionText(r.version_directed);
 
-  const fullText = `VERSÃO UNIVERSAL (Design Universal para Aprendizagem)\n\n${universalText}\n\n---\n\nVERSÃO DIRECIONADA\n\n${directedText}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
+  const fullText = `VERSÃO ORIGINAL\n\n${universalText}\n\n---\n\nVERSÃO ADAPTADA\n\n${directedText}\n\n---\n\nESTRATÉGIAS APLICADAS\n${r.strategies_applied.map((s) => `• ${s}`).join("\n")}\n\n---\n\nJUSTIFICATIVA PEDAGÓGICA\n\n${r.pedagogical_justification}\n\n---\n\nDICAS DE IMPLEMENTAÇÃO\n${r.implementation_tips.map((t, i) => `${i + 1}. ${t}`).join("\n")}\n\n---\nFerramenta pedagógica. Não realiza diagnóstico. A decisão final é sempre do profissional.`;
 
   const handleSaveHistory = async () => {
     if (!user || saved) return;
@@ -121,7 +121,7 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
   async function handleExportSinglePdf(version: "universal" | "directed") {
     const setLoading = version === "universal" ? setExportingPdfUniversal : setExportingPdfDirected;
     const activity = version === "universal" ? data.editableActivity : data.editableActivityDirected;
-    const label = version === "universal" ? "universal" : "direcionada";
+    const label = version === "universal" ? "original" : "adaptada";
     setLoading(true);
     try {
       if (!activity) {
@@ -271,8 +271,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
               {exportingPdfUniversal ? <Loader2 className="w-7 h-7 animate-spin" /> : <FileText className="w-7 h-7" />}
             </div>
             <div>
-              <p className="font-semibold text-foreground text-base">{exportingPdfUniversal ? "Gerando..." : "PDF Universal"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Versao universal + estrategias</p>
+              <p className="font-semibold text-foreground text-base">{exportingPdfUniversal ? "Gerando..." : "PDF Original"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Versao original + estrategias</p>
             </div>
           </CardContent>
         </Card>
@@ -286,8 +286,8 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
               {exportingPdfDirected ? <Loader2 className="w-7 h-7 animate-spin" /> : <FileText className="w-7 h-7" />}
             </div>
             <div>
-              <p className="font-semibold text-foreground text-base">{exportingPdfDirected ? "Gerando..." : "PDF Direcionada"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Versao direcionada + estrategias</p>
+              <p className="font-semibold text-foreground text-base">{exportingPdfDirected ? "Gerando..." : "PDF Adaptada"}</p>
+              <p className="text-xs text-muted-foreground mt-1">Versao adaptada + estrategias</p>
             </div>
           </CardContent>
         </Card>

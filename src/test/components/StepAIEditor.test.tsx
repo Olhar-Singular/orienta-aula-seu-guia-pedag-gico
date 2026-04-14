@@ -75,8 +75,8 @@ describe("StepAIEditor", () => {
       { wrapper: createTestWrapper() }
     );
 
-    expect(screen.getByText("Versão Universal")).toBeDefined();
-    expect(screen.getByText("Versão Direcionada")).toBeDefined();
+    expect(screen.getByText("Versão Original")).toBeDefined();
+    expect(screen.getByText("Versão Adaptada")).toBeDefined();
     expect(screen.getByRole("button", { name: /voltar/i })).toBeDefined();
     expect(screen.getByRole("button", { name: /avançar/i })).toBeDefined();
   });
@@ -136,9 +136,12 @@ describe("StepAIEditor", () => {
     await user.click(screen.getByRole("button", { name: /avançar/i }));
 
     expect(updateData).toHaveBeenCalled();
-    const updateCall = updateData.mock.calls[0][0];
-    // Should update result with structured data parsed from DSL
-    expect(updateCall.result).toBeDefined();
+    // Find the updateData call that writes back the edited result.
+    const resultCall = updateData.mock.calls
+      .map((c) => c[0])
+      .find((c) => "result" in c);
+    expect(resultCall).toBeDefined();
+    expect(resultCall.result).toBeDefined();
     expect(onNext).toHaveBeenCalled();
   });
 
@@ -163,7 +166,7 @@ describe("StepAIEditor", () => {
     const universalText = (screen.getByTestId("mock-editor") as HTMLTextAreaElement).value;
 
     // Switch to directed
-    await user.click(screen.getByText("Versão Direcionada"));
+    await user.click(screen.getByText("Versão Adaptada"));
 
     await waitFor(() => {
       const editor = screen.getByTestId("mock-editor") as HTMLTextAreaElement;

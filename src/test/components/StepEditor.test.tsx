@@ -1,13 +1,50 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+// Mock ActivityEditor — the real one pulls in ImageManagerModal → useAuth,
+// which isn't needed for these props-contract tests.
+vi.mock("@/components/editor/ActivityEditor", () => ({
+  default: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
+    <textarea
+      data-testid="mock-activity-editor"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  ),
+}));
+
+import { useState } from "react";
 import { StepEditor } from "@/components/adaptation/StepEditor";
 import { MOCK_MANUAL_STRUCTURED_ACTIVITY } from "../fixtures";
+
+/** Stateful wrapper so the controlled dslDraft value reflects edits back to the child. */
+function StatefulStepEditor(props: {
+  initialDraft?: string;
+  onDslDraftChange?: (v: string) => void;
+  onNext?: (a: unknown) => void;
+  onPrev?: () => void;
+}) {
+  const [draft, setDraft] = useState<string | undefined>(props.initialDraft);
+  return (
+    <StepEditor
+      structuredActivity={MOCK_MANUAL_STRUCTURED_ACTIVITY}
+      dslDraft={draft}
+      onDslDraftChange={(v) => {
+        setDraft(v);
+        props.onDslDraftChange?.(v);
+      }}
+      onNext={props.onNext ?? vi.fn()}
+      onPrev={props.onPrev ?? vi.fn()}
+    />
+  );
+}
 
 describe("StepEditor", () => {
   const defaultProps = {
     structuredActivity: MOCK_MANUAL_STRUCTURED_ACTIVITY,
-    onStructuredActivityChange: vi.fn(),
+    dslDraft: undefined,
+    onDslDraftChange: vi.fn(),
     onNext: vi.fn(),
     onPrev: vi.fn(),
   };
@@ -48,55 +85,136 @@ describe("StepEditor", () => {
     expect(screen.getByText(new RegExp(`${totalQuestions} quest`))).toBeDefined();
   });
 
-  it("renders each question statement", () => {
+  // ─── ActivityEditor integration ───
+
+  it("renders the DSL textarea editor", () => {
     render(<StepEditor {...defaultProps} />);
+    const textareas = document.querySelectorAll("textarea");
+    expect(textareas.length).toBeGreaterThan(0);
+  });
+
+  it("initializes the editor with DSL text containing question statements", () => {
+    render(<StepEditor {...defaultProps} />);
+    const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+    expect(textarea).toBeDefined();
     for (const section of MOCK_MANUAL_STRUCTURED_ACTIVITY.sections) {
       for (const q of section.questions) {
-        expect(
-          screen.getByText((content) => content.includes(q.statement))
-        ).toBeDefined();
+        expect(textarea.value).toContain(q.statement);
       }
     }
   });
 
-  // ─── StructuredContentRenderer integration ───
-
-  it("renders question numbers in circular badges (StructuredContentRenderer style)", () => {
-    render(<StepEditor {...defaultProps} />);
-    // StructuredContentRenderer renders each number in a rounded-full span
-    const circles = document.querySelectorAll(".rounded-full");
-    const numbers = Array.from(circles).map((el) => el.textContent?.trim());
-    expect(numbers).toContain("1");
-    expect(numbers).toContain("2");
-    expect(numbers).toContain("3");
+  it("emits structured activity on Avançar", async () => {
+    const user = userEvent.setup();
+    const onNext = vi.fn();
+    render(<StepEditor {...defaultProps} onNext={onNext} />);
+    await user.click(screen.getByRole("button", { name: /avançar/i }));
+    expect(onNext).toHaveBeenCalledTimes(1);
+    const emitted = onNext.mock.calls[0][0];
+    expect(emitted.sections).toBeDefined();
+    expect(Array.isArray(emitted.sections)).toBe(true);
   });
 
-  it("renders type badge with color classes (StructuredContentRenderer style)", () => {
-    render(<StepEditor {...defaultProps} />);
-    // multiple_choice gets bg-blue-100 class
-    const blueBadges = document.querySelectorAll(".bg-blue-100");
-    expect(blueBadges.length).toBeGreaterThan(0);
-  });
+  it("onNext receives the latest DSL edits, not the initial prop", async () => {
+    const user = userEvent.setup();
+    const onNext = vi.fn();
+    render(<StatefulStepEditor onNext={onNext} />);
 
-  it("does not render raw textarea inputs for questions", () => {
-    render(<StepEditor {...defaultProps} />);
-    // Old StepEditor had inline textareas — new one should not
-    const textareas = document.querySelectorAll("textarea");
-    expect(textareas.length).toBe(0);
-  });
+    const textarea = document.querySelector(
+      "textarea[data-testid='mock-activity-editor']",
+    ) as HTMLTextAreaElement;
+    // Replace DSL entirely with a single custom question
+    await user.clear(textarea);
+    await user.type(textarea, "1) Pergunta editada após o mount");
 
-  it("renders edit button on hover for each question", () => {
-    render(<StepEditor {...defaultProps} />);
-    // StructuredContentRenderer renders aria-label="Editar questão N"
-    const editBtns = screen.getAllByRole("button", { name: /editar questão/i });
-    expect(editBtns.length).toBe(
-      MOCK_MANUAL_STRUCTURED_ACTIVITY.sections.reduce((s, sec) => s + sec.questions.length, 0)
-    );
+    await user.click(screen.getByRole("button", { name: /avançar/i }));
+
+    const emitted = onNext.mock.calls[0][0] as { sections: Array<{ questions: Array<{ statement: string }> }> };
+    const statements = emitted.sections.flatMap((s) => s.questions.map((q) => q.statement));
+    expect(statements.some((s) => s.includes("Pergunta editada após o mount"))).toBe(true);
   });
 
   it("does not render regenerate buttons (manual mode has no AI)", () => {
     render(<StepEditor {...defaultProps} />);
     const regenBtns = screen.queryAllByRole("button", { name: /regenerar questão/i });
     expect(regenBtns.length).toBe(0);
+  });
+
+  // ─── Draft persistence (Bug 2) ───
+
+  it("uses dslDraft prop instead of converting structuredActivity when draft is set", () => {
+    render(
+      <StepEditor
+        {...defaultProps}
+        dslDraft="meu rascunho manual"
+        onDslDraftChange={vi.fn()}
+      />,
+    );
+    const textarea = document.querySelector(
+      "textarea[data-testid='mock-activity-editor']",
+    ) as HTMLTextAreaElement;
+    expect(textarea.value).toBe("meu rascunho manual");
+  });
+
+  it("calls onDslDraftChange on every edit", async () => {
+    const user = userEvent.setup();
+    const onDslDraftChange = vi.fn();
+    render(
+      <StatefulStepEditor
+        initialDraft="start"
+        onDslDraftChange={onDslDraftChange}
+      />,
+    );
+    const textarea = document.querySelector(
+      "textarea[data-testid='mock-activity-editor']",
+    ) as HTMLTextAreaElement;
+    await user.clear(textarea);
+    await user.type(textarea, "abc");
+    expect(onDslDraftChange).toHaveBeenLastCalledWith("abc");
+  });
+
+  it("seeds dslDraft from structuredActivity on first mount when draft is undefined", () => {
+    const onDslDraftChange = vi.fn();
+    render(
+      <StepEditor
+        {...defaultProps}
+        dslDraft={undefined}
+        onDslDraftChange={onDslDraftChange}
+      />,
+    );
+    // Called with a non-empty DSL derived from the fixture
+    expect(onDslDraftChange).toHaveBeenCalled();
+    const seeded = onDslDraftChange.mock.calls[0][0] as string;
+    expect(typeof seeded).toBe("string");
+    // Includes at least one question statement from the fixture
+    expect(seeded).toContain(MOCK_MANUAL_STRUCTURED_ACTIVITY.sections[0].questions[0].statement);
+  });
+
+  it("onNext receives activity parsed from the current dslDraft prop", async () => {
+    const user = userEvent.setup();
+    const onNext = vi.fn();
+    const { rerender } = render(
+      <StepEditor
+        {...defaultProps}
+        onNext={onNext}
+        dslDraft="1) pergunta inicial"
+        onDslDraftChange={vi.fn()}
+      />,
+    );
+    // Simulate parent updating the draft after user edits
+    rerender(
+      <StepEditor
+        {...defaultProps}
+        onNext={onNext}
+        dslDraft="1) pergunta atualizada pelo parent"
+        onDslDraftChange={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /avançar/i }));
+    const emitted = onNext.mock.calls[0][0];
+    const statements = emitted.sections.flatMap(
+      (s: { questions: { statement: string }[] }) => s.questions.map((q) => q.statement),
+    );
+    expect(statements.some((s: string) => s.includes("pergunta atualizada pelo parent"))).toBe(true);
   });
 });

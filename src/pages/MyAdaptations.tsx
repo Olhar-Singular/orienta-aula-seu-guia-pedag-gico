@@ -574,28 +574,28 @@ export default function MyAdaptations() {
                 </div>
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1 mb-2">
-                    <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                    <BookOpen className="w-4 h-4 text-primary" /> Versão Original
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">Clique no ícone de edição em cada questão para editar individualmente.</p>
                   <div className="bg-secondary/50 rounded-lg p-3">
                     <AdaptedContentRenderer
                       content={editFields.version_universal}
                       questionImages={getEditImageMap("version_universal")}
-                      onEditQuestion={handleQuestionEdit("version_universal", "Versão Universal")}
+                      onEditQuestion={handleQuestionEdit("version_universal", "Versão Original")}
                       onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_universal: newContent }))}
                     />
                   </div>
                 </div>
                 <div>
                   <Label className="text-sm font-semibold flex items-center gap-1 mb-2">
-                    <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                    <Target className="w-4 h-4 text-primary" /> Versão Adaptada
                   </Label>
                   <p className="text-xs text-muted-foreground mb-2">Clique no ícone de edição em cada questão para editar individualmente.</p>
                   <div className="bg-secondary/50 rounded-lg p-3">
                     <AdaptedContentRenderer
                       content={editFields.version_directed}
                       questionImages={getEditImageMap("version_directed")}
-                      onEditQuestion={handleQuestionEdit("version_directed", "Versão Direcionada")}
+                      onEditQuestion={handleQuestionEdit("version_directed", "Versão Adaptada")}
                       onContentChange={(newContent) => setEditFields((f) => ({ ...f, version_directed: newContent }))}
                     />
                   </div>
@@ -738,7 +738,7 @@ export default function MyAdaptations() {
                     <>
                       <div>
                         <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                          <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                          <BookOpen className="w-4 h-4 text-primary" /> Versão Original
                         </h4>
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
@@ -749,7 +749,7 @@ export default function MyAdaptations() {
                       </div>
                       <div>
                         <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                          <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                          <Target className="w-4 h-4 text-primary" /> Versão Adaptada
                         </h4>
                         <div className="bg-secondary/50 rounded-lg p-3">
                           <AdaptedContentRenderer
@@ -787,7 +787,7 @@ export default function MyAdaptations() {
                       )}
                       <div className="flex flex-wrap gap-2 pt-4 border-t">
                         <Button variant="outline" size="sm" onClick={() => {
-                          const text = `Versão Universal:\n${result?.version_universal || ""}\n\nVersão Direcionada:\n${result?.version_directed || ""}\n\nJustificativa:\n${result?.pedagogical_justification || ""}`;
+                          const text = `Versão Original:\n${result?.version_universal || ""}\n\nVersão Adaptada:\n${result?.version_directed || ""}\n\nJustificativa:\n${result?.pedagogical_justification || ""}`;
                           copyToClipboard(text);
                         }}>
                           <Copy className="w-4 h-4 mr-1" /> Copiar

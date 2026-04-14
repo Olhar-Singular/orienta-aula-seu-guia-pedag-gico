@@ -12,6 +12,8 @@ import "katex/dist/katex.min.css";
 type Props = {
   value: string;
   onChange: (text: string) => void;
+  imageRegistry?: ImageRegistry;
+  onImageRegistryChange?: (registry: ImageRegistry) => void;
 };
 
 // Max undo states kept in memory
@@ -40,13 +42,28 @@ const HINT_ITEMS = [
   { label: "Imagem", hints: ["[img:url]"] },
 ];
 
-export default function ActivityEditor({ value, onChange }: Props) {
+export default function ActivityEditor({
+  value,
+  onChange,
+  imageRegistry: externalRegistry,
+  onImageRegistryChange,
+}: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewText, setPreviewText] = useState(value);
   const [showHelp, setShowHelp] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
-  const [imageRegistry, setImageRegistry] = useState<ImageRegistry>({});
+  const [internalRegistry, setInternalRegistry] = useState<ImageRegistry>(
+    externalRegistry ?? {},
+  );
+  const imageRegistry = externalRegistry ?? internalRegistry;
+  const updateRegistry = useCallback(
+    (next: ImageRegistry) => {
+      setInternalRegistry(next);
+      onImageRegistryChange?.(next);
+    },
+    [onImageRegistryChange],
+  );
   const [activeQuestion, setActiveQuestion] = useState<number | null>(null);
   const registryEntries = useMemo(() => Object.entries(imageRegistry), [imageRegistry]);
   const lastScannedRef = useRef("");
@@ -57,7 +74,7 @@ export default function ActivityEditor({ value, onChange }: Props) {
     const result = scanAndRegisterUrls(value, imageRegistry);
     if (result) {
       lastScannedRef.current = result.cleanText;
-      setImageRegistry(result.updatedRegistry);
+      updateRegistry(result.updatedRegistry);
       onChange(result.cleanText);
     }
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -258,10 +275,10 @@ export default function ActivityEditor({ value, onChange }: Props) {
     (images: ImageItem[]) => {
       if (images.length === 0) return;
       const { dsl, updatedRegistry } = registerAndGenerateDsl(images, imageRegistry);
-      setImageRegistry(updatedRegistry);
+      updateRegistry(updatedRegistry);
       handleInsert("\n" + dsl + "\n");
     },
-    [handleInsert, imageRegistry]
+    [handleInsert, imageRegistry, updateRegistry]
   );
 
 

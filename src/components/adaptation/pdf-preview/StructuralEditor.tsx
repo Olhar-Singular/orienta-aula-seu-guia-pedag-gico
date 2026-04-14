@@ -30,9 +30,10 @@ import {
   Type,
   Upload,
 } from "lucide-react";
-import type { ContentBlock, TextStyle, PdfFontFamily, ActivityHeader } from "@/types/adaptation";
+import type { ContentBlock, TextStyle, PdfFontFamily, ActivityHeader, InlineRun } from "@/types/adaptation";
 import { TEXT_STYLE_DEFAULTS } from "@/types/adaptation";
 import type { EditableActivity, EditableQuestion } from "@/lib/pdf/editableActivity";
+import InlineTextEditor from "./InlineTextEditor";
 
 /** Strip properties that match TEXT_STYLE_DEFAULTS so we only store real overrides. */
 function stripDefaults(style: TextStyle): TextStyle | undefined {
@@ -132,15 +133,18 @@ function TextBlockRow({
   block,
   questionId,
   onStyleChange,
+  onContentChange,
 }: {
   block: Extract<ContentBlock, { type: "text" }>;
   questionId: string;
   onStyleChange: (style: TextStyle) => void;
+  onContentChange: (value: { content: string; richContent?: InlineRun[] }) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const s = { ...TEXT_STYLE_DEFAULTS, ...block.style };
   const preview = block.content.length > 80 ? block.content.slice(0, 80) + "\u2026" : block.content;
   const hasCustomStyle = block.style && Object.keys(block.style).length > 0;
+  const hasRichContent = !!block.richContent && block.richContent.length > 0;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: draggableId(questionId, block.id),
   });
@@ -154,6 +158,9 @@ function TextBlockRow({
         <button type="button" onClick={() => setExpanded(!expanded)} className="flex flex-1 items-start gap-1.5 text-left hover:bg-gray-50">
           <Type className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
           <p className="flex-1 whitespace-pre-wrap text-gray-700">{preview}</p>
+          {hasRichContent && (
+            <span className="mt-0.5 rounded bg-fuchsia-100 px-1.5 py-0.5 text-[10px] font-medium text-fuchsia-700">colorido</span>
+          )}
           {hasCustomStyle && (
             <span className="mt-0.5 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700">estilizado</span>
           )}
@@ -162,7 +169,12 @@ function TextBlockRow({
       </div>
       {expanded && (
         <div className="space-y-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
-          <div className="flex items-center gap-2">
+          <InlineTextEditor
+            content={block.content}
+            richContent={block.richContent}
+            onChange={onContentChange}
+          />
+          <div className="flex flex-wrap items-center gap-2">
             <select value={s.fontFamily} onChange={(e) => onStyleChange({ ...s, fontFamily: e.target.value as PdfFontFamily })} className="h-7 rounded border border-gray-200 bg-white px-1.5 text-xs">
               {FONT_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
             </select>
@@ -174,7 +186,7 @@ function TextBlockRow({
               <button onClick={() => onStyleChange({ ...s, fontSize: Math.min(36, s.fontSize + 1) })} className="text-gray-500 hover:text-gray-900"><Plus className="h-3 w-3" /></button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex overflow-hidden rounded border border-gray-200 bg-white">
               <button onClick={() => onStyleChange({ ...s, bold: !s.bold })} className={`px-1.5 py-0.5 ${s.bold ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Negrito"><Bold className="h-3.5 w-3.5" /></button>
               <button onClick={() => onStyleChange({ ...s, italic: !s.italic })} className={`px-1.5 py-0.5 ${s.italic ? "bg-blue-600 text-white" : "text-gray-500 hover:bg-gray-100"}`} title="Italico"><Italic className="h-3.5 w-3.5" /></button>
@@ -219,11 +231,11 @@ function ImageBlockRow({
   });
 
   return (
-    <div ref={setNodeRef} {...attributes} className={`flex items-center gap-2 rounded-md border-2 border-dashed border-purple-300 bg-purple-50 px-2 py-2 text-sm ${isDragging ? "opacity-30" : ""}`}>
+    <div ref={setNodeRef} {...attributes} className={`flex flex-wrap items-center gap-2 rounded-md border-2 border-dashed border-purple-300 bg-purple-50 px-2 py-2 text-sm ${isDragging ? "opacity-30" : ""}`}>
       <button {...listeners} className="cursor-grab rounded p-1 text-purple-500 hover:bg-purple-100 active:cursor-grabbing" aria-label="Arrastar imagem"><GripVertical className="h-4 w-4" /></button>
       <ImageIcon className="h-4 w-4 shrink-0 text-purple-600" />
-      <img src={block.src} alt="" className="h-10 w-14 rounded border border-purple-200 object-cover" />
-      <div className="flex flex-1 items-center gap-1">
+      <img src={block.src} alt="" className="h-10 w-14 shrink-0 rounded border border-purple-200 object-cover" />
+      <div className="flex flex-wrap items-center gap-1">
         <div className="flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5">
           <button onClick={() => onSizeChange(Math.max(0.2, block.width - 0.1))} className="text-gray-500 hover:text-gray-900" title="Diminuir"><Minus className="h-3 w-3" /></button>
           <span className="w-8 text-center text-xs tabular-nums text-gray-700">{Math.round(block.width * 100)}%</span>
@@ -284,25 +296,25 @@ function QuestionLayoutControls({ question, onUpdate }: { question: EditableQues
       {expanded && (
         <div className="mt-2 space-y-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="w-24 text-gray-500">Espacamento:</span>
-            <input type="range" min={0} max={60} step={4} value={spacing} onChange={(e) => onUpdate({ spacingAfter: Number(e.target.value) })} className="h-1 flex-1 cursor-pointer" />
-            <span className="w-8 text-right tabular-nums text-gray-600">{spacing}pt</span>
+            <span className="w-20 shrink-0 text-gray-500 sm:w-24">Espacamento:</span>
+            <input type="range" min={0} max={60} step={4} value={spacing} onChange={(e) => onUpdate({ spacingAfter: Number(e.target.value) })} className="h-1 min-w-0 flex-1 cursor-pointer" />
+            <span className="w-8 shrink-0 text-right tabular-nums text-gray-600">{spacing}pt</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-24 text-gray-500">Linhas resposta:</span>
-            <input type="range" min={0} max={10} value={answerLines} onChange={(e) => onUpdate({ answerLines: Number(e.target.value) })} className="h-1 flex-1 cursor-pointer" />
-            <span className="w-8 text-right tabular-nums text-gray-600">{answerLines}</span>
+            <span className="w-20 shrink-0 text-gray-500 sm:w-24">Linhas resposta:</span>
+            <input type="range" min={0} max={10} value={answerLines} onChange={(e) => onUpdate({ answerLines: Number(e.target.value) })} className="h-1 min-w-0 flex-1 cursor-pointer" />
+            <span className="w-8 shrink-0 text-right tabular-nums text-gray-600">{answerLines}</span>
           </div>
-          <label className="flex items-center gap-2 text-gray-500">
-            <input type="checkbox" checked={question.showSeparator ?? false} onChange={(e) => onUpdate({ showSeparator: e.target.checked })} className="rounded" />
-            <SeparatorHorizontal className="h-3.5 w-3.5" />
-            Separador antes da questao
+          <label className="flex items-start gap-2 text-gray-500">
+            <input type="checkbox" checked={question.showSeparator ?? false} onChange={(e) => onUpdate({ showSeparator: e.target.checked })} className="mt-0.5 rounded" />
+            <SeparatorHorizontal className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>Separador antes da questao</span>
           </label>
           {question.alternatives && question.alternatives.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="w-24 text-gray-500">Recuo altern.:</span>
-              <input type="range" min={0} max={48} step={4} value={indent} onChange={(e) => onUpdate({ alternativeIndent: Number(e.target.value) })} className="h-1 flex-1 cursor-pointer" />
-              <span className="w-8 text-right tabular-nums text-gray-600">{indent}pt</span>
+              <span className="w-20 shrink-0 text-gray-500 sm:w-24">Recuo altern.:</span>
+              <input type="range" min={0} max={48} step={4} value={indent} onChange={(e) => onUpdate({ alternativeIndent: Number(e.target.value) })} className="h-1 min-w-0 flex-1 cursor-pointer" />
+              <span className="w-8 shrink-0 text-right tabular-nums text-gray-600">{indent}pt</span>
             </div>
           )}
         </div>
@@ -324,6 +336,9 @@ function HeaderEditor({ header, onChange }: { header: ActivityHeader; onChange: 
     reader.readAsDataURL(file);
   }
 
+  const inputClass =
+    "w-full min-w-0 rounded border border-gray-200 bg-white px-2 py-1";
+
   return (
     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
       <button onClick={() => setExpanded(!expanded)} className="flex w-full items-center gap-2 text-sm font-semibold text-blue-900">
@@ -332,8 +347,8 @@ function HeaderEditor({ header, onChange }: { header: ActivityHeader; onChange: 
       </button>
       {expanded && (
         <div className="mt-3 space-y-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="w-20 text-gray-600">Logo:</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-gray-600">Logo:</span>
             {header.logoSrc ? (
               <div className="flex items-center gap-2">
                 <img src={header.logoSrc} alt="Logo" className="h-8 w-8 rounded border border-gray-200 object-contain" />
@@ -347,31 +362,31 @@ function HeaderEditor({ header, onChange }: { header: ActivityHeader; onChange: 
             )}
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-20 text-gray-600">Escola:</span>
-            <input value={header.schoolName} onChange={(e) => onChange({ ...header, schoolName: e.target.value })} className="flex-1 rounded border border-gray-200 bg-white px-2 py-1" />
+          <label className="block text-gray-600">
+            <span className="mb-1 block">Escola:</span>
+            <input value={header.schoolName} onChange={(e) => onChange({ ...header, schoolName: e.target.value })} className={inputClass} />
+          </label>
+          <label className="block text-gray-600">
+            <span className="mb-1 block">Disciplina:</span>
+            <input value={header.subject} onChange={(e) => onChange({ ...header, subject: e.target.value })} className={inputClass} />
+          </label>
+          <label className="block text-gray-600">
+            <span className="mb-1 block">Professor:</span>
+            <input value={header.teacherName} onChange={(e) => onChange({ ...header, teacherName: e.target.value })} className={inputClass} />
+          </label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="block text-gray-600">
+              <span className="mb-1 block">Turma:</span>
+              <input value={header.className} onChange={(e) => onChange({ ...header, className: e.target.value })} className={inputClass} />
+            </label>
+            <label className="block text-gray-600">
+              <span className="mb-1 block">Data:</span>
+              <input value={header.date} onChange={(e) => onChange({ ...header, date: e.target.value })} className={inputClass} />
+            </label>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="w-20 text-gray-600">Disciplina:</span>
-            <input value={header.subject} onChange={(e) => onChange({ ...header, subject: e.target.value })} className="flex-1 rounded border border-gray-200 bg-white px-2 py-1" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-20 text-gray-600">Professor:</span>
-            <input value={header.teacherName} onChange={(e) => onChange({ ...header, teacherName: e.target.value })} className="flex-1 rounded border border-gray-200 bg-white px-2 py-1" />
-          </div>
-          <div className="flex gap-2">
-            <div className="flex flex-1 items-center gap-2">
-              <span className="w-20 text-gray-600">Turma:</span>
-              <input value={header.className} onChange={(e) => onChange({ ...header, className: e.target.value })} className="flex-1 rounded border border-gray-200 bg-white px-2 py-1" />
-            </div>
-            <div className="flex flex-1 items-center gap-2">
-              <span className="w-12 text-gray-600">Data:</span>
-              <input value={header.date} onChange={(e) => onChange({ ...header, date: e.target.value })} className="flex-1 rounded border border-gray-200 bg-white px-2 py-1" />
-            </div>
-          </div>
-          <label className="flex items-center gap-2 text-gray-600">
-            <input type="checkbox" checked={header.showStudentLine} onChange={(e) => onChange({ ...header, showStudentLine: e.target.checked })} className="rounded" />
-            Campo "Nome do aluno: ___________"
+          <label className="flex items-start gap-2 text-gray-600">
+            <input type="checkbox" checked={header.showStudentLine} onChange={(e) => onChange({ ...header, showStudentLine: e.target.checked })} className="mt-0.5 rounded" />
+            <span>Campo "Nome do aluno: ___________"</span>
           </label>
         </div>
       )}
@@ -382,13 +397,14 @@ function HeaderEditor({ header, onChange }: { header: ActivityHeader; onChange: 
 // Question Block
 function QuestionBlock({
   question, isSelected, onSelect, onInsertPageBreak, onDeleteBlock,
-  onImageSizeChange, onImageAlignmentChange, onTextStyleChange, onQuestionUpdate, onAlternativeReorder,
+  onImageSizeChange, onImageAlignmentChange, onTextStyleChange, onTextContentChange, onQuestionUpdate, onAlternativeReorder,
 }: {
   question: EditableQuestion; isSelected: boolean; onSelect: () => void;
   onInsertPageBreak: (blockIndex: number) => void; onDeleteBlock: (blockIndex: number) => void;
   onImageSizeChange: (blockIndex: number, width: number) => void;
   onImageAlignmentChange: (blockIndex: number, alignment: "left" | "center" | "right") => void;
   onTextStyleChange: (blockIndex: number, style: TextStyle) => void;
+  onTextContentChange: (blockIndex: number, value: { content: string; richContent?: InlineRun[] }) => void;
   onQuestionUpdate: (patch: Partial<EditableQuestion>) => void;
   onAlternativeReorder: (fromIdx: number, toIdx: number) => void;
 }) {
@@ -407,11 +423,16 @@ function QuestionBlock({
         </button>
         <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">Questao {question.number}</span>
       </div>
+      {question.instruction && (
+        <p className="mb-2 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] italic text-gray-600">
+          {question.instruction}
+        </p>
+      )}
       <div className="space-y-0">
         <Slot id={slotId(question.id, 0)} onInsertPageBreak={() => onInsertPageBreak(0)} />
         {question.content.map((block, i) => (
           <div key={block.id}>
-            {block.type === "text" && <TextBlockRow block={block} questionId={question.id} onStyleChange={(style) => onTextStyleChange(i, style)} />}
+            {block.type === "text" && <TextBlockRow block={block} questionId={question.id} onStyleChange={(style) => onTextStyleChange(i, style)} onContentChange={(v) => onTextContentChange(i, v)} />}
             {block.type === "image" && (
               <ImageBlockRow block={block} questionId={question.id} onSizeChange={(w) => onImageSizeChange(i, w)} onAlignmentChange={(a) => onImageAlignmentChange(i, a)} onDelete={() => onDeleteBlock(i)} />
             )}
@@ -426,6 +447,106 @@ function QuestionBlock({
           {question.alternatives.map((alt, i) => (
             <AlternativeRow key={i} text={alt} index={i} total={question.alternatives!.length} onMoveUp={() => onAlternativeReorder(i, i - 1)} onMoveDown={() => onAlternativeReorder(i, i + 1)} />
           ))}
+        </div>
+      )}
+      {question.checkItems && question.checkItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Caixas de seleção</div>
+          {question.checkItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+              <span className="inline-flex h-3 w-3 shrink-0 items-center justify-center rounded-sm border border-gray-400 text-[9px] font-bold">
+                {item.checked ? "x" : ""}
+              </span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.tfItems && question.tfItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Verdadeiro / Falso</div>
+          {question.tfItems.map((item, i) => {
+            const mark = item.marked === true ? "V" : item.marked === false ? "F" : "";
+            return (
+              <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+                <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-gray-400 text-[9px] font-bold">
+                  {mark}
+                </span>
+                <span>{item.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {question.matchPairs && question.matchPairs.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Associação</div>
+          {question.matchPairs.map((pair, i) => (
+            <div key={i} className="flex items-center gap-1 py-0.5 text-xs text-gray-600">
+              <span className="flex-1 truncate font-medium">{pair.left}</span>
+              <span className="shrink-0 text-gray-400">—</span>
+              <span className="flex-1 truncate">{pair.right}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.orderItems && question.orderItems.length > 0 && (
+        <div className="mt-2 rounded border border-gray-100 bg-gray-50 px-2 py-1.5">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">Ordenação</div>
+          {question.orderItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 py-0.5 text-xs text-gray-600">
+              <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border border-gray-400 text-[9px]">
+                {item.n}
+              </span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {question.tableRows && question.tableRows.length > 0 && (
+        <div className="mt-2 overflow-x-auto rounded border border-gray-200 bg-gray-50">
+          <div className="px-2 pt-1.5 text-[10px] font-medium uppercase tracking-wide text-gray-400">Tabela</div>
+          <table className="w-full border-collapse text-[11px]">
+            <tbody>
+              {question.tableRows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => {
+                    const trimmed = cell.trim();
+                    const isCircle = ri > 0 && ci > 0 && trimmed === "( )";
+                    const isSquare = ri > 0 && ci > 0 && trimmed === "[ ]";
+                    return (
+                      <td key={ci} className={`border border-gray-200 px-1.5 py-0.5 text-gray-600 ${ri === 0 ? "bg-gray-100 font-medium" : ""} ${isCircle || isSquare ? "text-center" : ""}`}>
+                        {isCircle ? (
+                          <span className="inline-block h-3 w-3 rounded-full border border-gray-500" />
+                        ) : isSquare ? (
+                          <span className="inline-block h-3 w-3 rounded-sm border border-gray-500" />
+                        ) : (
+                          cell
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {question.answerLines != null && question.answerLines > 0 && (
+        <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="rounded bg-gray-100 px-2 py-0.5 font-medium">{question.answerLines} linhas de resposta</span>
+        </div>
+      )}
+      {question.scaffolding && question.scaffolding.length > 0 && (
+        <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
+          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <span>Apoio ({question.scaffolding.length} passos)</span>
+          </div>
+          <ol className="list-inside list-decimal space-y-0.5 pl-1 text-[11px] leading-snug text-amber-900">
+            {question.scaffolding.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
         </div>
       )}
       <QuestionLayoutControls question={question} onUpdate={onQuestionUpdate} />
@@ -533,10 +654,23 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
           <SeparatorHorizontal className="h-3.5 w-3.5 text-gray-400" />
           Separadores entre todas as questoes
         </label>
+        {activity.generalInstructions && (
+          <div className="mb-3 rounded-md border-l-4 border-gray-400 bg-gray-100 px-3 py-2 text-xs italic text-gray-700">
+            {activity.generalInstructions}
+          </div>
+        )}
         <div className="space-y-1">
           <QuestionSlot index={0} />
-          {activity.questions.map((q, i) => (
+          {activity.questions.map((q, i) => {
+            const prevTitle = i > 0 ? activity.questions[i - 1].sectionTitle : undefined;
+            const showTitle = q.sectionTitle && q.sectionTitle !== prevTitle;
+            return (
             <div key={q.id}>
+              {showTitle && (
+                <div className="mb-2 mt-3 border-b border-blue-200 pb-1 text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                  {q.sectionTitle}
+                </div>
+              )}
               <QuestionBlock
                 question={q} isSelected={selectedQuestionId === q.id}
                 onSelect={() => onSelectQuestion(q.id)}
@@ -551,12 +685,16 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
                 onTextStyleChange={(bi, style) => updateQuestion(q.id, (qq) => ({
                   ...qq, content: qq.content.map((b, j) => j === bi && b.type === "text" ? { ...b, style: stripDefaults(style) } : b),
                 }))}
+                onTextContentChange={(bi, { content, richContent }) => updateQuestion(q.id, (qq) => ({
+                  ...qq, content: qq.content.map((b, j) => j === bi && b.type === "text" ? { ...b, content, richContent } : b),
+                }))}
                 onQuestionUpdate={(patch) => updateQuestion(q.id, (qq) => ({ ...qq, ...patch }))}
                 onAlternativeReorder={(from, to) => handleAlternativeReorder(q.id, from, to)}
               />
               <QuestionSlot index={i + 1} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <DragOverlay>

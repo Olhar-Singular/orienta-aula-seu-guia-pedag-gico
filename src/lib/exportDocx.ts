@@ -413,12 +413,12 @@ export async function exportToDocx(data: DocxExportData) {
           ...metaRows,
           new Paragraph({ text: "" }),
           // Universal
-          new Paragraph({ text: "Versão Universal (Design Universal para Aprendizagem)", heading: HeadingLevel.HEADING_2 }),
+          new Paragraph({ text: "Versão Original", heading: HeadingLevel.HEADING_2 }),
           ...universalParagraphs,
           // Page break before Directed version
           new Paragraph({ children: [new PageBreak()] }),
           // Directed
-          new Paragraph({ text: "Versão Direcionada", heading: HeadingLevel.HEADING_2 }),
+          new Paragraph({ text: "Versão Adaptada", heading: HeadingLevel.HEADING_2 }),
           ...directedParagraphs,
           // Page break before Strategies/Justification/Tips
           new Paragraph({ children: [new PageBreak()] }),

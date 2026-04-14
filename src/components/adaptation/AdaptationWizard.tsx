@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Check } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -23,8 +23,11 @@ import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
 import { isStructuredActivity } from "@/types/adaptation";
 import { markdownDslToStructured } from "@/lib/activityDslConverter";
-import type { StructuredActivity, SelectedQuestion, PdfLayoutConfig } from "@/types/adaptation";
+import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
+import { buildManualEditorAdvancePatch, shouldConfirmDiscard, resyncStepForNewMode, resetGeneratedState } from "@/lib/adaptationWizardHelpers";
+import type { HistoryState } from "@/hooks/useHistory";
+import type { ImageRegistry } from "@/components/editor/imageManagerUtils";
 
 export type { SelectedQuestion };
 
@@ -58,7 +61,8 @@ export type ContextPillars = {
 export type QuestionImageMap = Record<string, string[]>;
 export type SectionQuestionImages = Record<"version_universal" | "version_directed", QuestionImageMap>;
 
-export type WizardMode = "ai" | "manual";
+export type { WizardMode } from "@/lib/wizardSteps";
+import type { WizardMode } from "@/lib/wizardSteps";
 
 export type WizardData = {
   activityType: ActivityType | null;
@@ -74,26 +78,18 @@ export type WizardData = {
   contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
   wizardMode?: WizardMode;
-  pdfLayout?: PdfLayoutConfig;
   editableActivity?: EditableActivity;
   editableActivityDirected?: EditableActivity;
+  aiEditorUniversalDsl?: string;
+  aiEditorDirectedDsl?: string;
+  manualEditorDsl?: string;
+  pdfHistoryUniversal?: HistoryState<EditableActivity>;
+  pdfHistoryDirected?: HistoryState<EditableActivity>;
+  editorImageRegistry?: ImageRegistry;
 };
 
-const STEP_SEQUENCES: Readonly<Record<WizardMode, readonly string[]>> = {
-  ai: ["type", "content", "barriers", "choice", "ai_editor", "pdf_preview", "export"],
-  manual: ["type", "content", "barriers", "choice", "editor", "pdf_preview", "export"],
-} as const;
-
-export function getStepsForMode(mode: WizardMode): readonly string[] {
-  return STEP_SEQUENCES[mode];
-}
-
-export function getNextStep(currentStep: string, mode: WizardMode): string {
-  const steps = STEP_SEQUENCES[mode];
-  const currentIndex = steps.indexOf(currentStep);
-  if (currentIndex === -1 || currentIndex >= steps.length - 1) return steps[steps.length - 1];
-  return steps[currentIndex + 1];
-}
+export { getStepsForMode, getNextStep } from "@/lib/wizardSteps";
+import { getStepsForMode } from "@/lib/wizardSteps";
 
 type StepMeta = { label: string; description: string };
 
@@ -153,6 +149,13 @@ export default function AdaptationWizard() {
   const stepsMeta = getStepsMeta(wizardMode);
   const currentStepKey = steps[step] ?? "type";
 
+  useEffect(() => {
+    const nextIndex = resyncStepForNewMode(currentStepKey, steps);
+    if (nextIndex !== step) setStep(nextIndex);
+    // Only re-evaluate when the mode (and thus `steps`) changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wizardMode]);
+
   const buildManualActivity = useCallback((): StructuredActivity => {
     if (data.selectedQuestions.length > 0) {
       return convertToStructuredActivity(data.selectedQuestions);
@@ -171,14 +174,8 @@ export default function AdaptationWizard() {
   }, []);
 
   const clearResult = useCallback(() => {
-    setData((prev) => ({
-      ...prev,
-      result: null,
-      contextPillars: null,
-      editableActivity: undefined,
-      pdfLayout: undefined,
-      questionImages: { version_universal: {}, version_directed: {} },
-    }));
+    setManualActivity(null);
+    setData((prev) => ({ ...prev, ...resetGeneratedState() }));
   }, []);
 
   const navigateTo = useCallback((target: number) => {
@@ -197,9 +194,7 @@ export default function AdaptationWizard() {
   }, [stepsMeta]);
 
   const requestBack = useCallback((target: number) => {
-    // If going backwards past the ai_editor step and there is a result, confirm discard
-    const editorStepIndex = steps.indexOf("ai_editor");
-    if (editorStepIndex !== -1 && step >= editorStepIndex && target < editorStepIndex && data.result) {
+    if (shouldConfirmDiscard(steps, step, target, Boolean(data.result))) {
       setPendingBackTarget(target);
       return;
     }
@@ -222,6 +217,35 @@ export default function AdaptationWizard() {
     navigateTo(pendingBackTarget);
     setPendingBackTarget(null);
   }, [pendingBackTarget, clearResult, navigateTo]);
+
+  const defaultHeader = useMemo(
+    () => ({
+      schoolName: "",
+      subject: "",
+      teacherName: "",
+      className: "",
+      date: new Date().toLocaleDateString("pt-BR"),
+      showStudentLine: true,
+    }),
+    [],
+  );
+
+  const handleUniversalChange = useCallback(
+    (activity: EditableActivity) => updateData({ editableActivity: activity }),
+    [updateData],
+  );
+  const handleDirectedChange = useCallback(
+    (activity: EditableActivity) => updateData({ editableActivityDirected: activity }),
+    [updateData],
+  );
+  const handleHistoryUniversalChange = useCallback(
+    (state: HistoryState<EditableActivity>) => updateData({ pdfHistoryUniversal: state }),
+    [updateData],
+  );
+  const handleHistoryDirectedChange = useCallback(
+    (state: HistoryState<EditableActivity>) => updateData({ pdfHistoryDirected: state }),
+    [updateData],
+  );
 
   return (
     <div className="space-y-6">
@@ -287,8 +311,8 @@ export default function AdaptationWizard() {
 
       {/* Step Content with slide animation.
           overflow-x-hidden is needed for the slide animation but clips full-width steps.
-          We disable it for ai_editor and pdf_preview (both use split layouts). */}
-      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" || currentStepKey === "pdf_preview" ? "" : "overflow-x-hidden"}`}>
+          We disable it for editor steps and pdf_preview (all use full-bleed / split layouts). */}
+      <div className={`min-h-[400px] relative overflow-y-visible px-1 ${currentStepKey === "ai_editor" || currentStepKey === "editor" || currentStepKey === "pdf_preview" ? "" : "overflow-x-hidden"}`}>
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={step}
@@ -346,53 +370,47 @@ export default function AdaptationWizard() {
             {currentStepKey === "editor" && (
               <StepEditor
                 structuredActivity={editorActivity}
-                onStructuredActivityChange={(updated) => setManualActivity(updated)}
-                onNext={() => {
-                  updateData({
-                    result: {
-                      version_universal: editorActivity,
-                      version_directed: editorActivity,
-                      strategies_applied: [],
-                      pedagogical_justification: "Atividade editada manualmente pelo professor.",
-                      implementation_tips: [],
-                    },
-                  });
+                dslDraft={data.manualEditorDsl}
+                onDslDraftChange={(dsl) => updateData({ manualEditorDsl: dsl })}
+                imageRegistry={data.editorImageRegistry}
+                onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
+                onNext={(updated) => {
+                  setManualActivity(updated);
+                  // Only invalidates layout state when the text actually changed.
+                  updateData(buildManualEditorAdvancePatch(updated, data));
                   next();
                 }}
                 onPrev={prev}
               />
             )}
-            {currentStepKey === "pdf_preview" && data.result && (() => {
-              const toStructured = (v: string | StructuredActivity): StructuredActivity =>
-                isStructuredActivity(v)
-                  ? v
-                  : markdownDslToStructured(String(v));
-              const defaultHeader = {
-                schoolName: "",
-                subject: "",
-                teacherName: "",
-                className: "",
-                date: new Date().toLocaleDateString("pt-BR"),
-                showStudentLine: true,
-              };
-              return (
-                <StepPdfPreview
-                  universalStructured={toStructured(data.result.version_universal)}
-                  directedStructured={toStructured(data.result.version_directed)}
-                  defaultHeader={defaultHeader}
-                  questionImagesUniversal={data.questionImages.version_universal}
-                  questionImagesDirected={data.questionImages.version_directed}
-                  savedUniversal={data.editableActivity}
-                  savedDirected={data.editableActivityDirected}
-                  adaptationResult={data.result}
-                  onNext={next}
-                  onBack={prev}
-                  onLayoutChange={(config) => updateData({ pdfLayout: config })}
-                  onUniversalChange={(activity) => updateData({ editableActivity: activity })}
-                  onDirectedChange={(activity) => updateData({ editableActivityDirected: activity })}
-                />
-              );
-            })()}
+            {currentStepKey === "pdf_preview" && data.result && (
+              <StepPdfPreview
+                universalStructured={
+                  isStructuredActivity(data.result.version_universal)
+                    ? data.result.version_universal
+                    : markdownDslToStructured(String(data.result.version_universal))
+                }
+                directedStructured={
+                  isStructuredActivity(data.result.version_directed)
+                    ? data.result.version_directed
+                    : markdownDslToStructured(String(data.result.version_directed))
+                }
+                defaultHeader={defaultHeader}
+                questionImagesUniversal={data.questionImages.version_universal}
+                questionImagesDirected={data.questionImages.version_directed}
+                savedUniversal={data.editableActivity}
+                savedDirected={data.editableActivityDirected}
+                savedHistoryUniversal={data.pdfHistoryUniversal}
+                savedHistoryDirected={data.pdfHistoryDirected}
+                adaptationResult={data.result}
+                onNext={next}
+                onBack={prev}
+                onUniversalChange={handleUniversalChange}
+                onDirectedChange={handleDirectedChange}
+                onHistoryUniversalChange={handleHistoryUniversalChange}
+                onHistoryDirectedChange={handleHistoryDirectedChange}
+              />
+            )}
             {currentStepKey === "export" && (
               <StepExport data={data} onPrev={prev} onRestart={() => {
                 setStep(0);
@@ -409,10 +427,8 @@ export default function AdaptationWizard() {
                   barriers: [],
                   adaptForWholeClass: false,
                   observationNotes: "",
-                  result: null,
-                  contextPillars: null,
-                  questionImages: { version_universal: {}, version_directed: {} },
-                });
+                  ...resetGeneratedState(),
+                } as WizardData);
               }} />
             )}
           </motion.div>

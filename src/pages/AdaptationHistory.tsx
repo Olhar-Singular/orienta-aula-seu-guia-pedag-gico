@@ -243,13 +243,13 @@ export default function AdaptationHistory() {
             <>
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                  <BookOpen className="w-4 h-4 text-primary" /> Versão Universal
+                  <BookOpen className="w-4 h-4 text-primary" /> Versão Original
                 </h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{getVersionText(result.version_universal)}</p>
               </div>
               <div>
                 <h4 className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1">
-                  <Target className="w-4 h-4 text-primary" /> Versão Direcionada
+                  <Target className="w-4 h-4 text-primary" /> Versão Adaptada
                 </h4>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-secondary/50 rounded-lg p-3">{getVersionText(result.version_directed)}</p>
               </div>

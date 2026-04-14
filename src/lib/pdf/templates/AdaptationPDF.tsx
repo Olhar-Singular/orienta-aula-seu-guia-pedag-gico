@@ -99,20 +99,20 @@ export default function AdaptationPDF(props: AdaptationPDFProps) {
 
   return (
     <Document title="Atividade Adaptada" author={props.teacherName || "Olhar Singular"}>
-      {/* Page 1: Versão Universal */}
+      {/* Page 1: Versão Original */}
       <Page size="A4" style={baseStyles.page} wrap>
         <PDFHeader headerParts={headerParts} />
         {titleBlock}
-        <PDFSection title="Versão Universal (Design Universal para Aprendizagem)">
+        <PDFSection title="Versão Original">
           {renderSectionWithImages(props.versionUniversal, props.questionImagesUniversal)}
         </PDFSection>
         <PDFFooter />
       </Page>
 
-      {/* Page 2: Versão Direcionada */}
+      {/* Page 2: Versão Adaptada */}
       <Page size="A4" style={baseStyles.page} wrap>
         <PDFHeader headerParts={headerParts} />
-        <PDFSection title="Versão Direcionada">
+        <PDFSection title="Versão Adaptada">
           {renderSectionWithImages(props.versionDirected, props.questionImagesDirected)}
         </PDFSection>
         <PDFFooter />

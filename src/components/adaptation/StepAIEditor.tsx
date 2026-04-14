@@ -1,13 +1,10 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, FileEdit, Loader2, RefreshCw } from "lucide-react";
 import ActivityEditor from "@/components/editor/ActivityEditor";
 import type { StructuredActivity } from "@/types/adaptation";
 import { isStructuredActivity } from "@/types/adaptation";
-import {
-  structuredToMarkdownDsl,
-  markdownDslToStructured,
-} from "@/lib/activityDslConverter";
+import { structuredToMarkdownDsl } from "@/lib/activityDslConverter";
 import type {
   AdaptationResult,
   WizardData,
@@ -18,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
+import { buildAIEditorAdvancePatch, resetGeneratedState } from "@/lib/adaptationWizardHelpers";
+import { expandImageRegistry } from "@/components/editor/imageManagerUtils";
 
 type Props = {
   data: WizardData;
@@ -130,43 +129,58 @@ function buildQuestionImageMap(
   return map;
 }
 
+/** Compute the initial DSL string for a given version from a result + image map.
+ *  New path: AI returns DSL string → inject images inline.
+ *  Legacy: AI returned StructuredActivity JSON → merge images then serialize. */
+function computeInitialDsl(
+  version: string | StructuredActivity,
+  imageMap: QuestionImageMapLocal,
+): string {
+  if (typeof version === "string") return injectImagesDsl(version, imageMap);
+  return structuredToMarkdownDsl(mergeImages(toStructured(version), imageMap));
+}
+
 export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props) {
   const { schoolId } = useUserSchool();
   const [loading, setLoading] = useState(!data.result);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [activeTab, setActiveTab] = useState<"universal" | "directed">("universal");
-  const [universalText, setUniversalText] = useState("");
-  const [directedText, setDirectedText] = useState("");
-  const initialized = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+  // Tracks the result reference we've already seeded drafts for, so we don't
+  // overwrite the user's edits on every re-render.
+  const seededResultRef = useRef<AdaptationResult | null>(null);
 
-  // Initialize editor text when result is available
-  const initEditorText = useCallback(
-    (result: AdaptationResult, questionImages: SectionQuestionImages) => {
-      // New path: AI returns DSL string directly — inject images inline then use as-is
-      // Legacy path: AI returned StructuredActivity JSON — convert to DSL first
-      if (typeof result.version_universal === "string") {
-        setUniversalText(injectImagesDsl(result.version_universal, questionImages.version_universal || {}));
-      } else {
-        const universalActivity = mergeImages(toStructured(result.version_universal), questionImages.version_universal || {});
-        setUniversalText(structuredToMarkdownDsl(universalActivity));
-      }
-      if (typeof result.version_directed === "string") {
-        setDirectedText(injectImagesDsl(result.version_directed, questionImages.version_directed || {}));
-      } else {
-        const directedActivity = mergeImages(toStructured(result.version_directed), questionImages.version_directed || {});
-        setDirectedText(structuredToMarkdownDsl(directedActivity));
-      }
-    },
-    []
+  // Local fallback for rendering before drafts are populated in the wizard store.
+  // Once drafts exist in `data`, they take precedence.
+  const fallbackUniversal = useMemo(
+    () =>
+      data.result
+        ? computeInitialDsl(data.result.version_universal, data.questionImages.version_universal || {})
+        : "",
+    [data.result, data.questionImages.version_universal],
+  );
+  const fallbackDirected = useMemo(
+    () =>
+      data.result
+        ? computeInitialDsl(data.result.version_directed, data.questionImages.version_directed || {})
+        : "",
+    [data.result, data.questionImages.version_directed],
   );
 
+  const universalValue = data.aiEditorUniversalDsl ?? fallbackUniversal;
+  const directedValue = data.aiEditorDirectedDsl ?? fallbackDirected;
+
+  // Seed drafts in the wizard store once per result, so they survive unmount/remount.
   useEffect(() => {
-    if (data.result && !initialized.current) {
-      initialized.current = true;
-      initEditorText(data.result, data.questionImages);
-    }
-  }, [data.result, data.questionImages, initEditorText]);
+    if (!data.result) return;
+    if (seededResultRef.current === data.result) return;
+    seededResultRef.current = data.result;
+    // Don't overwrite existing drafts (user may have returned to this step).
+    const next: Partial<WizardData> = {};
+    if (data.aiEditorUniversalDsl === undefined) next.aiEditorUniversalDsl = fallbackUniversal;
+    if (data.aiEditorDirectedDsl === undefined) next.aiEditorDirectedDsl = fallbackDirected;
+    if (Object.keys(next).length > 0) updateData(next);
+  }, [data.result, data.aiEditorUniversalDsl, data.aiEditorDirectedDsl, fallbackUniversal, fallbackDirected, updateData]);
 
   const generateImagesForResult = async (accessToken?: string): Promise<string[]> => {
     const existingImages = data.selectedQuestions
@@ -228,7 +242,6 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
     abortRef.current = controller;
 
     setLoading(true);
-    initialized.current = false;
     try {
       const activeBarriers = data.barriers
         .filter((b) => b.is_active)
@@ -277,11 +290,6 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       if (controller.signal.aborted) return;
       const adaptation: AdaptationResult = result.adaptation;
 
-      updateData({
-        result: adaptation,
-        contextPillars: result.context_pillars || null,
-      });
-
       const mergedImages = await generateImagesForResult(accessToken);
       if (controller.signal.aborted) return;
 
@@ -324,22 +332,26 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
         }
       }
 
+      // Single updateData that atomically sets result, context, images, and seeded drafts.
+      // Regeneration counts as a fresh result — wipe ALL downstream state
+      // (editableActivity, pdfHistory, etc.) so the layout step rebuilds from
+      // the new content instead of reusing the previous generation.
+      seededResultRef.current = adaptation;
       updateData({
+        ...resetGeneratedState(),
+        result: adaptation,
+        contextPillars: result.context_pillars || null,
         questionImages: {
           version_universal: universalImages,
           version_directed: directedImages,
         } as SectionQuestionImages,
+        aiEditorUniversalDsl: computeInitialDsl(vUniversal, universalImages),
+        aiEditorDirectedDsl: computeInitialDsl(vDirected, directedImages),
       });
 
       if (mergedImages.length > 0) {
         toast({ title: `${mergedImages.length} imagem(ns) vinculada(s) à adaptação` });
       }
-
-      initEditorText(adaptation, {
-        version_universal: universalImages,
-        version_directed: directedImages,
-      });
-      initialized.current = true;
     } catch (e: any) {
       if (e.name === "AbortError") return; // Superseded by a newer generation
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -350,7 +362,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, schoolId, updateData, initEditorText]);
+  }, [data, schoolId, updateData]);
 
   useEffect(() => {
     if (!data.result) generate();
@@ -358,13 +370,24 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   }, []);
 
   const handleNext = () => {
-    const updatedResult: AdaptationResult = {
-      ...(data.result!),
-      version_universal: markdownDslToStructured(universalText),
-      version_directed: markdownDslToStructured(directedText),
-    };
-    // Clear stale layout state so StepPdfPreview re-converts from the new result
-    updateData({ result: updatedResult, editableActivity: undefined, editableActivityDirected: undefined });
+    const registry = data.editorImageRegistry;
+    const expandedUniversal = registry
+      ? expandImageRegistry(universalValue, registry)
+      : universalValue;
+    const expandedDirected = registry
+      ? expandImageRegistry(directedValue, registry)
+      : directedValue;
+    // Preserves editableActivity when the user didn't actually change the
+    // text — only invalidates the version(s) that changed.
+    const patch = buildAIEditorAdvancePatch(data, expandedUniversal, expandedDirected);
+    // Keep drafts in sync with what we wrote to `result` (expanded URLs), so
+    // the next round-trip comparison sees the same representation on both
+    // sides instead of placeholders-vs-URLs.
+    updateData({
+      ...patch,
+      aiEditorUniversalDsl: expandedUniversal,
+      aiEditorDirectedDsl: expandedDirected,
+    });
     onNext();
   };
 
@@ -423,7 +446,7 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Versão Universal
+          Versão Original
         </button>
         <button
           type="button"
@@ -434,19 +457,29 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
               : "bg-muted text-muted-foreground hover:bg-muted/80"
           }`}
         >
-          Versão Direcionada
+          Versão Adaptada
         </button>
       </div>
 
       {/* Editor — full-bleed: fills entire main area (viewport minus sidebar).
           overflow-x-hidden is disabled on the wizard wrapper for this step.
-          Negative margins cancel: layout p-4/p-6/p-8 + wizard px-1.
+          Negative margins cancel Layout padding (px-3/sm:px-4/lg:px-6) + wizard px-1.
           Width fills all available space = viewport - sidebar (16rem). */}
-      <div className="-mx-[1.25rem] sm:-mx-[1.75rem] lg:-mx-[2.25rem]">
+      <div className="-mx-4 sm:-mx-5 lg:-mx-7">
         {activeTab === "universal" ? (
-          <ActivityEditor value={universalText} onChange={setUniversalText} />
+          <ActivityEditor
+            value={universalValue}
+            onChange={(v) => updateData({ aiEditorUniversalDsl: v })}
+            imageRegistry={data.editorImageRegistry}
+            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
+          />
         ) : (
-          <ActivityEditor value={directedText} onChange={setDirectedText} />
+          <ActivityEditor
+            value={directedValue}
+            onChange={(v) => updateData({ aiEditorDirectedDsl: v })}
+            imageRegistry={data.editorImageRegistry}
+            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
+          />
         )}
       </div>
 

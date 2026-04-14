@@ -4,6 +4,7 @@ import {
   nextImageName,
   resolveImageSrc,
   scanAndRegisterUrls,
+  expandImageRegistry,
 } from "@/components/editor/imageManagerUtils";
 import type { ImageItem } from "@/components/editor/imageManagerUtils";
 
@@ -133,5 +134,50 @@ describe("scanAndRegisterUrls", () => {
     expect(result!.cleanText).toBe("[img:imagem-2]");
     expect(result!.updatedRegistry["imagem-1"]).toBe("old");
     expect(result!.updatedRegistry["imagem-2"]).toBe("https://new.com/img.png");
+  });
+});
+
+describe("expandImageRegistry", () => {
+  it("returns text unchanged when no placeholders exist", () => {
+    const text = "1) Questao\n[img:https://a.com/img.png]";
+    expect(expandImageRegistry(text, {})).toBe(text);
+  });
+
+  it("expands [img:imagem-N] to [img:URL] using registry", () => {
+    const text = "1) Q\n[img:imagem-1]";
+    const registry = { "imagem-1": "https://a.com/img.png" };
+    expect(expandImageRegistry(text, registry)).toBe(
+      "1) Q\n[img:https://a.com/img.png]",
+    );
+  });
+
+  it("preserves params like align when expanding", () => {
+    const text = "[img:imagem-1 align=center]";
+    const registry = { "imagem-1": "https://a.com/img.png" };
+    expect(expandImageRegistry(text, registry)).toBe(
+      "[img:https://a.com/img.png align=center]",
+    );
+  });
+
+  it("expands multiple placeholders", () => {
+    const text = "[img:imagem-1]\n[img:imagem-2 align=right]";
+    const registry = {
+      "imagem-1": "https://a.com/1.png",
+      "imagem-2": "data:image/png;base64,xyz",
+    };
+    expect(expandImageRegistry(text, registry)).toBe(
+      "[img:https://a.com/1.png]\n[img:data:image/png;base64,xyz align=right]",
+    );
+  });
+
+  it("leaves placeholder untouched when not in registry", () => {
+    const text = "[img:imagem-99]";
+    expect(expandImageRegistry(text, {})).toBe("[img:imagem-99]");
+  });
+
+  it("does not touch raw URLs in [img:...] tokens", () => {
+    const text = "[img:https://already.com/img.png align=center]";
+    const registry = { "imagem-1": "https://other.com/img.png" };
+    expect(expandImageRegistry(text, registry)).toBe(text);
   });
 });

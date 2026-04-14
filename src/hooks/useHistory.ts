@@ -2,18 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const MAX_HISTORY = 50;
 
-type HistoryState<T> = {
+export type HistoryState<T> = {
   past: T[];
   present: T;
   future: T[];
 };
 
-export function useHistory<T>(initial: T) {
-  const [state, setState] = useState<HistoryState<T>>({
-    past: [],
-    present: initial,
-    future: [],
-  });
+export type UseHistoryOptions<T> = {
+  seed?: HistoryState<T>;
+  onChange?: (state: HistoryState<T>) => void;
+};
+
+export function useHistory<T>(initial: T, options?: UseHistoryOptions<T>) {
+  const [state, setState] = useState<HistoryState<T>>(
+    options?.seed ?? {
+      past: [],
+      present: initial,
+      future: [],
+    },
+  );
 
   const set = useCallback((next: T) => {
     setState((prev) => ({
@@ -48,17 +55,32 @@ export function useHistory<T>(initial: T) {
   }, []);
 
   const reset = useCallback((value: T) => {
-    setState({ past: [], present: value, future: [] });
+    setState((prev) => ({
+      past: [...prev.past, prev.present].slice(-MAX_HISTORY),
+      present: value,
+      future: [],
+    }));
   }, []);
 
   const canUndo = state.past.length > 0;
   const canRedo = state.future.length > 0;
 
-  // Keyboard shortcuts: Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
+  const onChangeRef = useRef(options?.onChange);
+  useEffect(() => {
+    onChangeRef.current = options?.onChange;
+  }, [options?.onChange]);
+  const initialStateRef = useRef(state);
+  useEffect(() => {
+    if (state === initialStateRef.current) return;
+    onChangeRef.current?.(state);
+  }, [state]);
+
   const undoRef = useRef(undo);
   const redoRef = useRef(redo);
-  undoRef.current = undo;
-  redoRef.current = redo;
+  useEffect(() => {
+    undoRef.current = undo;
+    redoRef.current = redo;
+  }, [undo, redo]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -85,5 +107,14 @@ export function useHistory<T>(initial: T) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  return { current: state.present, set, undo, redo, reset, canUndo, canRedo };
+  return {
+    current: state.present,
+    state,
+    set,
+    undo,
+    redo,
+    reset,
+    canUndo,
+    canRedo,
+  };
 }

@@ -165,12 +165,11 @@ describe("activityDslConverter", () => {
       expect(result.sections[0].title).toBe("Secao");
     });
 
-    it("maps parser types to StructuredActivity types", () => {
+    it("preserves matching and ordering types (Fase A)", () => {
       const dsl = `1) Ligue:\nA -- B\nC -- D\n\n2) Ordene:\n[1] Primeiro\n[2] Segundo`;
       const result = markdownDslToStructured(dsl);
-      // matching and ordering map to open_ended
-      expect(result.sections[0].questions[0].type).toBe("open_ended");
-      expect(result.sections[0].questions[1].type).toBe("open_ended");
+      expect(result.sections[0].questions[0].type).toBe("matching");
+      expect(result.sections[0].questions[1].type).toBe("ordering");
     });
   });
 
@@ -189,10 +188,206 @@ describe("activityDslConverter", () => {
       expect(result.sections[0].questions[0].type).toBe("fill_blank");
     });
 
-    it("maps table DSL to open_ended type", () => {
+    it("preserves table DSL as table type (Fase A)", () => {
       const dsl = "1) Complete a tabela:\n|Col A|Col B|\n|---|---|\n|Val 1|Val 2|";
       const result = markdownDslToStructured(dsl);
-      expect(result.sections[0].questions[0].type).toBe("open_ended");
+      expect(result.sections[0].questions[0].type).toBe("table");
+    });
+  });
+
+  // ── Rich types preservation (Fase A) ──
+
+  describe("rich types preservation", () => {
+    it("preserves multiple_answer with check_items + checked flag", () => {
+      const dsl = `1) Selecione as corretas:\n[x] Certo 1\n[ ] Errado 1\n[x] Certo 2`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("multiple_answer");
+      expect(q.check_items).toEqual([
+        { text: "Certo 1", checked: true },
+        { text: "Errado 1", checked: false },
+        { text: "Certo 2", checked: true },
+      ]);
+    });
+
+    it("preserves true_false with tf_items", () => {
+      const dsl = `1) V ou F:\n( ) Afirmacao A\n( ) Afirmacao B`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("true_false");
+      expect(q.tf_items).toEqual([
+        { text: "Afirmacao A", marked: null },
+        { text: "Afirmacao B", marked: null },
+      ]);
+    });
+
+    it("preserves matching with match_pairs", () => {
+      const dsl = `1) Associe:\nBrasil -- Brasilia\nArgentina -- Buenos Aires`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("matching");
+      expect(q.match_pairs).toEqual([
+        { left: "Brasil", right: "Brasilia" },
+        { left: "Argentina", right: "Buenos Aires" },
+      ]);
+    });
+
+    it("preserves ordering with order_items", () => {
+      const dsl = `1) Ordene:\n[1] Celula\n[2] Tecido\n[3] Orgao`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("ordering");
+      expect(q.order_items).toEqual([
+        { n: 1, text: "Celula" },
+        { n: 2, text: "Tecido" },
+        { n: 3, text: "Orgao" },
+      ]);
+    });
+
+    it("preserves table with table_rows", () => {
+      const dsl = `1) Marque:\n| | Sim | Nao |\n|---|---|---|\n| Item 1 | ( ) | ( ) |\n| Item 2 | ( ) | ( ) |`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("table");
+      expect(q.table_rows).toEqual([
+        ["", "Sim", "Nao"],
+        ["Item 1", "( )", "( )"],
+        ["Item 2", "( )", "( )"],
+      ]);
+    });
+
+    it("preserves answerLines from [linhas:N]", () => {
+      const dsl = `1) Explique:\n[linhas:5]`;
+      const q = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(q.type).toBe("open_ended");
+      expect(q.answerLines).toBe(5);
+    });
+  });
+
+  // ── Round-trip for rich types (Fase B) ──
+
+  describe("round-trip for rich types", () => {
+    it("round-trips multiple_answer", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "multiple_answer",
+            statement: "Selecione as corretas:",
+            check_items: [
+              { text: "Certo 1", checked: true },
+              { text: "Errado", checked: false },
+              { text: "Certo 2", checked: true },
+            ],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toContain("[x] Certo 1");
+      expect(dsl).toContain("[ ] Errado");
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.type).toBe("multiple_answer");
+      expect(back.check_items).toEqual(original.sections[0].questions[0].check_items);
+    });
+
+    it("round-trips true_false with tf_items", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "true_false",
+            statement: "V ou F:",
+            tf_items: [
+              { text: "Primeira", marked: null },
+              { text: "Segunda", marked: null },
+            ],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toContain("( ) Primeira");
+      expect(dsl).toContain("( ) Segunda");
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.type).toBe("true_false");
+      expect(back.tf_items).toEqual(original.sections[0].questions[0].tf_items);
+    });
+
+    it("round-trips matching", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "matching",
+            statement: "Associe:",
+            match_pairs: [
+              { left: "Brasil", right: "Brasilia" },
+              { left: "Chile", right: "Santiago" },
+            ],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toContain("Brasil -- Brasilia");
+      expect(dsl).toContain("Chile -- Santiago");
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.type).toBe("matching");
+      expect(back.match_pairs).toEqual(original.sections[0].questions[0].match_pairs);
+    });
+
+    it("round-trips ordering", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "ordering",
+            statement: "Ordene:",
+            order_items: [
+              { n: 1, text: "Primeiro" },
+              { n: 2, text: "Segundo" },
+            ],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toContain("[1] Primeiro");
+      expect(dsl).toContain("[2] Segundo");
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.type).toBe("ordering");
+      expect(back.order_items).toEqual(original.sections[0].questions[0].order_items);
+    });
+
+    it("round-trips table", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "table",
+            statement: "Marque:",
+            table_rows: [
+              ["", "Sim", "Nao"],
+              ["Item 1", "( )", "( )"],
+            ],
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toMatch(/\|\s*\|\s*Sim\s*\|\s*Nao\s*\|/);
+      expect(dsl).toMatch(/\|\s*Item 1\s*\|\s*\(\s*\)\s*\|\s*\(\s*\)\s*\|/);
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.type).toBe("table");
+      expect(back.table_rows).toEqual(original.sections[0].questions[0].table_rows);
+    });
+
+    it("round-trips open_ended with answerLines", () => {
+      const original: StructuredActivity = {
+        sections: [{
+          questions: [{
+            number: 1,
+            type: "open_ended",
+            statement: "Explique:",
+            answerLines: 7,
+          }],
+        }],
+      };
+      const dsl = structuredToMarkdownDsl(original);
+      expect(dsl).toContain("[linhas:7]");
+      const back = markdownDslToStructured(dsl).sections[0].questions[0];
+      expect(back.answerLines).toBe(7);
     });
   });
 

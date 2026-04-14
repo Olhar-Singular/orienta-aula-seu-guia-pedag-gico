@@ -74,9 +74,13 @@ function renderInlineContent(text: string): React.ReactNode[] {
 
 const TYPE_COLORS: Record<QuestionType, string> = {
   multiple_choice: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  multiple_answer: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300",
   open_ended: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   fill_blank: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   true_false: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  matching: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
+  ordering: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  table: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300",
 };
 
 function QuestionCard({
