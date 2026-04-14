@@ -55,14 +55,20 @@ export function useHistory<T>(initial: T, options?: UseHistoryOptions<T>) {
   }, []);
 
   const reset = useCallback((value: T) => {
-    setState({ past: [], present: value, future: [] });
+    setState((prev) => ({
+      past: [...prev.past, prev.present].slice(-MAX_HISTORY),
+      present: value,
+      future: [],
+    }));
   }, []);
 
   const canUndo = state.past.length > 0;
   const canRedo = state.future.length > 0;
 
   const onChangeRef = useRef(options?.onChange);
-  onChangeRef.current = options?.onChange;
+  useEffect(() => {
+    onChangeRef.current = options?.onChange;
+  }, [options?.onChange]);
   const initialStateRef = useRef(state);
   useEffect(() => {
     if (state === initialStateRef.current) return;
@@ -71,8 +77,10 @@ export function useHistory<T>(initial: T, options?: UseHistoryOptions<T>) {
 
   const undoRef = useRef(undo);
   const redoRef = useRef(redo);
-  undoRef.current = undo;
-  redoRef.current = redo;
+  useEffect(() => {
+    undoRef.current = undo;
+    redoRef.current = redo;
+  }, [undo, redo]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {

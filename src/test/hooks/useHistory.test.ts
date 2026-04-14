@@ -74,7 +74,7 @@ describe("useHistory", () => {
     expect(result.current.current).toBe("only");
   });
 
-  it("resets to a new value clearing history", () => {
+  it("resets to a new value while pushing the previous state onto past (allowing undo of the reset)", () => {
     const { result } = renderHook(() => useHistory(1));
 
     act(() => result.current.set(2));
@@ -82,8 +82,12 @@ describe("useHistory", () => {
     act(() => result.current.reset(10));
 
     expect(result.current.current).toBe(10);
-    expect(result.current.canUndo).toBe(false);
+    // The reset itself is undoable — clicking "Resetar" by mistake shouldn't lose work.
+    expect(result.current.canUndo).toBe(true);
     expect(result.current.canRedo).toBe(false);
+
+    act(() => result.current.undo());
+    expect(result.current.current).toBe(3);
   });
 
   it("limits past stack to 50 entries", () => {
