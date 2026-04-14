@@ -358,8 +358,8 @@ describe("MyAdaptations Page", () => {
     renderPage();
     fireEvent.click(await screen.findByText("Resolva as equações abaixo"));
 
-    expect(screen.getByText("Versão Universal")).toBeTruthy();
-    expect(screen.getByText("Versão Direcionada")).toBeTruthy();
+    expect(screen.getByText("Versão Original")).toBeTruthy();
+    expect(screen.getByText("Versão Adaptada")).toBeTruthy();
     expect(screen.getByText("Justificativa Pedagógica")).toBeTruthy();
   });
 
@@ -737,7 +737,7 @@ describe("MyAdaptations Page", () => {
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
-        expect.stringContaining("Versão Universal")
+        expect.stringContaining("Versão Original")
       );
     });
   });
@@ -785,7 +785,7 @@ describe("MyAdaptations Page", () => {
     setupMockFrom([], [wizardLegacyImages]);
     renderPage();
     fireEvent.click(await screen.findByText("Resolva as equações abaixo"));
-    expect(screen.getByText("Versão Universal")).toBeTruthy();
+    expect(screen.getByText("Versão Original")).toBeTruthy();
   });
 
   // === Wizard with more than 2 barriers ===

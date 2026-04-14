@@ -100,8 +100,8 @@ describe("StepExport – Save to History", () => {
     );
 
     expect(getByText("Salvar no Histórico")).toBeTruthy();
-    expect(getByText("PDF Universal")).toBeTruthy();
-    expect(getByText("PDF Direcionada")).toBeTruthy();
+    expect(getByText("PDF Original")).toBeTruthy();
+    expect(getByText("PDF Adaptada")).toBeTruthy();
     expect(getByText("Exportar Word")).toBeTruthy();
   });
 

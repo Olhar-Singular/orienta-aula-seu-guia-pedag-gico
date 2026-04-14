@@ -130,7 +130,7 @@ export default function SharedAdaptation() {
         {/* Universal */}
         {result?.version_universal && (
           <Card className="border-primary/20 bg-primary/5">
-            <CardHeader><CardTitle className="text-base">Versão Universal (DUA)</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Versão Original</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{getVersionText(result.version_universal)}</p>
             </CardContent>
@@ -140,7 +140,7 @@ export default function SharedAdaptation() {
         {/* Directed */}
         {result?.version_directed && (
           <Card className="border-border">
-            <CardHeader><CardTitle className="text-base">Versão Direcionada</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Versão Adaptada</CardTitle></CardHeader>
             <CardContent>
               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{getVersionText(result.version_directed)}</p>
             </CardContent>
