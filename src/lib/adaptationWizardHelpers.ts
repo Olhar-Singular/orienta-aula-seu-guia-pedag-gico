@@ -1,9 +1,14 @@
 import type { StructuredActivity } from "@/types/adaptation";
-import type { AdaptationResult, WizardData } from "@/components/adaptation/AdaptationWizard";
+import type {
+  AdaptationResult,
+  BarrierItem,
+  WizardData,
+} from "@/components/adaptation/AdaptationWizard";
 import {
   markdownDslToStructured,
   structuredToMarkdownDsl,
 } from "@/lib/activityDslConverter";
+import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 
 /** Partial WizardData patch that wipes every field derived from a generation:
  *  the result, AI/manual editor drafts, layout state, history, and registries.
@@ -161,4 +166,61 @@ export function buildManualEditorAdvancePatch(
     patch.pdfHistoryDirected = undefined;
   }
   return patch;
+}
+
+function resolveBarrierLabel(dimension: string, barrierKey: string): string {
+  const dim = BARRIER_DIMENSIONS.find((d) => d.key === dimension);
+  if (!dim) return barrierKey;
+  const b = dim.barriers.find((b) => b.key === barrierKey);
+  return b?.label ?? barrierKey;
+}
+
+/** Build a partial WizardData from a saved `adaptations_history` row, ready to
+ *  feed AdaptationWizard in editMode. Hydrates layout state from
+ *  `adaptation_result.editable_activity_*` when present so PDF tweaks survive
+ *  edit sessions. Legacy rows without those fields fall back to recompute. */
+export function buildEditModeInitialData(
+  row: Record<string, any>,
+): Partial<WizardData> {
+  const result = (row?.adaptation_result as Record<string, any>) ?? {};
+  const rawBarriers: any[] = Array.isArray(row?.barriers_used) ? row.barriers_used : [];
+  const barriers: BarrierItem[] = rawBarriers.map((b) => {
+    const dimension = String(b?.dimension ?? "");
+    const barrier_key = String(b?.barrier_key ?? "");
+    return {
+      dimension,
+      barrier_key,
+      label: typeof b?.label === "string" ? b.label : resolveBarrierLabel(dimension, barrier_key),
+      is_active: true,
+      notes: typeof b?.notes === "string" ? b.notes : undefined,
+    };
+  });
+
+  return {
+    activityType: row?.activity_type ?? null,
+    activityText: row?.original_activity ?? "",
+    classId: row?.class_id ?? null,
+    studentId: row?.student_id ?? null,
+    barriers,
+    result: {
+      version_universal: result.version_universal,
+      version_directed: result.version_directed,
+      strategies_applied: Array.isArray(result.strategies_applied) ? result.strategies_applied : [],
+      pedagogical_justification: typeof result.pedagogical_justification === "string"
+        ? result.pedagogical_justification
+        : "",
+      implementation_tips: Array.isArray(result.implementation_tips) ? result.implementation_tips : [],
+    },
+    questionImages: {
+      version_universal: (result.question_images_universal && typeof result.question_images_universal === "object")
+        ? result.question_images_universal
+        : {},
+      version_directed: (result.question_images_directed && typeof result.question_images_directed === "object")
+        ? result.question_images_directed
+        : {},
+    },
+    editableActivity: result.editable_activity_universal ?? undefined,
+    editableActivityDirected: result.editable_activity_directed ?? undefined,
+    wizardMode: "ai",
+  };
 }

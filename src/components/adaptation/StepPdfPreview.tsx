@@ -18,7 +18,8 @@ import PreviewPdfDocument from "@/lib/pdf/PreviewPdfDocument";
 import { resolveActivityImageSrcs } from "@/lib/pdf/resolveActivityImageSrcs";
 import PdfCanvasPreview from "./pdf-preview/PdfCanvasPreview";
 import StructuralEditor from "./pdf-preview/StructuralEditor";
-import { useHistory, type HistoryState } from "@/hooks/useHistory";
+import { type HistoryState } from "@/hooks/useHistory";
+import { useVersionedLayout } from "@/hooks/useVersionedLayout";
 import { toEditableActivity, type EditableActivity } from "@/lib/pdf/editableActivity";
 import { applyPreset } from "@/lib/pdf/applyPreset";
 import {
@@ -70,8 +71,6 @@ function saveSavedTemplates(templates: StylePreset[]) {
   localStorage.setItem("pdf-editor-templates", JSON.stringify(templates));
 }
 
-type VersionKey = "universal" | "directed";
-
 type Props = {
   universalStructured: StructuredActivity;
   directedStructured: StructuredActivity;
@@ -109,8 +108,6 @@ export default function StepPdfPreview({
   onHistoryUniversalChange,
   onHistoryDirectedChange,
 }: Props) {
-  const [activeVersion, setActiveVersion] = useState<VersionKey>("universal");
-
   // Initialize both versions (memoized so reset target stays stable across renders)
   const initialUniversal = useMemo(
     () => savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal),
@@ -121,18 +118,20 @@ export default function StepPdfPreview({
     [savedDirected, directedStructured, defaultHeader, questionImagesDirected],
   );
 
-  const uHistory = useHistory<EditableActivity>(initialUniversal, {
-    seed: savedHistoryUniversal,
-    onChange: onHistoryUniversalChange,
-  });
-  const dHistory = useHistory<EditableActivity>(initialDirected, {
-    seed: savedHistoryDirected,
-    onChange: onHistoryDirectedChange,
+  const layout = useVersionedLayout({
+    initialUniversal,
+    initialDirected,
+    seedHistoryUniversal: savedHistoryUniversal,
+    seedHistoryDirected: savedHistoryDirected,
+    onUniversalChange,
+    onDirectedChange,
+    onHistoryUniversalChange,
+    onHistoryDirectedChange,
   });
 
-  const history = activeVersion === "universal" ? uHistory : dHistory;
-  const activity = history.current;
-  const onParentChange = activeVersion === "universal" ? onUniversalChange : onDirectedChange;
+  const activeVersion = layout.active;
+  const setActiveVersion = layout.setActive;
+  const activity = layout.current;
 
   const [blob, setBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -146,24 +145,24 @@ export default function StepPdfPreview({
   const presetMenuRef = useRef<HTMLDivElement>(null);
   const imageCacheRef = useRef(new Map<string, string>());
 
-  function setActivity(next: EditableActivity) {
-    history.set(next);
-    onParentChange?.(next);
-  }
+  const setActivity = layout.setCurrent;
 
-  // Save both versions to wizard on mount (so directed is never undefined)
+  // Save both versions to wizard on mount (so directed is never undefined).
+  // Undo/redo/tab-switch already persist via useVersionedLayout's onChange plumbing.
   const didMount = useRef(false);
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true;
-      onUniversalChange?.(uHistory.current);
-      onDirectedChange?.(dHistory.current);
+      onUniversalChange?.(layout.universal);
+      onDirectedChange?.(layout.directed);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync active version to parent after undo/redo or tab switch
+  // Undo/redo writes to history; propagate the new present to the wizard store
+  // for the active version so the parent's snapshot matches what's on screen.
   const activityRef = useRef(activity);
+  const onParentChange = activeVersion === "universal" ? onUniversalChange : onDirectedChange;
   useEffect(() => {
     if (activityRef.current !== activity) {
       activityRef.current = activity;
@@ -221,8 +220,8 @@ export default function StepPdfPreview({
   }, [showPresetMenu]);
 
   function handleExport() {
-    onUniversalChange?.(uHistory.current);
-    onDirectedChange?.(dHistory.current);
+    onUniversalChange?.(layout.universal);
+    onDirectedChange?.(layout.directed);
     onNext();
   }
 
@@ -309,10 +308,10 @@ export default function StepPdfPreview({
 
           {/* Undo/Redo */}
           <div className="flex items-center gap-0.5 rounded border border-gray-200 bg-white">
-            <button onClick={() => history.undo()} disabled={!history.canUndo} className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Desfazer (Ctrl+Z)">
+            <button onClick={() => layout.undo()} disabled={!layout.canUndo} className="rounded-l px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Desfazer (Ctrl+Z)">
               <Undo2 className="h-3.5 w-3.5" />
             </button>
-            <button onClick={() => history.redo()} disabled={!history.canRedo} className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Refazer (Ctrl+Y)">
+            <button onClick={() => layout.redo()} disabled={!layout.canRedo} className="rounded-r px-2 py-1.5 text-gray-600 hover:bg-gray-100 disabled:opacity-30" title="Refazer (Ctrl+Y)">
               <Redo2 className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -369,7 +368,7 @@ export default function StepPdfPreview({
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => history.reset(initialForReset)} className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+          <button onClick={() => layout.reset(initialForReset)} className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
             <RotateCcw className="h-3 w-3" />
             Resetar
           </button>

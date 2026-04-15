@@ -16,7 +16,8 @@ import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
 import { buildAIEditorAdvancePatch, resetGeneratedState } from "@/lib/adaptationWizardHelpers";
-import { expandImageRegistry } from "@/components/editor/imageManagerUtils";
+import { mergeImages, injectImagesDsl } from "@/lib/activityImageInjection";
+import { toCanonicalDsl, toRawDsl } from "@/lib/dsl/types";
 
 type Props = {
   data: WizardData;
@@ -37,29 +38,6 @@ function toStructured(data: string | StructuredActivity): StructuredActivity {
   };
 }
 
-/** Merge per-question image URLs from the wizard state into the StructuredActivity
- *  so they become [img:URL] lines in the markdown DSL. */
-function mergeImages(
-  activity: StructuredActivity,
-  imageMap: QuestionImageMapLocal
-): StructuredActivity {
-  if (!imageMap || Object.keys(imageMap).length === 0) return activity;
-  return {
-    ...activity,
-    sections: activity.sections.map((section) => ({
-      ...section,
-      questions: section.questions.map((q) => {
-        const urls = imageMap[String(q.number)] || [];
-        if (urls.length === 0) return q;
-        return {
-          ...q,
-          images: [...(q.images || []), ...urls],
-        };
-      }),
-    })),
-  };
-}
-
 function buildStructuredImageMap(
   activity: StructuredActivity,
   selectedQuestions: WizardData["selectedQuestions"]
@@ -77,22 +55,6 @@ function buildStructuredImageMap(
     }
   }
   return map;
-}
-
-/** Inject [img:URL] lines into DSL text after the matching question number line. */
-function injectImagesDsl(dsl: string, imageMap: QuestionImageMapLocal): string {
-  if (!imageMap || Object.keys(imageMap).length === 0) return dsl;
-  let result = dsl;
-  for (const [qNum, urls] of Object.entries(imageMap)) {
-    if (!urls || urls.length === 0) continue;
-    const imgLines = urls.map((url) => `[img:${url}]`).join("\n");
-    // Insert after the line that starts with the question number (e.g. "3) " or "3. ")
-    result = result.replace(
-      new RegExp(`(^${qNum}\\s*[.)][^\n]*)`, "m"),
-      `$1\n${imgLines}`
-    );
-  }
-  return result;
 }
 
 function buildQuestionImageMap(
@@ -171,16 +133,32 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   const directedValue = data.aiEditorDirectedDsl ?? fallbackDirected;
 
   // Seed drafts in the wizard store once per result, so they survive unmount/remount.
+  //
+  // Canonicalization (raw http URLs → `imagem-N` placeholders + registry) happens
+  // here, at the wizard→editor boundary. Otherwise ActivityEditor's internal
+  // scanner does it on first render and races with parent state on every keystroke,
+  // jumping the cursor to the end of the textarea.
   useEffect(() => {
     if (!data.result) return;
     if (seededResultRef.current === data.result) return;
     seededResultRef.current = data.result;
-    // Don't overwrite existing drafts (user may have returned to this step).
     const next: Partial<WizardData> = {};
-    if (data.aiEditorUniversalDsl === undefined) next.aiEditorUniversalDsl = fallbackUniversal;
-    if (data.aiEditorDirectedDsl === undefined) next.aiEditorDirectedDsl = fallbackDirected;
+    let registry = data.editorImageRegistry ?? {};
+    if (data.aiEditorUniversalDsl === undefined) {
+      const c = toCanonicalDsl(fallbackUniversal, registry);
+      next.aiEditorUniversalDsl = c.dsl;
+      registry = c.registry;
+    }
+    if (data.aiEditorDirectedDsl === undefined) {
+      const c = toCanonicalDsl(fallbackDirected, registry);
+      next.aiEditorDirectedDsl = c.dsl;
+      registry = c.registry;
+    }
+    if (registry !== (data.editorImageRegistry ?? {})) {
+      next.editorImageRegistry = registry;
+    }
     if (Object.keys(next).length > 0) updateData(next);
-  }, [data.result, data.aiEditorUniversalDsl, data.aiEditorDirectedDsl, fallbackUniversal, fallbackDirected, updateData]);
+  }, [data.result, data.aiEditorUniversalDsl, data.aiEditorDirectedDsl, data.editorImageRegistry, fallbackUniversal, fallbackDirected, updateData]);
 
   const generateImagesForResult = async (accessToken?: string): Promise<string[]> => {
     const existingImages = data.selectedQuestions
@@ -370,13 +348,9 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   }, []);
 
   const handleNext = () => {
-    const registry = data.editorImageRegistry;
-    const expandedUniversal = registry
-      ? expandImageRegistry(universalValue, registry)
-      : universalValue;
-    const expandedDirected = registry
-      ? expandImageRegistry(directedValue, registry)
-      : directedValue;
+    const registry = data.editorImageRegistry ?? {};
+    const expandedUniversal = toRawDsl(universalValue, registry);
+    const expandedDirected = toRawDsl(directedValue, registry);
     // Preserves editableActivity when the user didn't actually change the
     // text — only invalidates the version(s) that changed.
     const patch = buildAIEditorAdvancePatch(data, expandedUniversal, expandedDirected);

@@ -6,10 +6,8 @@ import {
   structuredToMarkdownDsl,
   markdownDslToStructured,
 } from "@/lib/activityDslConverter";
-import {
-  expandImageRegistry,
-  type ImageRegistry,
-} from "@/components/editor/imageManagerUtils";
+import { type ImageRegistry } from "@/components/editor/imageManagerUtils";
+import { toCanonicalDsl, toRawDsl } from "@/lib/dsl/types";
 import type { StructuredActivity } from "@/types/adaptation";
 
 type StepEditorProps = {
@@ -38,15 +36,20 @@ export function StepEditor({
     [],
   );
 
-  // On first mount without a saved draft, seed the parent store with the
-  // DSL derived from the current StructuredActivity. Runs exactly once.
+  // On first mount without a saved draft, seed the parent store with a
+  // canonicalized DSL derived from the current StructuredActivity. Registry
+  // grows with any raw URLs present in the initial content. Runs exactly once.
   const seeded = useRef(false);
   useEffect(() => {
     if (!seeded.current && dslDraft === undefined) {
       seeded.current = true;
-      onDslDraftChange(initialDsl);
+      const { dsl, registry } = toCanonicalDsl(initialDsl, imageRegistry ?? {});
+      onDslDraftChange(dsl);
+      if (registry !== (imageRegistry ?? {})) {
+        onImageRegistryChange?.(registry);
+      }
     }
-  }, [dslDraft, initialDsl, onDslDraftChange]);
+  }, [dslDraft, initialDsl, onDslDraftChange, imageRegistry, onImageRegistryChange]);
 
   const value = dslDraft ?? initialDsl;
 
@@ -56,9 +59,7 @@ export function StepEditor({
   );
 
   const handleNext = () => {
-    const expanded = imageRegistry
-      ? expandImageRegistry(value, imageRegistry)
-      : value;
+    const expanded = toRawDsl(value, imageRegistry ?? {});
     onNext(markdownDslToStructured(expanded));
   };
 

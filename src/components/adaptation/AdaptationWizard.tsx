@@ -125,12 +125,32 @@ function announce(message: string) {
   if (el) el.textContent = message;
 }
 
-export default function AdaptationWizard() {
-  const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [wizardMode, setWizardMode] = useState<WizardMode>("ai");
-  const [manualActivity, setManualActivity] = useState<StructuredActivity | null>(null);
-  const [data, setData] = useState<WizardData>({
+export type AdaptationWizardProps = {
+  /** Run the wizard pre-loaded with a saved adaptation, jumping straight to
+   *  the editor steps and saving via UPDATE instead of INSERT. */
+  editMode?: boolean;
+  /** Row id of the `adaptations_history` record being edited. Required when
+   *  `editMode` is true. */
+  editingId?: string;
+  /** Wizard data preloaded from a saved record (see buildEditModeInitialData). */
+  initialData?: Partial<WizardData>;
+  /** Mode to start in. Defaults to "ai". Edit mode always uses "ai". */
+  initialMode?: WizardMode;
+  /** Step key to start on (e.g. "ai_editor" for Step 5). Defaults to "type". */
+  initialStepKey?: string;
+  /** Called when the user closes the wizard (e.g. after saving an edit). */
+  onClose?: () => void;
+};
+
+export default function AdaptationWizard({
+  editMode = false,
+  editingId,
+  initialData,
+  initialMode,
+  initialStepKey,
+  onClose,
+}: AdaptationWizardProps = {}) {
+  const baseData: WizardData = {
     activityType: null,
     activityText: "",
     selectedQuestions: [],
@@ -143,11 +163,31 @@ export default function AdaptationWizard() {
     result: null,
     contextPillars: null,
     questionImages: { version_universal: {}, version_directed: {} },
-  });
+  };
+  const [data, setData] = useState<WizardData>({ ...baseData, ...(initialData ?? {}) });
+  const [wizardMode, setWizardMode] = useState<WizardMode>(
+    initialMode ?? initialData?.wizardMode ?? "ai",
+  );
+  const initialSteps = getStepsForMode(initialMode ?? initialData?.wizardMode ?? "ai");
+  const initialStepIndex = initialStepKey
+    ? Math.max(0, initialSteps.indexOf(initialStepKey))
+    : 0;
+  const [step, setStep] = useState(initialStepIndex);
+  const [direction, setDirection] = useState(1);
+  const [manualActivity, setManualActivity] = useState<StructuredActivity | null>(null);
 
   const steps = getStepsForMode(wizardMode);
   const stepsMeta = getStepsMeta(wizardMode);
   const currentStepKey = steps[step] ?? "type";
+
+  /** In edit mode, prevent navigation back to steps before the editor —
+   *  the saved adaptation already exists; going to "barriers" / "choice"
+   *  would risk wiping the loaded result via re-generation. */
+  const editModeMinStep = useMemo(() => {
+    if (!editMode) return 0;
+    const idx = steps.indexOf("ai_editor");
+    return idx === -1 ? 0 : idx;
+  }, [editMode, steps]);
 
   useEffect(() => {
     const nextIndex = resyncStepForNewMode(currentStepKey, steps);
@@ -194,18 +234,23 @@ export default function AdaptationWizard() {
   }, [stepsMeta]);
 
   const requestBack = useCallback((target: number) => {
+    if (target < editModeMinStep) {
+      if (editMode && onClose) onClose();
+      return;
+    }
     if (shouldConfirmDiscard(steps, step, target, Boolean(data.result))) {
       setPendingBackTarget(target);
       return;
     }
     navigateTo(target);
-  }, [step, steps, data.result, navigateTo]);
+  }, [step, steps, data.result, navigateTo, editModeMinStep, editMode, onClose]);
 
   const prev = useCallback(() => {
     requestBack(step - 1);
   }, [step, requestBack]);
 
   const goTo = (s: number) => {
+    if (s < editModeMinStep) return;
     if (s < step) {
       requestBack(s);
     }
@@ -412,7 +457,12 @@ export default function AdaptationWizard() {
               />
             )}
             {currentStepKey === "export" && (
-              <StepExport data={data} onPrev={prev} onRestart={() => {
+              <StepExport
+                data={data}
+                onPrev={prev}
+                editingId={editMode ? editingId : undefined}
+                onSaved={editMode ? onClose : undefined}
+                onRestart={() => {
                 setStep(0);
                 setDirection(-1);
                 setWizardMode("ai");

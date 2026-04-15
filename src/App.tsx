@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 
 import QuestionBank from "./pages/QuestionBank";
 import AdaptWizard from "./pages/AdaptWizard";
+import EditAdaptation from "./pages/EditAdaptation";
 import AdaptationHistory from "./pages/AdaptationHistory";
 import StudentReport from "./pages/StudentReport";
 import ClassReport from "./pages/ClassReport";
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
                 <Route path="/create" element={<ErrorBoundary><Create /></ErrorBoundary>} />
                 <Route path="/dashboard/adaptar" element={<ErrorBoundary><AdaptWizard /></ErrorBoundary>} />
+                <Route path="/dashboard/adaptar/editar/:id" element={<ErrorBoundary><EditAdaptation /></ErrorBoundary>} />
                 <Route path="/my-adaptations" element={<ErrorBoundary><MyAdaptations /></ErrorBoundary>} />
                 <Route path="/dashboard/turmas" element={<ErrorBoundary><Classes /></ErrorBoundary>} />
                 <Route path="/dashboard/turmas/:id" element={<ErrorBoundary><ClassDetail /></ErrorBoundary>} />
