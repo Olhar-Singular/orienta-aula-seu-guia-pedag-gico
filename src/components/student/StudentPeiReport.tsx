@@ -70,9 +70,10 @@ type Props = {
   studentName: string;
   classId: string;
   onSaved?: () => void;
+  section?: "pei" | "report" | "both";
 };
 
-export default function StudentPeiReport({ studentId, studentName, classId, onSaved }: Props) {
+export default function StudentPeiReport({ studentId, studentName, classId, onSaved, section = "both" }: Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
@@ -282,18 +283,18 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           totalAdaptations: (history || []).length,
           totalBarriers: barrierFreq.size,
           totalStrategies: strategyFreq.size,
-          goals: peiForm.goals.map((g) => ({
+          goals: reportGoals.map((g) => ({
             area: g.area,
             description: g.description,
             deadline: g.deadline,
             status: g.status,
           })),
-          studentProfile: peiForm.student_profile || undefined,
-          curricularAdaptations: peiForm.curricular_adaptations || undefined,
-          resourcesAndSupport: peiForm.resources_and_support || undefined,
-          pedagogicalStrategies: peiForm.pedagogical_strategies || undefined,
-          reviewSchedule: peiForm.review_schedule || undefined,
-          additionalNotes: peiForm.additional_notes || undefined,
+          studentProfile: reportStudentProfile || undefined,
+          curricularAdaptations: reportCurricularAdaptations || undefined,
+          resourcesAndSupport: reportResourcesAndSupport || undefined,
+          pedagogicalStrategies: reportPedagogicalStrategies || undefined,
+          reviewSchedule: reportReviewSchedule || undefined,
+          additionalNotes: reportAdditionalNotes || undefined,
           topBarriers: topBarriers,
           dimensions: dims.map((d) => ({
             label: d.label,
@@ -323,9 +324,22 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
     atingida: { label: "Atingida", variant: "default" },
   };
 
+  // Report uses saved PEI (source of truth for "relatório"), not unsaved form edits.
+  const reportGoals: PeiGoal[] = Array.isArray(pei?.goals) ? (pei!.goals as PeiGoal[]) : [];
+  const reportStudentProfile = pei?.student_profile || "";
+  const reportCurricularAdaptations = pei?.curricular_adaptations || "";
+  const reportResourcesAndSupport = pei?.resources_and_support || "";
+  const reportPedagogicalStrategies = pei?.pedagogical_strategies || "";
+  const reportReviewSchedule = pei?.review_schedule || "";
+  const reportAdditionalNotes = pei?.additional_notes || "";
+
+  const showPei = section === "pei" || section === "both";
+  const showReport = section === "report" || section === "both";
+
   return (
     <div className="space-y-8">
       {/* ═══════════ PEI SECTION ═══════════ */}
+      {showPei && (
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -506,9 +520,12 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
         </Card>
       </div>
 
-      <Separator />
+      )}
+
+      {showPei && showReport && <Separator />}
 
       {/* ═══════════ REPORT SECTION ═══════════ */}
+      {showReport && (
       <div className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -563,14 +580,14 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           </div>
 
           {/* PEI Goals Summary */}
-          {peiForm.goals.length > 0 && (
+          {reportGoals.length > 0 && (
             <Card className="border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Metas do PEI</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {peiForm.goals.map((g) => (
+                  {reportGoals.map((g) => (
                     <div key={g.id} className="flex items-center justify-between text-sm">
                       <div>
                         <Badge variant="secondary" className="text-[10px] mr-2">{g.area}</Badge>
@@ -587,28 +604,28 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           )}
 
           {/* PEI Text Sections */}
-          {peiForm.student_profile && (
+          {reportStudentProfile && (
             <Card className="border-border">
               <CardHeader className="pb-2"><CardTitle className="text-sm">Perfil do Aluno</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.student_profile}</p></CardContent>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportStudentProfile}</p></CardContent>
             </Card>
           )}
-          {peiForm.curricular_adaptations && (
+          {reportCurricularAdaptations && (
             <Card className="border-border">
               <CardHeader className="pb-2"><CardTitle className="text-sm">Adaptações Curriculares</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.curricular_adaptations}</p></CardContent>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportCurricularAdaptations}</p></CardContent>
             </Card>
           )}
-          {peiForm.resources_and_support && (
+          {reportResourcesAndSupport && (
             <Card className="border-border">
               <CardHeader className="pb-2"><CardTitle className="text-sm">Recursos e Apoios</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.resources_and_support}</p></CardContent>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportResourcesAndSupport}</p></CardContent>
             </Card>
           )}
-          {peiForm.pedagogical_strategies && (
+          {reportPedagogicalStrategies && (
             <Card className="border-border">
               <CardHeader className="pb-2"><CardTitle className="text-sm">Estratégias Pedagógicas</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{peiForm.pedagogical_strategies}</p></CardContent>
+              <CardContent><p className="text-sm text-muted-foreground whitespace-pre-wrap">{reportPedagogicalStrategies}</p></CardContent>
             </Card>
           )}
 
@@ -720,6 +737,7 @@ export default function StudentPeiReport({ studentId, studentName, classId, onSa
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

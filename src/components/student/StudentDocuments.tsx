@@ -186,9 +186,14 @@ export default function StudentDocuments({ studentId, studentName }: Props) {
       category: cat,
       label: `Adaptação: ${a.original_activity.slice(0, 60)}${a.original_activity.length > 60 ? "…" : ""}`,
       date: a.created_at || "",
-      preview: typeof a.adaptation_result === "object" && a.adaptation_result !== null
-        ? ((a.adaptation_result as any).version_universal || "").slice(0, 100)
-        : "",
+      preview: (() => {
+        const r = a.adaptation_result;
+        if (!r || typeof r !== "object") return "";
+        const v = (r as any).version_universal;
+        if (!v) return "";
+        const text = typeof v === "string" ? v : getVersionText(v);
+        return text.slice(0, 100);
+      })(),
       raw: a,
     });
   });

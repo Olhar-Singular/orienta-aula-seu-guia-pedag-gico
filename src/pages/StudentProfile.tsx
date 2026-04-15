@@ -121,7 +121,8 @@ export default function StudentProfile() {
           <TabsTrigger value="perfil" className="flex-1 sm:flex-none">Perfil & Barreiras</TabsTrigger>
           <TabsTrigger value="adaptacoes" className="flex-1 sm:flex-none">Adaptações</TabsTrigger>
           <TabsTrigger value="documentos" className="flex-1 sm:flex-none">Documentos</TabsTrigger>
-          <TabsTrigger value="pei" className="flex-1 sm:flex-none">PEI & Relatório</TabsTrigger>
+          <TabsTrigger value="pei" className="flex-1 sm:flex-none">PEI</TabsTrigger>
+          <TabsTrigger value="relatorio" className="flex-1 sm:flex-none">Relatório</TabsTrigger>
         </TabsList>
 
         <TabsContent value="perfil" className="space-y-6 mt-4">
@@ -215,7 +216,24 @@ export default function StudentProfile() {
 
         <TabsContent value="pei" className="mt-4">
           {alunoId && classId && (
-            <StudentPeiReport studentId={alunoId} studentName={student?.name || "Aluno"} classId={classId} onSaved={() => navigate(`/dashboard/turmas/${classId}`)} />
+            <StudentPeiReport
+              studentId={alunoId}
+              studentName={student?.name || "Aluno"}
+              classId={classId}
+              section="pei"
+              onSaved={() => navigate(`/dashboard/turmas/${classId}`)}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="relatorio" className="mt-4">
+          {alunoId && classId && (
+            <StudentPeiReport
+              studentId={alunoId}
+              studentName={student?.name || "Aluno"}
+              classId={classId}
+              section="report"
+            />
           )}
         </TabsContent>
       </Tabs>
