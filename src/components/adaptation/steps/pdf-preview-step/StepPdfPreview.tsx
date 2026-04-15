@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import PreviewPdfDocument from "@/lib/pdf/PreviewPdfDocument";
 import { resolveActivityImageSrcs } from "@/lib/pdf/resolveActivityImageSrcs";
-import PdfCanvasPreview from "./pdf-preview/PdfCanvasPreview";
-import StructuralEditor from "./pdf-preview/StructuralEditor";
+import PdfCanvasPreview from "../../pdf-preview/PdfCanvasPreview";
+import StructuralEditor from "../../pdf-preview/StructuralEditor";
 import { type HistoryState } from "@/hooks/useHistory";
 import { useVersionedLayout } from "@/hooks/useVersionedLayout";
 import { toEditableActivity, type EditableActivity } from "@/lib/pdf/editableActivity";
@@ -39,7 +39,7 @@ import type {
   StylePreset,
 } from "@/types/adaptation";
 import { STYLE_PRESETS } from "@/types/adaptation";
-import type { AdaptationResult } from "./AdaptationWizard";
+import type { AdaptationResult } from "../../AdaptationWizard";
 
 const ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
@@ -147,28 +147,21 @@ export default function StepPdfPreview({
 
   const setActivity = layout.setCurrent;
 
-  // Save both versions to wizard on mount (so directed is never undefined).
-  // Undo/redo/tab-switch already persist via useVersionedLayout's onChange plumbing.
+  // One-shot bootstrap: seed parent's universal+directed slots so downstream
+  // steps (export) always have both versions even if the user never edits.
+  // This is a mount-only initializer, not a reactive sync — all subsequent
+  // writes flow through useVersionedLayout.onChange (set/undo/redo/reset).
   const didMount = useRef(false);
   useEffect(() => {
     if (!didMount.current) {
       didMount.current = true;
+      // eslint-disable-next-line local/no-sync-effect -- mount bootstrap for parent slots, not a reactive sync.
       onUniversalChange?.(layout.universal);
+      // eslint-disable-next-line local/no-sync-effect -- see above.
       onDirectedChange?.(layout.directed);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Undo/redo writes to history; propagate the new present to the wizard store
-  // for the active version so the parent's snapshot matches what's on screen.
-  const activityRef = useRef(activity);
-  const onParentChange = activeVersion === "universal" ? onUniversalChange : onDirectedChange;
-  useEffect(() => {
-    if (activityRef.current !== activity) {
-      activityRef.current = activity;
-      onParentChange?.(activity);
-    }
-  }, [activity, onParentChange]);
 
   const debouncedActivity = useDebounced(activity, 200);
 

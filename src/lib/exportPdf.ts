@@ -1,5 +1,6 @@
 // Legacy wrapper — delegates to new @react-pdf/renderer system
 import { downloadAdaptationPDF, type AdaptationPDFProps } from "@/lib/pdf/index";
+import { captureException } from "@/lib/telemetry";
 
 export type QuestionImageMap = Record<string, string[]>;
 
@@ -45,7 +46,7 @@ export async function exportToPdf(data: ExportData) {
     await downloadAdaptationPDF(props);
     console.log("[exportToPdf] Export completed successfully");
   } catch (error) {
-    console.error("[exportToPdf] Export failed:", error);
+    captureException(error, { where: "exportToPdf" });
     throw error;
   }
 }

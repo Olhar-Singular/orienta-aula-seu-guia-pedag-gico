@@ -68,11 +68,11 @@ export default function EditAdaptation() {
 
   return (
     <AdaptationWizard
-      editMode
       editingId={row.id}
       initialData={buildEditModeInitialData(row)}
       initialMode="ai"
       initialStepKey="ai_editor"
+      lockedBeforeStep="ai_editor"
       onClose={handleClose}
     />
   );

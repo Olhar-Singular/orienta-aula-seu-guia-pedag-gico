@@ -24,10 +24,9 @@ export function resetGeneratedState(): Partial<WizardData> {
     editableActivityDirected: undefined,
     pdfHistoryUniversal: undefined,
     pdfHistoryDirected: undefined,
-    aiEditorUniversalDsl: undefined,
-    aiEditorDirectedDsl: undefined,
-    manualEditorDsl: undefined,
-    editorImageRegistry: undefined,
+    editorContentUniversal: undefined,
+    editorContentDirected: undefined,
+    editorContentManual: undefined,
   };
 }
 

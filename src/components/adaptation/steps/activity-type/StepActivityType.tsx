@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, PenTool, Home, Briefcase } from "lucide-react";
-import type { ActivityType } from "./AdaptationWizard";
+import type { ActivityType } from "../../AdaptationWizard";
 
 const TYPES: { value: ActivityType; label: string; description: string; icon: typeof FileText }[] = [
   { value: "prova", label: "Prova", description: "Avaliação formal com questões", icon: FileText },

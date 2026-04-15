@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "NODE_OPTIONS='--max-old-space-size=19456' vitest run",
     "test:watch": "NODE_OPTIONS='--max-old-space-size=19456' vitest",
+    "test:round-trip": "vitest run --config vitest.round-trip.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

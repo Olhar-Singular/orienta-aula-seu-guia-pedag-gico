@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, FileEdit } from "lucide-react";
 import ActivityEditor from "@/components/editor/ActivityEditor";
@@ -6,52 +6,36 @@ import {
   structuredToMarkdownDsl,
   markdownDslToStructured,
 } from "@/lib/activityDslConverter";
-import { type ImageRegistry } from "@/components/editor/imageManagerUtils";
-import { toCanonicalDsl, toRawDsl } from "@/lib/dsl/types";
+import { useActivityContent } from "@/hooks/useActivityContent";
 import type { StructuredActivity } from "@/types/adaptation";
+import type { EditorContent } from "../../AdaptationWizard";
 
 type StepEditorProps = {
   structuredActivity: StructuredActivity;
-  dslDraft?: string;
-  onDslDraftChange: (dsl: string) => void;
-  imageRegistry?: ImageRegistry;
-  onImageRegistryChange?: (registry: ImageRegistry) => void;
+  content?: EditorContent;
+  onContentChange: (next: EditorContent) => void;
   onNext: (activity: StructuredActivity) => void;
   onPrev: () => void;
 };
 
 export function StepEditor({
   structuredActivity,
-  dslDraft,
-  onDslDraftChange,
-  imageRegistry,
-  onImageRegistryChange,
+  content: savedContent,
+  onContentChange,
   onNext,
   onPrev,
 }: StepEditorProps) {
   const initialDsl = useMemo(
     () => structuredToMarkdownDsl(structuredActivity),
-    // Computed once on mount; dslDraft is the source of truth after that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  // On first mount without a saved draft, seed the parent store with a
-  // canonicalized DSL derived from the current StructuredActivity. Registry
-  // grows with any raw URLs present in the initial content. Runs exactly once.
-  const seeded = useRef(false);
-  useEffect(() => {
-    if (!seeded.current && dslDraft === undefined) {
-      seeded.current = true;
-      const { dsl, registry } = toCanonicalDsl(initialDsl, imageRegistry ?? {});
-      onDslDraftChange(dsl);
-      if (registry !== (imageRegistry ?? {})) {
-        onImageRegistryChange?.(registry);
-      }
-    }
-  }, [dslDraft, initialDsl, onDslDraftChange, imageRegistry, onImageRegistryChange]);
-
-  const value = dslDraft ?? initialDsl;
+  const content = useActivityContent({
+    initialDsl: savedContent?.dsl ?? initialDsl,
+    initialRegistry: savedContent?.registry ?? {},
+    onChange: onContentChange,
+  });
 
   const totalQuestions = structuredActivity.sections.reduce(
     (sum, s) => sum + s.questions.length,
@@ -59,8 +43,7 @@ export function StepEditor({
   );
 
   const handleNext = () => {
-    const expanded = toRawDsl(value, imageRegistry ?? {});
-    onNext(markdownDslToStructured(expanded));
+    onNext(markdownDslToStructured(content.dslExpanded));
   };
 
   return (
@@ -75,14 +58,15 @@ export function StepEditor({
         </div>
       </div>
 
-      {/* Editor full-bleed — same negative-margin pattern as StepAIEditor.
-          Cancels Layout padding (px-3/sm:px-4/lg:px-6) + wizard px-1. */}
       <div className="-mx-4 sm:-mx-5 lg:-mx-7">
         <ActivityEditor
-          value={value}
-          onChange={onDslDraftChange}
-          imageRegistry={imageRegistry}
-          onImageRegistryChange={onImageRegistryChange}
+          value={content.dsl}
+          onChange={content.setDsl}
+          imageRegistry={content.registry}
+          onUndo={content.undo}
+          onRedo={content.redo}
+          canUndo={content.canUndo}
+          canRedo={content.canRedo}
         />
       </div>
 

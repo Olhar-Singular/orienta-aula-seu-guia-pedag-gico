@@ -9,7 +9,7 @@ import {
 import type { StructuredActivity } from "@/types/adaptation";
 import type { WizardData, SelectedQuestion } from "@/components/adaptation/AdaptationWizard";
 import { getNextStep, getStepsForMode } from "@/components/adaptation/AdaptationWizard";
-import { StepChoice } from "@/components/adaptation/StepChoice";
+import { StepChoice } from "@/components/adaptation/steps/choice/StepChoice";
 import { convertToStructuredActivity } from "@/lib/convertToStructuredActivity";
 import { parseActivityText } from "@/lib/parseActivityText";
 import { getVersionText } from "@/lib/getVersionText";

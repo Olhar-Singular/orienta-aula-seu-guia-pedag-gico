@@ -40,3 +40,46 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+  round-trip:
+    name: Round-trip tests (Supabase local)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase local
+        run: supabase start
+
+      - name: Export Supabase local credentials
+        id: supabase-env
+        run: |
+          STATUS_JSON=$(supabase status -o json)
+          echo "api_url=$(echo "$STATUS_JSON" | jq -r .API_URL)" >> "$GITHUB_OUTPUT"
+          echo "service_role_key=$(echo "$STATUS_JSON" | jq -r .SERVICE_ROLE_KEY)" >> "$GITHUB_OUTPUT"
+
+      - name: Run round-trip tests
+        env:
+          SUPABASE_URL: ${{ steps.supabase-env.outputs.api_url }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ steps.supabase-env.outputs.service_role_key }}
+        run: bun run test:round-trip
+
+      - name: Stop Supabase local
+        if: always()
+        run: supabase stop --no-backup || true

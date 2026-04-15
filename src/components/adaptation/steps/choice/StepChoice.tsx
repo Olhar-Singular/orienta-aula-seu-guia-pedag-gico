@@ -1,5 +1,5 @@
 import { Bot, Pencil } from "lucide-react";
-import type { WizardMode } from "./AdaptationWizard";
+import type { WizardMode } from "../../AdaptationWizard";
 
 type StepChoiceProps = {
   onSelect: (mode: WizardMode) => void;

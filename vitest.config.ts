@@ -9,6 +9,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    // Round-trip tests require a live Supabase (see src/test/round-trip/README).
+    // Run them via `npm run test:round-trip` with env set; default suite is hermetic.
+    exclude: ["node_modules/**", "dist/**", "src/test/round-trip/**"],
     // Limitar uso de memória (~60% de 32GB)
     pool: "forks", // Usa processos ao invés de threads (mais estável em memória)
     poolOptions: {

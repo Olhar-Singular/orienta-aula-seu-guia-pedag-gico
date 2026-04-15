@@ -34,14 +34,14 @@ const sampleRow = {
 describe("AdaptationWizard – edit mode", () => {
   const wrapper = createTestWrapper("/dashboard/adaptacoes");
 
-  it("opens directly on the AI editor step (Step 5) when editMode=true", () => {
+  it("opens directly on the AI editor step (Step 5) via initialStepKey", () => {
     const initialData = buildEditModeInitialData(sampleRow as any);
     render(
       <AdaptationWizard
-        editMode
         editingId="adapt-001"
         initialData={initialData}
         initialStepKey="ai_editor"
+        lockedBeforeStep="ai_editor"
       />,
       { wrapper },
     );
@@ -50,14 +50,14 @@ describe("AdaptationWizard – edit mode", () => {
     expect(screen.getAllByText(/Editar Atividade Adaptada/i).length).toBeGreaterThan(0);
   });
 
-  it("does not mount Step 1 content (StepActivityType) when in edit mode", () => {
+  it("does not mount Step 1 content (StepActivityType) when starting at ai_editor", () => {
     const initialData = buildEditModeInitialData(sampleRow as any);
     render(
       <AdaptationWizard
-        editMode
         editingId="adapt-001"
         initialData={initialData}
         initialStepKey="ai_editor"
+        lockedBeforeStep="ai_editor"
       />,
       { wrapper },
     );
@@ -70,10 +70,10 @@ describe("AdaptationWizard – edit mode", () => {
     const initialData = buildEditModeInitialData(sampleRow as any);
     render(
       <AdaptationWizard
-        editMode
         editingId="adapt-001"
         initialData={initialData}
         initialStepKey="ai_editor"
+        lockedBeforeStep="ai_editor"
         onClose={onClose}
       />,
       { wrapper },
@@ -86,10 +86,10 @@ describe("AdaptationWizard – edit mode", () => {
     const initialData = buildEditModeInitialData(sampleRow as any);
     render(
       <AdaptationWizard
-        editMode
         editingId="adapt-001"
         initialData={initialData}
         initialStepKey="ai_editor"
+        lockedBeforeStep="ai_editor"
       />,
       { wrapper },
     );

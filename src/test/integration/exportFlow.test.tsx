@@ -93,7 +93,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 globalThis.URL.createObjectURL = vi.fn(() => "blob:mock-url");
 globalThis.URL.revokeObjectURL = vi.fn();
 
-import StepExport from "@/components/adaptation/StepExport";
+import StepExport from "@/components/adaptation/steps/export/StepExport";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
 

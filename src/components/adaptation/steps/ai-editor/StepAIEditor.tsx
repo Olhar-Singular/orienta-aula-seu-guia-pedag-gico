@@ -10,14 +10,14 @@ import type {
   WizardData,
   SectionQuestionImages,
   QuestionImageMap,
-} from "./AdaptationWizard";
+} from "../../AdaptationWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
 import { parseAdaptedQuestions } from "@/lib/adaptedQuestions";
 import { buildAIEditorAdvancePatch, resetGeneratedState } from "@/lib/adaptationWizardHelpers";
 import { mergeImages, injectImagesDsl } from "@/lib/activityImageInjection";
-import { toCanonicalDsl, toRawDsl } from "@/lib/dsl/types";
+import { useActivityContent } from "@/hooks/useActivityContent";
 
 type Props = {
   data: WizardData;
@@ -67,7 +67,6 @@ function buildQuestionImageMap(
 
   for (const sq of selectedQuestions) {
     if (!sq.image_url) continue;
-    // Match by text similarity: find the adapted question whose text best matches the original
     const originalWords = new Set(sq.text.toLowerCase().split(/\s+/).filter((w) => w.length > 3));
     let bestMatch: { number: string; score: number } | null = null;
     for (const aq of parsedQuestions) {
@@ -77,7 +76,6 @@ function buildQuestionImageMap(
         bestMatch = { number: aq.number, score };
       }
     }
-    // Fallback to index-based if no text match found
     if (!bestMatch) {
       const idx = selectedQuestions.indexOf(sq);
       const fallback = parsedQuestions[idx];
@@ -91,9 +89,6 @@ function buildQuestionImageMap(
   return map;
 }
 
-/** Compute the initial DSL string for a given version from a result + image map.
- *  New path: AI returns DSL string → inject images inline.
- *  Legacy: AI returned StructuredActivity JSON → merge images then serialize. */
 function computeInitialDsl(
   version: string | StructuredActivity,
   imageMap: QuestionImageMapLocal,
@@ -108,57 +103,57 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [activeTab, setActiveTab] = useState<"universal" | "directed">("universal");
   const abortRef = useRef<AbortController | null>(null);
-  // Tracks the result reference we've already seeded drafts for, so we don't
-  // overwrite the user's edits on every re-render.
-  const seededResultRef = useRef<AdaptationResult | null>(null);
 
-  // Local fallback for rendering before drafts are populated in the wizard store.
-  // Once drafts exist in `data`, they take precedence.
   const fallbackUniversal = useMemo(
     () =>
       data.result
         ? computeInitialDsl(data.result.version_universal, data.questionImages.version_universal || {})
         : "",
-    [data.result, data.questionImages.version_universal],
+    // Seeded once; changes to `result` are handled via `resultRef` + content.reset below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
   const fallbackDirected = useMemo(
     () =>
       data.result
         ? computeInitialDsl(data.result.version_directed, data.questionImages.version_directed || {})
         : "",
-    [data.result, data.questionImages.version_directed],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
-  const universalValue = data.aiEditorUniversalDsl ?? fallbackUniversal;
-  const directedValue = data.aiEditorDirectedDsl ?? fallbackDirected;
+  const universalContent = useActivityContent({
+    initialDsl: data.editorContentUniversal?.dsl ?? fallbackUniversal,
+    initialRegistry: data.editorContentUniversal?.registry ?? {},
+    onChange: (content) => {
+      updateData({ editorContentUniversal: content });
+    },
+  });
+  const directedContent = useActivityContent({
+    initialDsl: data.editorContentDirected?.dsl ?? fallbackDirected,
+    initialRegistry: data.editorContentDirected?.registry ?? {},
+    onChange: (content) => {
+      updateData({ editorContentDirected: content });
+    },
+  });
 
-  // Seed drafts in the wizard store once per result, so they survive unmount/remount.
-  //
-  // Canonicalization (raw http URLs → `imagem-N` placeholders + registry) happens
-  // here, at the wizard→editor boundary. Otherwise ActivityEditor's internal
-  // scanner does it on first render and races with parent state on every keystroke,
-  // jumping the cursor to the end of the textarea.
+  // Reset hook state when the underlying result reference changes (regenerate).
+  const resultRef = useRef(data.result);
   useEffect(() => {
-    if (!data.result) return;
-    if (seededResultRef.current === data.result) return;
-    seededResultRef.current = data.result;
-    const next: Partial<WizardData> = {};
-    let registry = data.editorImageRegistry ?? {};
-    if (data.aiEditorUniversalDsl === undefined) {
-      const c = toCanonicalDsl(fallbackUniversal, registry);
-      next.aiEditorUniversalDsl = c.dsl;
-      registry = c.registry;
+    if (data.result && data.result !== resultRef.current) {
+      resultRef.current = data.result;
+      const nextUniversal = computeInitialDsl(
+        data.result.version_universal,
+        data.questionImages.version_universal || {},
+      );
+      const nextDirected = computeInitialDsl(
+        data.result.version_directed,
+        data.questionImages.version_directed || {},
+      );
+      universalContent.reset({ dsl: nextUniversal, registry: {} });
+      directedContent.reset({ dsl: nextDirected, registry: {} });
     }
-    if (data.aiEditorDirectedDsl === undefined) {
-      const c = toCanonicalDsl(fallbackDirected, registry);
-      next.aiEditorDirectedDsl = c.dsl;
-      registry = c.registry;
-    }
-    if (registry !== (data.editorImageRegistry ?? {})) {
-      next.editorImageRegistry = registry;
-    }
-    if (Object.keys(next).length > 0) updateData(next);
-  }, [data.result, data.aiEditorUniversalDsl, data.aiEditorDirectedDsl, data.editorImageRegistry, fallbackUniversal, fallbackDirected, updateData]);
+  }, [data.result, data.questionImages, universalContent, directedContent]);
 
   const generateImagesForResult = async (accessToken?: string): Promise<string[]> => {
     const existingImages = data.selectedQuestions
@@ -214,7 +209,6 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   };
 
   const generate = useCallback(async () => {
-    // Abort any previous in-flight generation
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -310,11 +304,8 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
         }
       }
 
-      // Single updateData that atomically sets result, context, images, and seeded drafts.
-      // Regeneration counts as a fresh result — wipe ALL downstream state
-      // (editableActivity, pdfHistory, etc.) so the layout step rebuilds from
-      // the new content instead of reusing the previous generation.
-      seededResultRef.current = adaptation;
+      // Regeneration wipes ALL downstream state — the resultRef-watcher effect
+      // above will reset the hooks once `data.result` flips to `adaptation`.
       updateData({
         ...resetGeneratedState(),
         result: adaptation,
@@ -323,15 +314,13 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
           version_universal: universalImages,
           version_directed: directedImages,
         } as SectionQuestionImages,
-        aiEditorUniversalDsl: computeInitialDsl(vUniversal, universalImages),
-        aiEditorDirectedDsl: computeInitialDsl(vDirected, directedImages),
       });
 
       if (mergedImages.length > 0) {
         toast({ title: `${mergedImages.length} imagem(ns) vinculada(s) à adaptação` });
       }
     } catch (e: any) {
-      if (e.name === "AbortError") return; // Superseded by a newer generation
+      if (e.name === "AbortError") return;
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
       if (!controller.signal.aborted) {
@@ -348,20 +337,14 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   }, []);
 
   const handleNext = () => {
-    const registry = data.editorImageRegistry ?? {};
-    const expandedUniversal = toRawDsl(universalValue, registry);
-    const expandedDirected = toRawDsl(directedValue, registry);
-    // Preserves editableActivity when the user didn't actually change the
-    // text — only invalidates the version(s) that changed.
-    const patch = buildAIEditorAdvancePatch(data, expandedUniversal, expandedDirected);
-    // Keep drafts in sync with what we wrote to `result` (expanded URLs), so
-    // the next round-trip comparison sees the same representation on both
-    // sides instead of placeholders-vs-URLs.
-    updateData({
-      ...patch,
-      aiEditorUniversalDsl: expandedUniversal,
-      aiEditorDirectedDsl: expandedDirected,
-    });
+    // Use expanded form (raw URLs) so the layout step's structured result
+    // carries renderable src values without registry context.
+    const patch = buildAIEditorAdvancePatch(
+      data,
+      universalContent.dslExpanded,
+      directedContent.dslExpanded,
+    );
+    updateData(patch);
     onNext();
   };
 
@@ -391,9 +374,10 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
     );
   }
 
+  const activeContent = activeTab === "universal" ? universalContent : directedContent;
+
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <FileEdit className="w-6 h-6 text-primary" />
@@ -409,7 +393,6 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
         </Button>
       </div>
 
-      {/* Tab selector */}
       <div className="flex gap-2">
         <button
           type="button"
@@ -435,29 +418,19 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
         </button>
       </div>
 
-      {/* Editor — full-bleed: fills entire main area (viewport minus sidebar).
-          overflow-x-hidden is disabled on the wizard wrapper for this step.
-          Negative margins cancel Layout padding (px-3/sm:px-4/lg:px-6) + wizard px-1.
-          Width fills all available space = viewport - sidebar (16rem). */}
       <div className="-mx-4 sm:-mx-5 lg:-mx-7">
-        {activeTab === "universal" ? (
-          <ActivityEditor
-            value={universalValue}
-            onChange={(v) => updateData({ aiEditorUniversalDsl: v })}
-            imageRegistry={data.editorImageRegistry}
-            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
-          />
-        ) : (
-          <ActivityEditor
-            value={directedValue}
-            onChange={(v) => updateData({ aiEditorDirectedDsl: v })}
-            imageRegistry={data.editorImageRegistry}
-            onImageRegistryChange={(registry) => updateData({ editorImageRegistry: registry })}
-          />
-        )}
+        <ActivityEditor
+          key={activeTab}
+          value={activeContent.dsl}
+          onChange={activeContent.setDsl}
+          imageRegistry={activeContent.registry}
+          onUndo={activeContent.undo}
+          onRedo={activeContent.redo}
+          canUndo={activeContent.canUndo}
+          canRedo={activeContent.canRedo}
+        />
       </div>
 
-      {/* Navigation */}
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onPrev} aria-label="Voltar">
           <ArrowLeft className="w-4 h-4 mr-2" />

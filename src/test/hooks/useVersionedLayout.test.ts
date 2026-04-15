@@ -112,4 +112,61 @@ describe("useVersionedLayout", () => {
     act(() => result.current.reset(makeActivity("uR")));
     expect(result.current.current.header.schoolName).toBe("uR");
   });
+
+  it("undo fires onUniversalChange with the restored activity", () => {
+    const onUniversal = vi.fn();
+    const { result } = renderHook(() =>
+      useVersionedLayout({
+        initialUniversal: makeActivity("u0"),
+        initialDirected: makeActivity("d0"),
+        onUniversalChange: onUniversal,
+      }),
+    );
+    act(() => result.current.setCurrent(makeActivity("u1")));
+    onUniversal.mockClear();
+    act(() => result.current.undo());
+    expect(onUniversal).toHaveBeenCalledWith(
+      expect.objectContaining({ header: expect.objectContaining({ schoolName: "u0" }) }),
+    );
+  });
+
+  it("redo fires onDirectedChange when active is directed", () => {
+    const onDirected = vi.fn();
+    const { result } = renderHook(() =>
+      useVersionedLayout({
+        initialUniversal: makeActivity("u0"),
+        initialDirected: makeActivity("d0"),
+        onDirectedChange: onDirected,
+      }),
+    );
+    act(() => result.current.setActive("directed"));
+    act(() => result.current.setCurrent(makeActivity("d1")));
+    act(() => result.current.undo());
+    onDirected.mockClear();
+    act(() => result.current.redo());
+    expect(onDirected).toHaveBeenCalledWith(
+      expect.objectContaining({ header: expect.objectContaining({ schoolName: "d1" }) }),
+    );
+  });
+
+  it("is controlled when active + onActiveChange are supplied", () => {
+    const onActiveChange = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ active }: { active: "universal" | "directed" }) =>
+        useVersionedLayout({
+          initialUniversal: makeActivity("u0"),
+          initialDirected: makeActivity("d0"),
+          active,
+          onActiveChange,
+        }),
+      { initialProps: { active: "universal" as const } },
+    );
+    expect(result.current.active).toBe("universal");
+    act(() => result.current.setActive("directed"));
+    expect(onActiveChange).toHaveBeenCalledWith("directed");
+    // Still universal because parent didn't update the controlled prop
+    expect(result.current.active).toBe("universal");
+    rerender({ active: "directed" });
+    expect(result.current.active).toBe("directed");
+  });
 });

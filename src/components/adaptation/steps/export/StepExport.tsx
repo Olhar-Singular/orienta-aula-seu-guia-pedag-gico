@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import type { WizardData } from "./AdaptationWizard";
+import type { WizardData } from "../../AdaptationWizard";
 import { Save, FileText, FileDown, Copy, RotateCcw, Check, Share2, Link2, Loader2 } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
 import { exportToPdf } from "@/lib/exportPdf";

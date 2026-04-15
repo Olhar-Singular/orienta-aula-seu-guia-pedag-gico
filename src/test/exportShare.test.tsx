@@ -52,7 +52,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import StepExport from "@/components/adaptation/StepExport";
+import StepExport from "@/components/adaptation/steps/export/StepExport";
 
 const mockData = {
   activityType: "prova" as const,
