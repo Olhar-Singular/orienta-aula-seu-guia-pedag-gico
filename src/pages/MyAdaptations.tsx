@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -74,6 +75,7 @@ type UnifiedAdaptation = {
 export default function MyAdaptations() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteTarget, setDeleteTarget] = useState<UnifiedAdaptation | null>(null);
@@ -91,7 +93,7 @@ export default function MyAdaptations() {
     version_universal: {},
     version_directed: {},
   });
-  // Edit mode state
+  // Edit mode state (legacy-source inline edit)
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editFields, setEditFields] = useState({
@@ -225,19 +227,12 @@ export default function MyAdaptations() {
         pedagogical_justification: "",
         original_activity: "",
       });
-    } else {
-      const result = (item.raw?.adaptation_result as Record<string, any>) ?? {};
-      setEditFields({
-        adapted_text: "",
-        teacher_guidance: "",
-        justification: "",
-        version_universal: getVersionText(result?.version_universal || ""),
-        version_directed: getVersionText(result?.version_directed || ""),
-        pedagogical_justification: result?.pedagogical_justification || "",
-        original_activity: item.raw.original_activity || "",
-      });
+      setEditing(true);
+      return;
     }
-    setEditing(true);
+    // Wizard-source: navigate to the dedicated edit route (full wizard).
+    setViewItem(null);
+    navigate(`/dashboard/adaptar/editar/${item.id}`);
   };
 
   const cancelEditing = () => {
@@ -326,13 +321,10 @@ export default function MyAdaptations() {
   const [unsavedWarningOpen, setUnsavedWarningOpen] = useState(false);
 
   const hasUnsavedChanges = () => {
-    if (!editing || !viewItem) return false;
-    return viewItem.source === "legacy"
-      ? editFields.adapted_text !== (viewItem?.raw?.adapted_text || "") ||
-        editFields.teacher_guidance !== (viewItem?.raw?.teacher_guidance || "") ||
-        editFields.justification !== (viewItem?.raw?.justification || "")
-      : editFields.version_universal !== ((viewItem?.raw?.adaptation_result as any)?.version_universal || "") ||
-        editFields.version_directed !== ((viewItem?.raw?.adaptation_result as any)?.version_directed || "");
+    if (!editing || !viewItem || viewItem.source !== "legacy") return false;
+    return editFields.adapted_text !== (viewItem?.raw?.adapted_text || "") ||
+      editFields.teacher_guidance !== (viewItem?.raw?.teacher_guidance || "") ||
+      editFields.justification !== (viewItem?.raw?.justification || "");
   };
 
   const handleCloseView = () => {

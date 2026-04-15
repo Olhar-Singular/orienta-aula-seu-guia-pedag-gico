@@ -40,6 +40,12 @@ vi.mock("@/lib/exportDocx", () => ({
   exportToDocx: vi.fn().mockResolvedValue(undefined),
 }));
 
+const navigateMock = vi.fn();
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return { ...actual, useNavigate: () => navigateMock };
+});
+
 import MyAdaptations from "@/pages/MyAdaptations";
 import { exportToPdf } from "@/lib/exportPdf";
 import { exportToDocx } from "@/lib/exportDocx";
@@ -408,19 +414,18 @@ describe("MyAdaptations Page", () => {
 
   // === Wizard edit mode ===
 
-  it("enters edit mode for wizard via inline edit button", async () => {
+  it("navigates to the edit route when clicking edit on a wizard item", async () => {
+    navigateMock.mockClear();
     setupMockFrom([], [mockWizard]);
     renderPage();
     await screen.findByText("Resolva as equações abaixo");
 
-    // Click the pencil (edit) button on the card
     const editButtons = screen.getAllByRole("button");
     const editBtn = editButtons.find(btn => btn.querySelector(".text-primary"));
     if (editBtn) fireEvent.click(editBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("Atividade Original")).toBeTruthy();
-      expect(screen.getByText("Salvar alterações")).toBeTruthy();
+      expect(navigateMock).toHaveBeenCalledWith("/dashboard/adaptar/editar/wizard-1");
     });
   });
 
@@ -569,56 +574,7 @@ describe("MyAdaptations Page", () => {
     // Should not throw
   });
 
-  // === Save wizard edit ===
-
-  it("saves wizard edit successfully", async () => {
-    mockFrom.mockImplementation((table: string) => {
-      const chain = createChain(table === "adaptations_history" ? [mockWizard] : []);
-      if (table === "adaptations_history") {
-        chain.update = vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null })),
-        }));
-      }
-      return chain;
-    });
-
-    renderPage();
-    await screen.findByText("Resolva as equações abaixo");
-
-    const editButtons = screen.getAllByRole("button");
-    const editBtn = editButtons.find((btn) => btn.querySelector(".text-primary"));
-    if (editBtn) fireEvent.click(editBtn);
-
-    await waitFor(() => expect(screen.getByText("Salvar alterações")).toBeTruthy());
-    fireEvent.click(screen.getByText("Salvar alterações"));
-
-    await waitFor(() => {
-      expect(mockFrom).toHaveBeenCalledWith("adaptations_history");
-    });
-  });
-
-  it("shows error toast when save wizard fails", async () => {
-    mockFrom.mockImplementation((table: string) => {
-      const chain = createChain(table === "adaptations_history" ? [mockWizard] : []);
-      if (table === "adaptations_history") {
-        chain.update = vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: { message: "update failed" } })),
-        }));
-      }
-      return chain;
-    });
-
-    renderPage();
-    await screen.findByText("Resolva as equações abaixo");
-
-    const editButtons = screen.getAllByRole("button");
-    const editBtn = editButtons.find((btn) => btn.querySelector(".text-primary"));
-    if (editBtn) fireEvent.click(editBtn);
-
-    await waitFor(() => expect(screen.getByText("Salvar alterações")).toBeTruthy());
-    fireEvent.click(screen.getByText("Salvar alterações"));
-    // Should not throw
-  });
+  // === Save wizard edit (covered by StepExport.editMode tests) ===
 
   // === Export PDF ===
 
@@ -861,42 +817,8 @@ describe("MyAdaptations Page", () => {
     expect(joanBadges.length).toBeGreaterThan(0);
   });
 
-  // === Edit wizard fields ===
-
-  it("edits original_activity field in wizard edit mode", async () => {
-    setupMockFrom([], [mockWizard]);
-    renderPage();
-    await screen.findByText("Resolva as equações abaixo");
-
-    const editButtons = screen.getAllByRole("button");
-    const editBtn = editButtons.find((btn) => btn.querySelector(".text-primary"));
-    if (editBtn) fireEvent.click(editBtn);
-
-    await waitFor(() => expect(screen.getByText("Atividade Original")).toBeTruthy());
-
-    const textareas = screen.getAllByRole("textbox");
-    const originalActivityTextarea = textareas[0];
-    fireEvent.change(originalActivityTextarea, { target: { value: "Nova atividade original" } });
-    expect((originalActivityTextarea as HTMLTextAreaElement).value).toBe("Nova atividade original");
-  });
-
-  it("edits pedagogical_justification field in wizard edit mode", async () => {
-    setupMockFrom([], [mockWizard]);
-    renderPage();
-    await screen.findByText("Resolva as equações abaixo");
-
-    const editButtons = screen.getAllByRole("button");
-    const editBtn = editButtons.find((btn) => btn.querySelector(".text-primary"));
-    if (editBtn) fireEvent.click(editBtn);
-
-    await waitFor(() => expect(screen.getAllByText("Justificativa Pedagógica").length).toBeGreaterThan(0));
-
-    const textareas = screen.getAllByRole("textbox");
-    // Last textarea is pedagogical_justification
-    const lastTextarea = textareas[textareas.length - 1];
-    fireEvent.change(lastTextarea, { target: { value: "Nova justificativa" } });
-    expect((lastTextarea as HTMLTextAreaElement).value).toBe("Nova justificativa");
-  });
+  // === Wizard edit fields are now exercised inside the wizard itself
+  //     (covered by AdaptationWizardEditMode + StepExport.editMode tests). ===
 
   // === Legacy edit fields ===
 

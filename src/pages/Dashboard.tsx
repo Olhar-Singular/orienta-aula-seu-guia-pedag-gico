@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
+import { EMPTY_STATS, sinceIso, sumAdaptationStats } from "@/lib/dashboardStats";
 import { useMemo } from "react";
 
 const quickActions = [
@@ -68,19 +69,40 @@ export default function Dashboard() {
   const { data: adaptationsData } = useQuery({
     queryKey: ["dashboard-adaptations-stats", user?.id],
     queryFn: async () => {
-      const { data, count } = await supabase
-        .from("adaptations_history")
-        .select("created_at", { count: "exact" })
-        .eq("teacher_id", user!.id);
       const now = new Date();
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      const items = data || [];
-      return {
-        total: count ?? 0,
-        week: items.filter(a => new Date(a.created_at!) >= weekAgo).length,
-        month: items.filter(a => new Date(a.created_at!) >= monthAgo).length,
+      const weekIso = sinceIso(now, 7);
+      const monthIso = sinceIso(now, 30);
+
+      const headCount = async (
+        table: "adaptations" | "adaptations_history",
+        column: "user_id" | "teacher_id",
+        gte?: string,
+      ) => {
+        let q = supabase
+          .from(table)
+          .select("*", { count: "exact", head: true })
+          .eq(column, user!.id);
+        if (gte) q = q.gte("created_at", gte);
+        const { count } = await q;
+        return count ?? 0;
       };
+
+      const [
+        legacyTotal, legacyWeek, legacyMonth,
+        wizardTotal, wizardWeek, wizardMonth,
+      ] = await Promise.all([
+        headCount("adaptations", "user_id"),
+        headCount("adaptations", "user_id", weekIso),
+        headCount("adaptations", "user_id", monthIso),
+        headCount("adaptations_history", "teacher_id"),
+        headCount("adaptations_history", "teacher_id", weekIso),
+        headCount("adaptations_history", "teacher_id", monthIso),
+      ]);
+
+      return sumAdaptationStats(
+        { total: legacyTotal, week: legacyWeek, month: legacyMonth },
+        { total: wizardTotal, week: wizardWeek, month: wizardMonth },
+      );
     },
     enabled: !!user,
   });
@@ -124,7 +146,7 @@ export default function Dashboard() {
     return key;
   };
 
-  const stats = adaptationsData ?? { total: 0, week: 0, month: 0 };
+  const stats = adaptationsData ?? EMPTY_STATS;
 
   return (
     <>
