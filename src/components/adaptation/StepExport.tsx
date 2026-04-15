@@ -19,9 +19,13 @@ type Props = {
   data: WizardData;
   onPrev: () => void;
   onRestart: () => void;
+  /** When provided, save uses UPDATE on this row id instead of INSERT. */
+  editingId?: string;
+  /** Called after a successful save (insert or update). */
+  onSaved?: () => void;
 };
 
-export default function StepExport({ data, onPrev, onRestart }: Props) {
+export default function StepExport({ data, onPrev, onRestart, editingId, onSaved }: Props) {
   const { user } = useAuth();
   const { schoolId } = useUserSchool();
   const queryClient = useQueryClient();
@@ -57,37 +61,57 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
           notes: b.notes,
         }));
 
-      // Include per-question image maps in the saved result
+      // Include per-question image maps + PDF layout in the saved result so
+      // re-opening the adaptation in editMode rehydrates everything.
       const adaptationWithImages = {
         ...r,
         question_images_universal: data.questionImages.version_universal || {},
         question_images_directed: data.questionImages.version_directed || {},
+        editable_activity_universal: data.editableActivity ?? null,
+        editable_activity_directed: data.editableActivityDirected ?? null,
       };
 
-      const { data: inserted, error } = await supabase
-        .from("adaptations_history")
-        .insert({
-          teacher_id: user.id,
-          original_activity: data.activityText,
-          activity_type: data.activityType,
-          barriers_used: activeBarriers,
-          adaptation_result: adaptationWithImages as any,
-          student_id: data.studentId || null,
-          class_id: data.classId || null,
-          school_id: schoolId || null,
-        })
-        .select("id")
-        .single();
+      const basePayload = {
+        original_activity: data.activityText,
+        activity_type: data.activityType,
+        barriers_used: activeBarriers,
+        adaptation_result: adaptationWithImages as any,
+        student_id: data.studentId || null,
+        class_id: data.classId || null,
+      };
 
-      if (error) throw error;
+      if (editingId) {
+        // On edit, do NOT touch school_id — keep whatever the row already has.
+        // useUserSchool() can return null for some sessions, which would null
+        // out the column and break RLS on subsequent reads.
+        const { data: updated, error } = await supabase
+          .from("adaptations_history")
+          .update(basePayload)
+          .eq("id", editingId)
+          .eq("teacher_id", user.id)
+          .select("id");
+        if (error) throw error;
+        if (!updated || updated.length === 0) {
+          throw new Error("Nenhuma linha foi atualizada (verifique permissões).");
+        }
+        setSavedAdaptationId(editingId);
+      } else {
+        const { data: inserted, error } = await supabase
+          .from("adaptations_history")
+          .insert({ ...basePayload, school_id: schoolId || null, teacher_id: user.id })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setSavedAdaptationId(inserted.id);
+      }
 
-      setSavedAdaptationId(inserted.id);
       setSaved(true);
-      toast({ title: "Adaptação salva no histórico!" });
+      toast({ title: editingId ? "Adaptação atualizada!" : "Adaptação salva no histórico!" });
 
       // Invalidate queries so MyAdaptations reflects the new record
       queryClient.invalidateQueries({ queryKey: ["adaptations-history-all"] });
       queryClient.invalidateQueries({ queryKey: ["adaptations-history"] });
+      onSaved?.();
     } catch (e: any) {
       toast({
         title: "Erro ao salvar",
@@ -255,9 +279,11 @@ export default function StepExport({ data, onPrev, onRestart }: Props) {
             </div>
             <div>
               <p className="font-semibold text-foreground text-base">
-                {saving ? "Salvando..." : saved ? "Salvo ✓" : "Salvar no Histórico"}
+                {saving ? "Salvando..." : saved ? "Salvo ✓" : editingId ? "Salvar alterações" : "Salvar no Histórico"}
               </p>
-              <p className="text-xs text-muted-foreground mt-1">Acesse depois em "Minhas Adaptações"</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {editingId ? "Atualiza a adaptação no histórico" : 'Acesse depois em "Minhas Adaptações"'}
+              </p>
             </div>
           </CardContent>
         </Card>
