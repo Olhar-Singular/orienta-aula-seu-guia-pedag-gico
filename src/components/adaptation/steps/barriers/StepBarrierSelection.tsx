@@ -27,7 +27,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
-import type { WizardData, BarrierItem } from "./AdaptationWizard";
+import type { WizardData, BarrierItem } from "../../AdaptationWizard";
 import { Users, User, MessageSquare, ShieldAlert, Pencil, X, Save } from "lucide-react";
 
 type ClassRow = { id: string; name: string };
@@ -105,6 +105,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
     if (!data.studentId || students.length === 0) return;
     const selectedStudent = students.find((s) => s.id === data.studentId);
     if (selectedStudent && data.studentName !== selectedStudent.name) {
+      // eslint-disable-next-line local/no-sync-effect -- legacy: syncs after async student list loads; should move into the fetch's .then.
       updateData({ studentName: selectedStudent.name });
     }
     // Only depend on studentId and students list — not studentName (avoids loop)
@@ -140,6 +141,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
         notes: notesMap.get(item.barrier_key),
       }));
 
+      // eslint-disable-next-line local/no-sync-effect -- legacy: populates wizard after async hydrate; already inside the fetch's .then, semantically safe.
       updateData({
         barriers: mergedBarriers,
         observationNotes: studentResponse.data?.notes || "",
@@ -159,6 +161,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
   // Initialize barriers for whole class mode
   useEffect(() => {
     if (data.adaptForWholeClass && data.barriers.length === 0) {
+      // eslint-disable-next-line local/no-sync-effect -- legacy: initializes template on whole-class toggle; should move into the toggle handler.
       updateData({ barriers: buildBarrierTemplate() });
     }
   }, [data.adaptForWholeClass, data.barriers.length, updateData]);

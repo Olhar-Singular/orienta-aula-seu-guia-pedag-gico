@@ -6,6 +6,13 @@
  * through three imperative `useEffect`s (mount, activity-ref, tab-switch).
  * This hook owns that shape so the component can treat the active version as
  * a plain `{current, setCurrent, undo, redo}` object.
+ *
+ * Change propagation (onUniversalChange/onDirectedChange) flows through
+ * useHistory's own onChange, so every set/undo/redo/reset fires once with
+ * the new present — no need for a consumer-side ref watcher.
+ *
+ * `active` is uncontrolled by default; pass both `active` and `onActiveChange`
+ * to lift it (e.g. to URL params or a parent store).
  */
 
 import { useCallback, useState } from "react";
@@ -23,6 +30,8 @@ export type UseVersionedLayoutOptions = {
   onDirectedChange?: (activity: EditableActivity) => void;
   onHistoryUniversalChange?: (state: HistoryState<EditableActivity>) => void;
   onHistoryDirectedChange?: (state: HistoryState<EditableActivity>) => void;
+  active?: VersionKey;
+  onActiveChange?: (next: VersionKey) => void;
 };
 
 export type UseVersionedLayoutReturn = {
@@ -42,49 +51,44 @@ export type UseVersionedLayoutReturn = {
 export function useVersionedLayout(
   options: UseVersionedLayoutOptions,
 ): UseVersionedLayoutReturn {
-  const [active, setActive] = useState<VersionKey>("universal");
+  const [internalActive, setInternalActive] = useState<VersionKey>("universal");
+  const isControlled = options.active !== undefined;
+  const active = isControlled ? options.active! : internalActive;
+  const setActive = useCallback(
+    (next: VersionKey) => {
+      if (!isControlled) setInternalActive(next);
+      options.onActiveChange?.(next);
+    },
+    [isControlled, options],
+  );
 
   const uHistory = useHistory<EditableActivity>(options.initialUniversal, {
     seed: options.seedHistoryUniversal,
-    onChange: options.onHistoryUniversalChange,
+    onChange: (state) => {
+      options.onHistoryUniversalChange?.(state);
+      options.onUniversalChange?.(state.present);
+    },
   });
   const dHistory = useHistory<EditableActivity>(options.initialDirected, {
     seed: options.seedHistoryDirected,
-    onChange: options.onHistoryDirectedChange,
+    onChange: (state) => {
+      options.onHistoryDirectedChange?.(state);
+      options.onDirectedChange?.(state.present);
+    },
   });
 
   const history = active === "universal" ? uHistory : dHistory;
-  const onParentChange =
-    active === "universal"
-      ? options.onUniversalChange
-      : options.onDirectedChange;
-
-  const setCurrent = useCallback(
-    (next: EditableActivity) => {
-      history.set(next);
-      onParentChange?.(next);
-    },
-    [history, onParentChange],
-  );
-
-  const reset = useCallback(
-    (next: EditableActivity) => {
-      history.reset(next);
-      onParentChange?.(next);
-    },
-    [history, onParentChange],
-  );
 
   return {
     active,
     setActive,
     current: history.current,
-    setCurrent,
+    setCurrent: history.set,
     undo: history.undo,
     redo: history.redo,
     canUndo: history.canUndo,
     canRedo: history.canRedo,
-    reset,
+    reset: history.reset,
     universal: uHistory.current,
     directed: dHistory.current,
   };

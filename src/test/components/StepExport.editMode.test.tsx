@@ -50,7 +50,7 @@ vi.mock("@/lib/exportPdf", () => ({ exportToPdf: vi.fn().mockResolvedValue(undef
 vi.mock("@/lib/exportDocx", () => ({ exportToDocx: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/shareToken", () => ({ generateShareToken: () => "tok" }));
 
-import StepExport from "@/components/adaptation/StepExport";
+import StepExport from "@/components/adaptation/steps/export/StepExport";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
 
 const makeData = (overrides: Partial<WizardData> = {}): WizardData => ({

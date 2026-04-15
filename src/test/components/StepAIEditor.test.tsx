@@ -36,7 +36,7 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-import StepAIEditor from "@/components/adaptation/StepAIEditor";
+import StepAIEditor from "@/components/adaptation/steps/ai-editor/StepAIEditor";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
 
 function makeWizardData(overrides: Partial<WizardData> = {}): WizardData {

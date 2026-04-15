@@ -43,7 +43,7 @@ vi.mock("@/lib/pdf/PreviewPdfDocument", () => ({
   default: () => null,
 }));
 
-import StepPdfPreview from "@/components/adaptation/StepPdfPreview";
+import StepPdfPreview from "@/components/adaptation/steps/pdf-preview-step/StepPdfPreview";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 

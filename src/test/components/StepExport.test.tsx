@@ -62,7 +62,7 @@ vi.mock("@/lib/shareToken", () => ({
   generateShareToken: () => "mock-token-123",
 }));
 
-import StepExport from "@/components/adaptation/StepExport";
+import StepExport from "@/components/adaptation/steps/export/StepExport";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
 
 const makeWizardData = (overrides: Partial<WizardData> = {}): WizardData => ({

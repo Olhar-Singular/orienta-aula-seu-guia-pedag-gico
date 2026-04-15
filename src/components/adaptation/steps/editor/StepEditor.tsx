@@ -6,26 +6,22 @@ import {
   structuredToMarkdownDsl,
   markdownDslToStructured,
 } from "@/lib/activityDslConverter";
-import { type ImageRegistry } from "@/components/editor/imageManagerUtils";
 import { useActivityContent } from "@/hooks/useActivityContent";
 import type { StructuredActivity } from "@/types/adaptation";
+import type { EditorContent } from "../../AdaptationWizard";
 
 type StepEditorProps = {
   structuredActivity: StructuredActivity;
-  dslDraft?: string;
-  onDslDraftChange: (dsl: string) => void;
-  imageRegistry?: ImageRegistry;
-  onImageRegistryChange?: (registry: ImageRegistry) => void;
+  content?: EditorContent;
+  onContentChange: (next: EditorContent) => void;
   onNext: (activity: StructuredActivity) => void;
   onPrev: () => void;
 };
 
 export function StepEditor({
   structuredActivity,
-  dslDraft,
-  onDslDraftChange,
-  imageRegistry,
-  onImageRegistryChange,
+  content: savedContent,
+  onContentChange,
   onNext,
   onPrev,
 }: StepEditorProps) {
@@ -36,12 +32,9 @@ export function StepEditor({
   );
 
   const content = useActivityContent({
-    initialDsl: dslDraft ?? initialDsl,
-    initialRegistry: imageRegistry ?? {},
-    onChange: ({ dsl, registry }) => {
-      onDslDraftChange(dsl);
-      onImageRegistryChange?.(registry);
-    },
+    initialDsl: savedContent?.dsl ?? initialDsl,
+    initialRegistry: savedContent?.registry ?? {},
+    onChange: onContentChange,
   });
 
   const totalQuestions = structuredActivity.sections.reduce(

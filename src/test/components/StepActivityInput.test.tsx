@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import StepActivityInput from "@/components/adaptation/StepActivityInput";
+import StepActivityInput from "@/components/adaptation/steps/activity-input/StepActivityInput";
 
 // Mock supabase
 vi.mock("@/integrations/supabase/client", () => ({

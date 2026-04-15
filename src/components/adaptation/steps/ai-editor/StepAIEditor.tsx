@@ -10,7 +10,7 @@ import type {
   WizardData,
   SectionQuestionImages,
   QuestionImageMap,
-} from "./AdaptationWizard";
+} from "../../AdaptationWizard";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
@@ -123,17 +123,17 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
   );
 
   const universalContent = useActivityContent({
-    initialDsl: data.aiEditorUniversalDsl ?? fallbackUniversal,
-    initialRegistry: data.editorImageRegistry ?? {},
-    onChange: ({ dsl, registry }) => {
-      updateData({ aiEditorUniversalDsl: dsl, editorImageRegistry: registry });
+    initialDsl: data.editorContentUniversal?.dsl ?? fallbackUniversal,
+    initialRegistry: data.editorContentUniversal?.registry ?? {},
+    onChange: (content) => {
+      updateData({ editorContentUniversal: content });
     },
   });
   const directedContent = useActivityContent({
-    initialDsl: data.aiEditorDirectedDsl ?? fallbackDirected,
-    initialRegistry: data.editorImageRegistry ?? {},
-    onChange: ({ dsl, registry }) => {
-      updateData({ aiEditorDirectedDsl: dsl, editorImageRegistry: registry });
+    initialDsl: data.editorContentDirected?.dsl ?? fallbackDirected,
+    initialRegistry: data.editorContentDirected?.registry ?? {},
+    onChange: (content) => {
+      updateData({ editorContentDirected: content });
     },
   });
 

@@ -15,24 +15,25 @@ vi.mock("@/components/editor/ActivityEditor", () => ({
 }));
 
 import { useState } from "react";
-import { StepEditor } from "@/components/adaptation/StepEditor";
+import { StepEditor } from "@/components/adaptation/steps/editor/StepEditor";
+import type { EditorContent } from "@/components/adaptation/AdaptationWizard";
 import { MOCK_MANUAL_STRUCTURED_ACTIVITY } from "../fixtures";
 
-/** Stateful wrapper so the controlled dslDraft value reflects edits back to the child. */
+/** Stateful wrapper so the controlled content value reflects edits back to the child. */
 function StatefulStepEditor(props: {
-  initialDraft?: string;
-  onDslDraftChange?: (v: string) => void;
+  initialContent?: EditorContent;
+  onContentChange?: (v: EditorContent) => void;
   onNext?: (a: unknown) => void;
   onPrev?: () => void;
 }) {
-  const [draft, setDraft] = useState<string | undefined>(props.initialDraft);
+  const [content, setContent] = useState<EditorContent | undefined>(props.initialContent);
   return (
     <StepEditor
       structuredActivity={MOCK_MANUAL_STRUCTURED_ACTIVITY}
-      dslDraft={draft}
-      onDslDraftChange={(v) => {
-        setDraft(v);
-        props.onDslDraftChange?.(v);
+      content={content}
+      onContentChange={(next) => {
+        setContent(next);
+        props.onContentChange?.(next);
       }}
       onNext={props.onNext ?? vi.fn()}
       onPrev={props.onPrev ?? vi.fn()}
@@ -43,8 +44,8 @@ function StatefulStepEditor(props: {
 describe("StepEditor", () => {
   const defaultProps = {
     structuredActivity: MOCK_MANUAL_STRUCTURED_ACTIVITY,
-    dslDraft: undefined,
-    onDslDraftChange: vi.fn(),
+    content: undefined,
+    onContentChange: vi.fn(),
     onNext: vi.fn(),
     onPrev: vi.fn(),
   };
@@ -142,12 +143,12 @@ describe("StepEditor", () => {
 
   // ─── Draft persistence (Bug 2) ───
 
-  it("uses dslDraft prop instead of converting structuredActivity when draft is set", () => {
+  it("uses content prop instead of converting structuredActivity when content is set", () => {
     render(
       <StepEditor
         {...defaultProps}
-        dslDraft="meu rascunho manual"
-        onDslDraftChange={vi.fn()}
+        content={{ dsl: "meu rascunho manual", registry: {} }}
+        onContentChange={vi.fn()}
       />,
     );
     const textarea = document.querySelector(
@@ -156,13 +157,13 @@ describe("StepEditor", () => {
     expect(textarea.value).toBe("meu rascunho manual");
   });
 
-  it("calls onDslDraftChange on every edit", async () => {
+  it("calls onContentChange on every edit", async () => {
     const user = userEvent.setup();
-    const onDslDraftChange = vi.fn();
+    const onContentChange = vi.fn();
     render(
       <StatefulStepEditor
-        initialDraft="start"
-        onDslDraftChange={onDslDraftChange}
+        initialContent={{ dsl: "start", registry: {} }}
+        onContentChange={onContentChange}
       />,
     );
     const textarea = document.querySelector(
@@ -170,15 +171,16 @@ describe("StepEditor", () => {
     ) as HTMLTextAreaElement;
     await user.clear(textarea);
     await user.type(textarea, "abc");
-    expect(onDslDraftChange).toHaveBeenLastCalledWith("abc");
+    const lastCall = onContentChange.mock.calls.at(-1)?.[0] as EditorContent;
+    expect(lastCall.dsl).toBe("abc");
   });
 
-  it("seeds the editor from structuredActivity on first mount when draft is undefined", () => {
+  it("seeds the editor from structuredActivity on first mount when content is undefined", () => {
     render(
       <StepEditor
         {...defaultProps}
-        dslDraft={undefined}
-        onDslDraftChange={vi.fn()}
+        content={undefined}
+        onContentChange={vi.fn()}
       />,
     );
     // The hook seeds from structuredToMarkdownDsl(structuredActivity) internally;
@@ -197,7 +199,7 @@ describe("StepEditor", () => {
     const onNext = vi.fn();
     render(
       <StatefulStepEditor
-        initialDraft="1) pergunta inicial"
+        initialContent={{ dsl: "1) pergunta inicial", registry: {} }}
         onNext={onNext}
       />,
     );

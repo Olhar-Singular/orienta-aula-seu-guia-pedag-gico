@@ -33,7 +33,7 @@ vi.mock("@/hooks/use-toast", () => ({
   useToast: () => ({ toast: vi.fn() }),
 }));
 
-import StepAIEditor from "@/components/adaptation/StepAIEditor";
+import StepAIEditor from "@/components/adaptation/steps/ai-editor/StepAIEditor";
 import type { WizardData } from "@/components/adaptation/AdaptationWizard";
 
 function makeWizardData(overrides: Partial<WizardData> = {}): WizardData {
@@ -94,12 +94,12 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     updateData = vi.fn();
   });
 
-  it("restores draft from data.aiEditorUniversalDsl instead of re-converting result", async () => {
+  it("restores draft from data.editorContentUniversal instead of re-converting result", async () => {
     render(
       <StepAIEditor
         data={makeWizardData({
-          aiEditorUniversalDsl: "meu rascunho editado",
-          aiEditorDirectedDsl: "rascunho direcionado diferente",
+          editorContentUniversal: { dsl: "meu rascunho editado", registry: {} },
+          editorContentDirected: { dsl: "rascunho direcionado diferente", registry: {} },
         })}
         updateData={updateData}
         onNext={onNext}
@@ -119,8 +119,8 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     render(
       <StepAIEditor
         data={makeWizardData({
-          aiEditorUniversalDsl: "rascunho universal",
-          aiEditorDirectedDsl: "rascunho direcionado salvo",
+          editorContentUniversal: { dsl: "rascunho universal", registry: {} },
+          editorContentDirected: { dsl: "rascunho direcionado salvo", registry: {} },
         })}
         updateData={updateData}
         onNext={onNext}
@@ -142,14 +142,14 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     });
   });
 
-  it("persists edits to aiEditorUniversalDsl via updateData on every change", async () => {
+  it("persists edits to editorContentUniversal via updateData on every change", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
       <StatefulStepAIEditor
         initialData={makeWizardData({
-          aiEditorUniversalDsl: "start",
-          aiEditorDirectedDsl: "outro",
+          editorContentUniversal: { dsl: "start", registry: {} },
+          editorContentDirected: { dsl: "outro", registry: {} },
         })}
         onChange={onChange}
       />,
@@ -161,18 +161,18 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     await user.type(editor, "abc");
 
     await waitFor(() => {
-      expect(latestUpdate(onChange, "aiEditorUniversalDsl")).toBe("abc");
+      expect(latestUpdate(onChange, "editorContentUniversal")?.dsl).toBe("abc");
     });
   });
 
-  it("persists edits to aiEditorDirectedDsl when on directed tab", async () => {
+  it("persists edits to editorContentDirected when on directed tab", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
       <StatefulStepAIEditor
         initialData={makeWizardData({
-          aiEditorUniversalDsl: "u",
-          aiEditorDirectedDsl: "d",
+          editorContentUniversal: { dsl: "u", registry: {} },
+          editorContentDirected: { dsl: "d", registry: {} },
         })}
         onChange={onChange}
       />,
@@ -185,7 +185,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     await user.type(editor, "xyz");
 
     await waitFor(() => {
-      expect(latestUpdate(onChange, "aiEditorDirectedDsl")).toBe("xyz");
+      expect(latestUpdate(onChange, "editorContentDirected")?.dsl).toBe("xyz");
     });
   });
 
@@ -215,8 +215,8 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     render(
       <StepAIEditor
         data={makeWizardData({
-          aiEditorUniversalDsl: "1) rascunho customizado\n",
-          aiEditorDirectedDsl: "1) direcionado customizado\n",
+          editorContentUniversal: { dsl: "1) rascunho customizado\n", registry: {} },
+          editorContentDirected: { dsl: "1) direcionado customizado\n", registry: {} },
         })}
         updateData={updateData}
         onNext={onNext}

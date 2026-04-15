@@ -20,7 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { Type, Database, FileUp, Crop, Search, Check, Loader2, X, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
-import type { SelectedQuestion } from "./AdaptationWizard";
+import type { SelectedQuestion } from "../../AdaptationWizard";
 
 type Props = {
   value: string;
@@ -79,6 +79,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
 
   useEffect(() => {
     if (tab === "manual" && selectedQuestions.length > 0) {
+      // eslint-disable-next-line local/no-sync-effect -- legacy: clears bank selection on tab switch; should migrate into the tab click handler.
       onSelectedQuestionsChange([]);
     }
   }, [tab, selectedQuestions.length, onSelectedQuestionsChange]);

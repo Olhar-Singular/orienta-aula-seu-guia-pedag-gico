@@ -380,10 +380,9 @@ describe("resetGeneratedState", () => {
       "editableActivityDirected",
       "pdfHistoryUniversal",
       "pdfHistoryDirected",
-      "aiEditorUniversalDsl",
-      "aiEditorDirectedDsl",
-      "manualEditorDsl",
-      "editorImageRegistry",
+      "editorContentUniversal",
+      "editorContentDirected",
+      "editorContentManual",
     ];
     for (const k of expectedKeys) {
       expect(k in patch).toBe(true);
@@ -395,10 +394,9 @@ describe("resetGeneratedState", () => {
     expect(patch.editableActivityDirected).toBeUndefined();
     expect(patch.pdfHistoryUniversal).toBeUndefined();
     expect(patch.pdfHistoryDirected).toBeUndefined();
-    expect(patch.aiEditorUniversalDsl).toBeUndefined();
-    expect(patch.aiEditorDirectedDsl).toBeUndefined();
-    expect(patch.manualEditorDsl).toBeUndefined();
-    expect(patch.editorImageRegistry).toBeUndefined();
+    expect(patch.editorContentUniversal).toBeUndefined();
+    expect(patch.editorContentDirected).toBeUndefined();
+    expect(patch.editorContentManual).toBeUndefined();
   });
 
   it("does not touch user-provided wizard inputs (activityType, barriers, classId etc.)", () => {
