@@ -48,7 +48,8 @@ export function resolveImageSrc(
   ref: string,
   registry: ImageRegistry
 ): string {
-  return registry[ref] || ref;
+  // hasOwn guards against `valueOf`, `toString`, etc. inherited from Object.prototype.
+  return Object.prototype.hasOwnProperty.call(registry, ref) ? registry[ref] : ref;
 }
 
 /**
@@ -80,7 +81,8 @@ export function scanAndRegisterUrls(
     const existingName = Object.entries(updated).find(([, src]) => src === m.url)?.[0];
     const name = existingName || nextImageName(updated);
     if (!existingName) updated[name] = m.url;
-    cleanText = cleanText.replace(m.full, `[img:${name}${m.params}]`);
+    // Function replacement avoids $& / $1 substitution in `name` or `m.params`.
+    cleanText = cleanText.replace(m.full, () => `[img:${name}${m.params}]`);
   }
 
   return { cleanText, updatedRegistry: updated };
@@ -101,6 +103,8 @@ export function expandImageRegistry(
   const pattern = /\[img:([^\s\]]+)((?:\s[^\]]*)?)\]/g;
   return text.replace(pattern, (full, name: string, params: string) => {
     if (/^(https?:\/\/|data:)/i.test(name)) return full;
+    // hasOwn guards against inherited Object.prototype members (valueOf, toString, etc.).
+    if (!Object.prototype.hasOwnProperty.call(registry, name)) return full;
     const url = registry[name];
     if (!url) return full;
     return `[img:${url}${params ?? ""}]`;
