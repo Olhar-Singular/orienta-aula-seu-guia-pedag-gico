@@ -147,6 +147,54 @@ describe("buildAIEditorAdvancePatch", () => {
     expect(universal.sections[0].questions[0].statement).toContain("nova pergunta universal");
     expect(directed.sections[0].questions[0].statement).toContain("nova pergunta direcionada");
   });
+
+  it("rebuilds questionImages from new DSL when universal DSL changed (image removed)", () => {
+    const prev = {
+      result: baseResult,
+      questionImages: {
+        version_universal: { "1": ["https://example.com/img.png"] },
+        version_directed: { "1": ["https://example.com/img.png"] },
+      },
+    } as unknown as WizardData;
+    const universalDsl = "1) Explique fotossintese";
+    const directedDsl = structuredToMarkdownDsl(baseResult.version_directed);
+    const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+    expect(patch.questionImages).toBeDefined();
+    expect(patch.questionImages!.version_universal).toEqual({});
+    expect(patch.questionImages!.version_directed).toEqual({
+      "1": ["https://example.com/img.png"],
+    });
+  });
+
+  it("rebuilds questionImages preserving images still referenced in DSL", () => {
+    const prev = {
+      result: baseResult,
+      questionImages: {
+        version_universal: { "1": ["https://example.com/stale.png"] },
+        version_directed: {},
+      },
+    } as unknown as WizardData;
+    const universalDsl = "1) Explique fotossintese\n[img:https://example.com/fresh.png]";
+    const directedDsl = structuredToMarkdownDsl(baseResult.version_directed);
+    const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+    expect(patch.questionImages!.version_universal).toEqual({
+      "1": ["https://example.com/fresh.png"],
+    });
+  });
+
+  it("leaves questionImages untouched when DSL did not change", () => {
+    const prev = {
+      result: baseResult,
+      questionImages: {
+        version_universal: { "1": ["https://example.com/img.png"] },
+        version_directed: { "1": ["https://example.com/img.png"] },
+      },
+    } as unknown as WizardData;
+    const universalDsl = structuredToMarkdownDsl(baseResult.version_universal);
+    const directedDsl = structuredToMarkdownDsl(baseResult.version_directed);
+    const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+    expect("questionImages" in patch).toBe(false);
+  });
 });
 
 describe("buildManualEditorAdvancePatch", () => {
@@ -244,6 +292,42 @@ describe("buildManualEditorAdvancePatch", () => {
     const patch = buildManualEditorAdvancePatch(changed, prev);
     const directed = patch.result!.version_directed as StructuredActivity;
     expect(directed.sections[0].questions[0].statement).toBe("Texto totalmente novo");
+  });
+
+  it("rebuilds questionImages from updated activity when text changed (image removed)", () => {
+    const prev = {
+      result: buildManualResult(sampleActivity()),
+      questionImages: {
+        version_universal: { "1": ["https://example.com/img.png"] },
+        version_directed: { "1": ["https://example.com/img.png"] },
+      },
+    } as unknown as WizardData;
+    const changed: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            { number: 1, type: "open_ended", statement: "Pergunta sem imagem" },
+          ],
+        },
+      ],
+    };
+    const patch = buildManualEditorAdvancePatch(changed, prev);
+    expect(patch.questionImages).toBeDefined();
+    expect(patch.questionImages!.version_universal).toEqual({});
+    expect(patch.questionImages!.version_directed).toEqual({});
+  });
+
+  it("leaves questionImages untouched when updated activity matches prev result", () => {
+    const activity = sampleActivity();
+    const prev = {
+      result: buildManualResult(activity),
+      questionImages: {
+        version_universal: { "1": ["https://example.com/img.png"] },
+        version_directed: { "1": ["https://example.com/img.png"] },
+      },
+    } as unknown as WizardData;
+    const patch = buildManualEditorAdvancePatch(activity, prev);
+    expect("questionImages" in patch).toBe(false);
   });
 
   it("falls back to clone when no previous directed exists", () => {

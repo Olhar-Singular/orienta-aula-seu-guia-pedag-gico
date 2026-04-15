@@ -4,6 +4,20 @@ import type {
   BarrierItem,
   WizardData,
 } from "@/components/adaptation/AdaptationWizard";
+
+function extractQuestionImages(
+  activity: StructuredActivity,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const section of activity.sections) {
+    for (const q of section.questions) {
+      if (q.images && q.images.length > 0) {
+        out[String(q.number)] = [...q.images];
+      }
+    }
+  }
+  return out;
+}
 import {
   markdownDslToStructured,
   structuredToMarkdownDsl,
@@ -94,6 +108,17 @@ export function buildAIEditorAdvancePatch(
     patch.editableActivityDirected = undefined;
     patch.pdfHistoryDirected = undefined;
   }
+  if (universalChanged || directedChanged) {
+    const prevImages = prevData.questionImages ?? { version_universal: {}, version_directed: {} };
+    patch.questionImages = {
+      version_universal: universalChanged
+        ? extractQuestionImages(updatedResult.version_universal as StructuredActivity)
+        : prevImages.version_universal,
+      version_directed: directedChanged
+        ? extractQuestionImages(updatedResult.version_directed as StructuredActivity)
+        : prevImages.version_directed,
+    };
+  }
   return patch;
 }
 
@@ -163,6 +188,14 @@ export function buildManualEditorAdvancePatch(
     patch.editableActivityDirected = undefined;
     patch.pdfHistoryUniversal = undefined;
     patch.pdfHistoryDirected = undefined;
+    const nextUniversalImages = extractQuestionImages(updated);
+    const nextDirectedImages = extractQuestionImages(
+      result.version_directed as StructuredActivity,
+    );
+    patch.questionImages = {
+      version_universal: nextUniversalImages,
+      version_directed: nextDirectedImages,
+    };
   }
   return patch;
 }
