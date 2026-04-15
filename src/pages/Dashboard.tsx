@@ -78,13 +78,12 @@ export default function Dashboard() {
         column: "user_id" | "teacher_id",
         gte?: string,
       ) => {
-        let q = supabase
-          .from(table)
-          .select("*", { count: "exact", head: true })
-          .eq(column, user!.id) as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const base = supabase.from(table) as any;
+        let q = base.select("*", { count: "exact", head: true }).eq(column, user!.id);
         if (gte) q = q.gte("created_at", gte);
         const { count } = await q;
-        return count ?? 0;
+        return (count as number | null) ?? 0;
       };
 
       const [
