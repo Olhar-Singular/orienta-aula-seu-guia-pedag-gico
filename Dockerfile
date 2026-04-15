@@ -14,8 +14,8 @@ ENV PATH="/root/.bun/bin:${PATH}"
 
 WORKDIR /app
 
-COPY package.json bun.lockb bunfig.toml ./
-RUN npm install --force
+COPY package.json package-lock.json bunfig.toml ./
+RUN npm ci
 
 EXPOSE 8080
 
