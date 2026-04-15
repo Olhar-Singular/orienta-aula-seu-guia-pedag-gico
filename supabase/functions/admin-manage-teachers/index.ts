@@ -77,6 +77,118 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // ─── LIST TEACHERS (enriched with auth.users) ───
+    if (action === "list") {
+      const { school_id } = body as { school_id?: string | null };
+
+      const { data: isSuperAdmin } = await admin.rpc("is_super_admin", {
+        _user_id: caller.id,
+      });
+
+      if (!isSuperAdmin) {
+        if (!school_id) {
+          return new Response(JSON.stringify({ error: "school_id obrigatório." }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: isAdmin } = await admin.rpc("is_school_admin", {
+          _user_id: caller.id,
+          _school_id: school_id,
+        });
+        if (!isAdmin) {
+          return new Response(JSON.stringify({ error: "Apenas administradores." }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      let membersQuery = admin
+        .from("school_members")
+        .select("id, user_id, role, joined_at, school_id")
+        .order("joined_at", { ascending: false });
+      if (school_id) membersQuery = membersQuery.eq("school_id", school_id);
+
+      const { data: members, error: membersErr } = await membersQuery;
+      if (membersErr) {
+        return new Response(JSON.stringify({ error: membersErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const memberRows = members ?? [];
+      if (memberRows.length === 0) {
+        return new Response(JSON.stringify({ teachers: [] }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const userIds = Array.from(new Set(memberRows.map((m) => m.user_id)));
+      const schoolIds = Array.from(
+        new Set(memberRows.map((m) => m.school_id).filter((id): id is string => !!id))
+      );
+
+      const [{ data: profiles }, { data: schools }] = await Promise.all([
+        admin.from("profiles").select("user_id, full_name, name, email").in("user_id", userIds),
+        schoolIds.length > 0
+          ? admin.from("schools").select("id, name").in("id", schoolIds)
+          : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      ]);
+
+      const profileMap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+      const schoolMap = new Map((schools ?? []).map((s) => [s.id, s.name]));
+
+      // Fetch auth.users for any user_id missing email/name in profile
+      const authUserById = new Map<string, { email: string | null; name: string | null }>();
+      const needsAuthLookup = userIds.filter((uid) => {
+        const p = profileMap.get(uid);
+        return !p?.email || (!p?.full_name && !p?.name);
+      });
+      await Promise.all(
+        needsAuthLookup.map(async (uid) => {
+          const { data } = await admin.auth.admin.getUserById(uid);
+          if (data?.user) {
+            authUserById.set(uid, {
+              email: data.user.email ?? null,
+              name:
+                (data.user.user_metadata as { name?: string; full_name?: string } | null)?.full_name ??
+                (data.user.user_metadata as { name?: string; full_name?: string } | null)?.name ??
+                null,
+            });
+          }
+        })
+      );
+
+      const teachers = memberRows.map((m) => {
+        const profile = profileMap.get(m.user_id);
+        const authUser = authUserById.get(m.user_id);
+        const email = profile?.email ?? authUser?.email ?? null;
+        const full_name =
+          profile?.full_name ??
+          profile?.name ??
+          authUser?.name ??
+          (email ? email.split("@")[0] : null);
+        return {
+          id: m.id,
+          user_id: m.user_id,
+          email,
+          full_name,
+          role: m.role,
+          joined_at: m.joined_at,
+          school_id: m.school_id,
+          school_name: schoolMap.get(m.school_id) ?? null,
+        };
+      });
+
+      return new Response(JSON.stringify({ teachers }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ─── CREATE SINGLE TEACHER ───
     if (action === "create") {
       const { email, name, school_id, role, password } = body;

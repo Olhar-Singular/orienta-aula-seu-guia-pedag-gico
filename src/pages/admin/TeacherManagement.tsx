@@ -76,55 +76,19 @@ export default function TeacherManagement() {
     ? (selectedSchoolId !== "all" ? selectedSchoolId : null)
     : schoolId;
 
-  // ─── FETCH TEACHERS ───
+  // ─── FETCH TEACHERS (via edge function — enriches via auth.users) ───
   const { data: teachers = [], isLoading } = useQuery({
     queryKey: ["school-teachers", isSuperAdmin ? selectedSchoolId : schoolId],
     queryFn: async () => {
-      let membersQuery = supabase
-        .from("school_members")
-        .select("id, user_id, role, joined_at, school_id")
-        .order("joined_at", { ascending: false });
-
-      if (effectiveSchoolId) {
-        membersQuery = membersQuery.eq("school_id", effectiveSchoolId);
-      } else if (!isSuperAdmin) {
-        return [];
-      }
-
-      const { data: members, error } = await membersQuery;
+      const { data, error } = await supabase.functions.invoke("admin-manage-teachers", {
+        body: {
+          action: "list",
+          school_id: effectiveSchoolId,
+        },
+      });
       if (error) throw error;
-      if (!members || members.length === 0) return [];
-
-      // Fetch profiles separately since there's no FK relationship
-      const userIds = members.map((m) => m.user_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, name, email")
-        .in("user_id", userIds);
-
-      if (profilesError) {
-        console.error("Erro ao buscar profiles:", profilesError);
-      }
-
-      const profileMap = new Map(
-        (profiles || []).map((p) => [p.user_id, p])
-      );
-
-      const schoolMap = new Map(allSchools.map((s: { id: string; name: string }) => [s.id, s.name]));
-
-      return members.map((m) => {
-        const profile = profileMap.get(m.user_id);
-        return {
-          id: m.id,
-          user_id: m.user_id,
-          email: profile?.email ?? null,
-          full_name: profile?.full_name ?? profile?.name ?? profile?.email?.split("@")[0] ?? null,
-          role: m.role,
-          joined_at: m.joined_at,
-          school_id: m.school_id,
-          school_name: schoolMap.get(m.school_id) ?? null,
-        };
-      }) as Teacher[];
+      if (data?.error) throw new Error(data.error);
+      return (data?.teachers ?? []) as Teacher[];
     },
     enabled: !!effectiveSchoolId || isSuperAdmin,
   });

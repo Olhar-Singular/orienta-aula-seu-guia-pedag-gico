@@ -62,7 +62,30 @@ vi.mock("@/integrations/supabase/client", () => ({
       return chain;
     }),
     functions: {
-      invoke: vi.fn().mockResolvedValue({ data: { success: true }, error: null }),
+      invoke: vi.fn((_name: string, opts?: { body?: { action?: string; school_id?: string | null } }) => {
+        if (opts?.body?.action === "list") {
+          const sid = opts.body.school_id;
+          const filtered = sid
+            ? mockMembersData.filter((m) => m.school_id === sid)
+            : mockMembersData;
+          const teachers = filtered.map((m) => {
+            const p = mockProfilesData.find((x) => x.user_id === m.user_id);
+            const s = mockSchoolsData.find((x) => x.id === m.school_id);
+            return {
+              id: m.id,
+              user_id: m.user_id,
+              email: p?.email ?? null,
+              full_name: p?.full_name ?? p?.name ?? null,
+              role: m.role,
+              joined_at: m.joined_at,
+              school_id: m.school_id,
+              school_name: s?.name ?? null,
+            };
+          });
+          return Promise.resolve({ data: { teachers }, error: null });
+        }
+        return Promise.resolve({ data: { success: true }, error: null });
+      }),
     },
   },
 }));
