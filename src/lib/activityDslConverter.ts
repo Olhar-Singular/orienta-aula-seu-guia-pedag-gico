@@ -251,6 +251,11 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     q.answerLines = pq.answerLines;
   }
 
+  // Word bank / fill-blank placeholder (from [banco: ...])
+  if (pq.wordbank && pq.wordbank.length > 0) {
+    q.blank_placeholder = pq.wordbank.join(", ");
+  }
+
   // Images
   if (pq.images.length > 0) {
     q.images = [...pq.images];
