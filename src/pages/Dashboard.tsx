@@ -81,7 +81,7 @@ export default function Dashboard() {
         let q = supabase
           .from(table)
           .select("*", { count: "exact", head: true })
-          .eq(column, user!.id);
+          .eq(column, user!.id) as any;
         if (gte) q = q.gte("created_at", gte);
         const { count } = await q;
         return count ?? 0;

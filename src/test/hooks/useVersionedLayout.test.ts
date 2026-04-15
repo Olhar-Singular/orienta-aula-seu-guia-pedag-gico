@@ -25,6 +25,7 @@ const makeActivity = (label: string): EditableActivity => ({
     date: "",
     showStudentLine: false,
   },
+  globalShowSeparators: true,
   questions: [],
 });
 

@@ -161,7 +161,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     await user.type(editor, "abc");
 
     await waitFor(() => {
-      expect(latestUpdate(onChange, "editorContentUniversal")?.dsl).toBe("abc");
+      expect((latestUpdate(onChange, "editorContentUniversal") as any)?.dsl).toBe("abc");
     });
   });
 
@@ -185,7 +185,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     await user.type(editor, "xyz");
 
     await waitFor(() => {
-      expect(latestUpdate(onChange, "editorContentDirected")?.dsl).toBe("xyz");
+      expect((latestUpdate(onChange, "editorContentDirected") as any)?.dsl).toBe("xyz");
     });
   });
 
