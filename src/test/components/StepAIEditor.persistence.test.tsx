@@ -189,7 +189,7 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
     });
   });
 
-  it("seeds drafts from result when drafts are empty on first mount", async () => {
+  it("seeds the editor from result when drafts are empty on first mount", async () => {
     render(
       <StepAIEditor
         data={makeWizardData()}
@@ -200,10 +200,13 @@ describe("StepAIEditor draft persistence (Bug 2)", () => {
       { wrapper: createTestWrapper() }
     );
 
+    // The hook seeds from `computeInitialDsl(data.result, ...)` internally,
+    // so the editor renders a non-empty DSL without needing to mirror back
+    // into parent state on mount.
     await waitFor(() => {
-      const seeded = latestUpdate(updateData, "aiEditorUniversalDsl");
-      expect(typeof seeded).toBe("string");
-      expect((seeded as string).length).toBeGreaterThan(0);
+      const editor = screen.getByTestId("mock-editor") as HTMLTextAreaElement;
+      expect(editor.value.length).toBeGreaterThan(0);
+      expect(editor.value).toContain("Adição");
     });
   });
 
