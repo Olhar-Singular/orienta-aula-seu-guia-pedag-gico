@@ -207,7 +207,12 @@ export function parseActivity(rawText: string): ParsedActivity {
     // Image
     const imgM = line.match(RE.image);
     if (imgM) {
-      if (curQ) curQ.images.push(imgM[1]);
+      if (curQ) {
+        curQ.images.push(imgM[1]);
+        // Also record position in continuations so downstream builders can
+        // place the image between paragraphs instead of at the trailing list.
+        curQ.continuations.push(`[img:${imgM[1]}]`);
+      }
       continue;
     }
 

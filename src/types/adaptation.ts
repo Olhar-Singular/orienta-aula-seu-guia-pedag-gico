@@ -126,6 +126,7 @@ export interface OrderItem {
 
 // Questão individual
 export interface StructuredQuestion {
+  id?: string;                    // Stable identifier survived across edits
   number: number;                 // 1, 2, 3...
   type: QuestionType;             // Tipo da questão
   statement: string;              // Enunciado (pode conter LaTeX ou HTML)

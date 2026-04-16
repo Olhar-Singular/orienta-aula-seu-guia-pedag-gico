@@ -16,7 +16,8 @@ src/lib/pdf/
 ├── htmlToPdfElements.ts     # conversão HTML → elementos @react-pdf/renderer
 ├── contentRenderer.tsx      # render de ContentBlock (text/image) com InlineRun rich content
 ├── inlineRunUtils.ts        # normalização de InlineRun + stripRichContent (volta pra plain text)
-├── editableActivity.ts      # tipo EditableActivity (estado do layout editor do preview)
+├── editableActivity.ts      # tipo EditableActivity (estado do layout editor do preview) + migrateLegacyEditableActivity
+├── layoutSidecar.ts         # LayoutSidecar por questionId (wordColors, spacing, separator) que sobrevive a edições no DSL
 ├── resolveActivityImageSrcs.ts  # expande [img:imagem-N] → URL absoluta usando o registry do editor
 ├── applyPreset.ts           # presets de layout (densidade, tamanho de fonte)
 ├── PreviewPdfDocument.tsx   # documento base do preview dual-column (Original vs Adaptada)

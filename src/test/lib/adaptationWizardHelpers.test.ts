@@ -195,6 +195,97 @@ describe("buildAIEditorAdvancePatch", () => {
     const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
     expect("questionImages" in patch).toBe(false);
   });
+
+  describe("per-question sidecar reconciliation", () => {
+    const twoQuestionActivity = (): StructuredActivity => ({
+      sections: [
+        {
+          questions: [
+            { id: "q-alpha", number: 1, type: "open_ended", statement: "Alpha" },
+            { id: "q-beta", number: 2, type: "open_ended", statement: "Beta" },
+          ],
+        },
+      ],
+    });
+
+    it("preserves sidecar entries for questions whose content did not change", () => {
+      const prev: WizardData = {
+        result: {
+          ...baseResult,
+          version_universal: twoQuestionActivity(),
+          version_directed: twoQuestionActivity(),
+        },
+        layoutSidecar: {
+          version_universal: {
+            version: 1,
+            questions: {
+              "q-alpha": { spacingAfter: 40 },
+              "q-beta": { spacingAfter: 20 },
+            },
+          },
+          version_directed: { version: 1, questions: {} },
+        },
+      } as unknown as WizardData;
+
+      // Edit only Q1 (q-alpha)
+      const universalDsl = "1) Alpha editado\n\n2) Beta";
+      const directedDsl = structuredToMarkdownDsl(twoQuestionActivity());
+
+      const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+      expect(patch.layoutSidecar).toBeDefined();
+      const uni = patch.layoutSidecar!.version_universal;
+      expect(uni.questions["q-beta"]).toMatchObject({ spacingAfter: 20 });
+      // q-alpha should survive (layout props kept even with content change)
+      expect(uni.questions["q-alpha"]).toMatchObject({ spacingAfter: 40 });
+    });
+
+    it("drops sidecar entries for deleted questions", () => {
+      const prev: WizardData = {
+        result: {
+          ...baseResult,
+          version_universal: twoQuestionActivity(),
+          version_directed: twoQuestionActivity(),
+        },
+        layoutSidecar: {
+          version_universal: {
+            version: 1,
+            questions: {
+              "q-alpha": { spacingAfter: 40 },
+              "q-beta": { spacingAfter: 20 },
+            },
+          },
+          version_directed: { version: 1, questions: {} },
+        },
+      } as unknown as WizardData;
+
+      // Delete Q2
+      const universalDsl = "1) Alpha";
+      const directedDsl = structuredToMarkdownDsl(twoQuestionActivity());
+
+      const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+      const uni = patch.layoutSidecar!.version_universal;
+      expect(uni.questions["q-beta"]).toBeUndefined();
+    });
+
+    it("assigns stable q.id to parsed questions via reconciliation with prev", () => {
+      const prev: WizardData = {
+        result: {
+          ...baseResult,
+          version_universal: twoQuestionActivity(),
+          version_directed: twoQuestionActivity(),
+        },
+      } as unknown as WizardData;
+
+      // Rewrite in DSL (no id info preserved through text)
+      const universalDsl = "1) Alpha\n\n2) Beta";
+      const directedDsl = structuredToMarkdownDsl(twoQuestionActivity());
+
+      const patch = buildAIEditorAdvancePatch(prev, universalDsl, directedDsl);
+      const parsed = patch.result!.version_universal as StructuredActivity;
+      expect(parsed.sections[0].questions[0].id).toBe("q-alpha");
+      expect(parsed.sections[0].questions[1].id).toBe("q-beta");
+    });
+  });
 });
 
 describe("buildManualEditorAdvancePatch", () => {

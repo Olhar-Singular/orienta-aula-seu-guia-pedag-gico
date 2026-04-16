@@ -44,6 +44,7 @@ vi.mock("@/lib/pdf/PreviewPdfDocument", () => ({
 }));
 
 import StepPdfPreview from "@/components/adaptation/steps/pdf-preview-step/StepPdfPreview";
+import { toEditableActivity } from "@/lib/pdf/editableActivity";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -297,5 +298,29 @@ describe("StepPdfPreview", () => {
     render(<StepPdfPreview {...props} />, { wrapper: createTestWrapper() });
 
     expect(screen.getByText("Resetar")).toBeTruthy();
+  });
+
+  it("Resetar returns the layout to pristine even when savedUniversal reflects prior edits", () => {
+    const pristine = toEditableActivity(mockUniversal, mockHeader);
+    const editedSaved = {
+      ...pristine,
+      header: { ...pristine.header, schoolName: "Escola Editada" },
+    };
+    const onUniversalChange = vi.fn();
+    const props = makeDefaultProps({
+      savedUniversal: editedSaved,
+      onUniversalChange,
+    });
+
+    render(<StepPdfPreview {...props} />, { wrapper: createTestWrapper() });
+
+    onUniversalChange.mockClear();
+
+    const resetBtn = screen.getByText("Resetar");
+    fireEvent.click(resetBtn);
+
+    expect(onUniversalChange).toHaveBeenCalledTimes(1);
+    const nextActivity = onUniversalChange.mock.calls[0][0];
+    expect(nextActivity.header.schoolName).toBe("");
   });
 });

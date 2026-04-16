@@ -22,6 +22,7 @@ import { type HistoryState } from "@/hooks/useHistory";
 import { useVersionedLayout } from "@/hooks/useVersionedLayout";
 import { toEditableActivity, type EditableActivity } from "@/lib/pdf/editableActivity";
 import { applyPreset } from "@/lib/pdf/applyPreset";
+import { applySidecar, type LayoutSidecar } from "@/lib/pdf/layoutSidecar";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,8 @@ type Props = {
   questionImagesDirected?: Record<string, string[]>;
   savedUniversal?: EditableActivity;
   savedDirected?: EditableActivity;
+  sidecarUniversal?: LayoutSidecar;
+  sidecarDirected?: LayoutSidecar;
   savedHistoryUniversal?: HistoryState<EditableActivity>;
   savedHistoryDirected?: HistoryState<EditableActivity>;
   adaptationResult: AdaptationResult;
@@ -98,6 +101,8 @@ export default function StepPdfPreview({
   questionImagesDirected,
   savedUniversal,
   savedDirected,
+  sidecarUniversal,
+  sidecarDirected,
   savedHistoryUniversal,
   savedHistoryDirected,
   adaptationResult,
@@ -108,14 +113,29 @@ export default function StepPdfPreview({
   onHistoryUniversalChange,
   onHistoryDirectedChange,
 }: Props) {
-  // Initialize both versions (memoized so reset target stays stable across renders)
+  // Pristine targets — memoized without savedUniversal/savedDirected so the
+  // Reset button always returns to the original structured activity, not to
+  // whatever the user has currently saved in the wizard store.
+  const pristineUniversal = useMemo(
+    () => toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal),
+    [universalStructured, defaultHeader, questionImagesUniversal],
+  );
+  const pristineDirected = useMemo(
+    () => toEditableActivity(directedStructured, defaultHeader, questionImagesDirected),
+    [directedStructured, defaultHeader, questionImagesDirected],
+  );
+
   const initialUniversal = useMemo(
-    () => savedUniversal ?? toEditableActivity(universalStructured, defaultHeader, questionImagesUniversal),
-    [savedUniversal, universalStructured, defaultHeader, questionImagesUniversal],
+    () =>
+      savedUniversal ??
+      (sidecarUniversal ? applySidecar(pristineUniversal, sidecarUniversal) : pristineUniversal),
+    [savedUniversal, sidecarUniversal, pristineUniversal],
   );
   const initialDirected = useMemo(
-    () => savedDirected ?? toEditableActivity(directedStructured, defaultHeader, questionImagesDirected),
-    [savedDirected, directedStructured, defaultHeader, questionImagesDirected],
+    () =>
+      savedDirected ??
+      (sidecarDirected ? applySidecar(pristineDirected, sidecarDirected) : pristineDirected),
+    [savedDirected, sidecarDirected, pristineDirected],
   );
 
   const layout = useVersionedLayout({
@@ -270,7 +290,7 @@ export default function StepPdfPreview({
     saveSavedTemplates(next);
   }
 
-  const initialForReset = activeVersion === "universal" ? initialUniversal : initialDirected;
+  const initialForReset = activeVersion === "universal" ? pristineUniversal : pristineDirected;
 
   return (
     <div className="flex h-[calc(100vh-180px)] min-h-[600px] flex-col bg-white">
