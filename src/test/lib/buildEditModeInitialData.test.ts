@@ -74,6 +74,55 @@ describe("buildEditModeInitialData", () => {
     expect(data.editableActivityDirected).toBeUndefined();
   });
 
+  it("injects q.id into legacy editable_activity_* rows whose questions lack ids", () => {
+    const legacyUniversal = {
+      header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: true },
+      questions: [
+        { number: 1, statement: "a", content: [{ id: "b1", type: "text", content: "a" }] },
+        { number: 2, statement: "b", content: [{ id: "b2", type: "text", content: "b" }] },
+      ],
+    } as unknown as EditableActivity;
+    const legacyDirected = {
+      header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: true },
+      questions: [{ number: 1, statement: "x", content: [{ id: "b3", type: "text", content: "x" }] }],
+    } as unknown as EditableActivity;
+    const row = {
+      ...MOCK_ADAPTATION_HISTORY,
+      adaptation_result: {
+        ...MOCK_ADAPTATION_RESULT,
+        editable_activity_universal: legacyUniversal,
+        editable_activity_directed: legacyDirected,
+      },
+    };
+    const data = buildEditModeInitialData(row as any);
+    const u = data.editableActivity as unknown as { questions: Array<{ id?: string }> };
+    const d = data.editableActivityDirected as unknown as { questions: Array<{ id?: string }> };
+    expect(u.questions.every((q) => typeof q.id === "string" && q.id.length > 0)).toBe(true);
+    expect(d.questions.every((q) => typeof q.id === "string" && q.id.length > 0)).toBe(true);
+    const ids = u.questions.map((q) => q.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("preserves existing q.id when already present in legacy row", () => {
+    const universal = {
+      header: { schoolName: "", subject: "", teacherName: "", className: "", date: "", showStudentLine: true },
+      questions: [
+        { id: "keep-me-1", number: 1, statement: "a", content: [] },
+        { id: "keep-me-2", number: 2, statement: "b", content: [] },
+      ],
+    } as unknown as EditableActivity;
+    const row = {
+      ...MOCK_ADAPTATION_HISTORY,
+      adaptation_result: {
+        ...MOCK_ADAPTATION_RESULT,
+        editable_activity_universal: universal,
+      },
+    };
+    const data = buildEditModeInitialData(row as any);
+    const u = data.editableActivity as unknown as { questions: Array<{ id?: string }> };
+    expect(u.questions.map((q) => q.id)).toEqual(["keep-me-1", "keep-me-2"]);
+  });
+
   it("survives missing optional fields without throwing", () => {
     const minimal = {
       id: "x",

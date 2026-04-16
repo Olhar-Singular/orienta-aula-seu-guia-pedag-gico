@@ -23,6 +23,24 @@ import {
   structuredToMarkdownDsl,
 } from "@/lib/activityDslConverter";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
+import {
+  ensureQuestionIds,
+  reconcileQuestionIds,
+} from "@/lib/questionIdentity";
+import {
+  emptySidecar,
+  reconcileSidecar,
+  type LayoutSidecar,
+} from "@/lib/pdf/layoutSidecar";
+import { migrateLegacyEditableActivity } from "@/lib/pdf/editableActivity";
+
+function asStructured(
+  v: string | StructuredActivity | undefined,
+): StructuredActivity | undefined {
+  if (v === undefined) return undefined;
+  if (typeof v === "string") return markdownDslToStructured(v);
+  return v;
+}
 
 /** Partial WizardData patch that wipes every field derived from a generation:
  *  the result, AI/manual editor drafts, layout state, history, and registries.
@@ -80,26 +98,131 @@ export function textChangedFromResult(
 
 /** Build the partial WizardData patch written by StepAIEditor.handleNext.
  *  Only invalidates layout state for versions whose DSL actually changed. */
+/** Normalize a StructuredActivity through the parser round-trip so its shape
+ *  matches freshly parsed DSL (with `content` blocks), while preserving any
+ *  existing `q.id`s by positional re-attachment. */
+function canonicalizeWithIds(a: StructuredActivity): StructuredActivity {
+  const parsed = markdownDslToStructured(structuredToMarkdownDsl(a));
+  const origs = a.sections.flatMap((s) => s.questions);
+  let i = 0;
+  for (const s of parsed.sections) {
+    for (const q of s.questions) {
+      const o = origs[i++];
+      if (o?.id) q.id = o.id;
+    }
+  }
+  return parsed;
+}
+
+/** After id+hash-based reconciliation, any `next` question that received a
+ *  freshly generated id is given a chance to inherit the id of the prev
+ *  question with the same `q.number`, as long as that prev id has not been
+ *  claimed by an earlier match. Handles the common in-place edit case where
+ *  the user simply rewrote the text of Q3 without restructuring. */
+function inheritIdsByNumber(
+  prev: StructuredActivity,
+  next: StructuredActivity,
+): StructuredActivity {
+  const prevIds = new Set<string>();
+  const prevByNumber = new Map<number, string>();
+  for (const s of prev.sections) {
+    for (const q of s.questions) {
+      if (q.id) {
+        prevIds.add(q.id);
+        if (!prevByNumber.has(q.number)) prevByNumber.set(q.number, q.id);
+      }
+    }
+  }
+
+  const claimed = new Set<string>();
+  for (const s of next.sections) {
+    for (const q of s.questions) {
+      if (q.id && prevIds.has(q.id)) claimed.add(q.id);
+    }
+  }
+
+  return {
+    ...next,
+    sections: next.sections.map((s) => ({
+      ...s,
+      questions: s.questions.map((q) => {
+        if (q.id && prevIds.has(q.id)) return q;
+        const candidate = prevByNumber.get(q.number);
+        if (candidate && !claimed.has(candidate)) {
+          claimed.add(candidate);
+          return { ...q, id: candidate };
+        }
+        return q;
+      }),
+    })),
+  };
+}
+
+/** Given the previous (possibly id-less) activity and a freshly parsed new
+ *  activity, produce versions of both with stable `q.id` filled in and the
+ *  sidecar reconciled (entries for missing questions dropped, wordColors
+ *  reconciled against new text). */
+function reconcileActivityAndSidecar(
+  prevRaw: StructuredActivity | undefined,
+  nextParsed: StructuredActivity,
+  prevSidecar: LayoutSidecar,
+): { next: StructuredActivity; sidecar: LayoutSidecar } {
+  if (!prevRaw) {
+    return { next: ensureQuestionIds(nextParsed), sidecar: emptySidecar() };
+  }
+  const prevWithIds = ensureQuestionIds(canonicalizeWithIds(prevRaw));
+  const byHash = reconcileQuestionIds(prevWithIds, nextParsed);
+  const byNumber = inheritIdsByNumber(prevWithIds, byHash);
+  const next = ensureQuestionIds(byNumber);
+  const sidecar = reconcileSidecar(prevSidecar, prevWithIds, next);
+  return { next, sidecar };
+}
+
 export function buildAIEditorAdvancePatch(
   prevData: WizardData,
   universalDsl: string,
   directedDsl: string,
 ): Partial<WizardData> {
   const prevResult = prevData.result;
+  const prevSidecar = prevData.layoutSidecar ?? {
+    version_universal: emptySidecar(),
+    version_directed: emptySidecar(),
+  };
+
+  const parsedUniversal = markdownDslToStructured(universalDsl);
+  const parsedDirected = markdownDslToStructured(directedDsl);
+
+  const reconU = reconcileActivityAndSidecar(
+    asStructured(prevResult?.version_universal),
+    parsedUniversal,
+    prevSidecar.version_universal,
+  );
+  const reconD = reconcileActivityAndSidecar(
+    asStructured(prevResult?.version_directed),
+    parsedDirected,
+    prevSidecar.version_directed,
+  );
+
   const updatedResult: AdaptationResult = {
     ...(prevResult ?? {
       strategies_applied: [],
       pedagogical_justification: "",
       implementation_tips: [],
     } as AdaptationResult),
-    version_universal: markdownDslToStructured(universalDsl),
-    version_directed: markdownDslToStructured(directedDsl),
+    version_universal: reconU.next,
+    version_directed: reconD.next,
   };
 
   const universalChanged = textChangedFromResult(universalDsl, prevResult?.version_universal);
   const directedChanged = textChangedFromResult(directedDsl, prevResult?.version_directed);
 
-  const patch: Partial<WizardData> = { result: updatedResult };
+  const patch: Partial<WizardData> = {
+    result: updatedResult,
+    layoutSidecar: {
+      version_universal: reconU.sidecar,
+      version_directed: reconD.sidecar,
+    },
+  };
   if (universalChanged) {
     patch.editableActivity = undefined;
     patch.pdfHistoryUniversal = undefined;
@@ -251,8 +374,12 @@ export function buildEditModeInitialData(
         ? result.question_images_directed
         : {},
     },
-    editableActivity: result.editable_activity_universal ?? undefined,
-    editableActivityDirected: result.editable_activity_directed ?? undefined,
+    editableActivity: result.editable_activity_universal
+      ? migrateLegacyEditableActivity(result.editable_activity_universal)
+      : undefined,
+    editableActivityDirected: result.editable_activity_directed
+      ? migrateLegacyEditableActivity(result.editable_activity_directed)
+      : undefined,
     wizardMode: "ai",
   };
 }
