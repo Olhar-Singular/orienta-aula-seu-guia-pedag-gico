@@ -5,10 +5,20 @@ import type {
   StructuredQuestion,
   ActivitySection,
   Alternative,
+  ContentBlock,
 } from "@/types/adaptation";
 import { parseActivity } from "./activityParser";
 import type { ParsedQuestion, ParsedSection } from "./activityParser";
 import { normalizeAIText } from "./normalizeAIText";
+import { parseMarkdownInline } from "./parseMarkdownInline";
+
+let contentBlockCounter = 0;
+function nextContentBlockId(): string {
+  contentBlockCounter += 1;
+  return `cb-${Date.now().toString(36)}-${contentBlockCounter.toString(36)}`;
+}
+
+const IMG_LINE_RE = /^\[img:(.+?)\]$/;
 
 /**
  * Convert a StructuredActivity (JSON) into the markdown DSL text format
@@ -44,8 +54,13 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
         lines.push("> " + n(q.instruction));
       }
 
-      // Question statement
-      lines.push(`${q.number}) ${n(q.statement)}`);
+      // Question body — prefer structured content blocks when available so that
+      // multi-paragraph statements and inline images survive the round-trip.
+      if (q.content && q.content.length > 0) {
+        emitQuestionFromContent(lines, q, n);
+      } else {
+        lines.push(`${q.number}) ${n(q.statement)}`);
+      }
 
       // Type-specific content
       switch (q.type) {
@@ -125,8 +140,10 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
         }
       }
 
-      // Images
-      if (q.images && q.images.length > 0) {
+      // Images — only emit trailing list when content blocks did not already
+      // position images inline. Prevents duplication during round-trips.
+      const contentHasImages = q.content?.some((b) => b.type === "image") ?? false;
+      if (!contentHasImages && q.images && q.images.length > 0) {
         for (const img of q.images) {
           lines.push(`[img:${img}]`);
         }
@@ -143,6 +160,38 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
   }
 
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Emit the question header and remaining content blocks into the DSL line
+ *  buffer. The first text block becomes the question header line (`N) ...`),
+ *  and any other blocks (text paragraphs, images) follow separated by a blank
+ *  line so the parser can reconstruct them. */
+function emitQuestionFromContent(
+  lines: string[],
+  q: StructuredQuestion,
+  n: (s: string) => string,
+): void {
+  const blocks = q.content ?? [];
+  const firstTextIdx = blocks.findIndex((b) => b.type === "text");
+
+  if (firstTextIdx >= 0) {
+    const first = blocks[firstTextIdx];
+    const headerText = first.type === "text" ? first.content : q.statement;
+    lines.push(`${q.number}) ${n(headerText)}`);
+  } else {
+    lines.push(`${q.number}) ${n(q.statement)}`);
+  }
+
+  for (let i = 0; i < blocks.length; i++) {
+    if (i === firstTextIdx) continue;
+    const block = blocks[i];
+    lines.push("");
+    if (block.type === "text") {
+      lines.push(n(block.content));
+    } else if (block.type === "image") {
+      lines.push(`[img:${block.src}]`);
+    }
+  }
 }
 
 /**
@@ -196,10 +245,16 @@ export function markdownDslToStructured(text: string): StructuredActivity {
 }
 
 function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
+  const content = buildContentBlocks(pq);
+  const firstTextBlock = content.find((b) => b.type === "text");
+  const statement =
+    firstTextBlock && firstTextBlock.type === "text" ? firstTextBlock.content : pq.statement;
+
   const q: StructuredQuestion = {
     number: pq.number,
     type: mapQuestionType(pq.type),
-    statement: buildFullStatement(pq),
+    statement,
+    content,
   };
 
   // Alternatives (multiple choice) — filter out empty entries
@@ -284,12 +339,72 @@ function buildFullStatement(pq: ParsedQuestion): string {
   let stmt = pq.statement;
   // Append non-instruction continuations to statement
   const textConts = pq.continuations.filter(
-    (c) => !c.startsWith("> ") && !c.startsWith("$$") && c !== "<!--blank-->"
+    (c) =>
+      !c.startsWith("> ") &&
+      !c.startsWith("$$") &&
+      c !== "<!--blank-->" &&
+      !IMG_LINE_RE.test(c),
   );
   if (textConts.length > 0) {
     stmt += " " + textConts.join(" ");
   }
   return stmt;
+}
+
+/** Build ContentBlock[] from a ParsedQuestion, preserving the order of text
+ *  paragraphs and inline images as they appeared in the DSL. Apoio and
+ *  instruction lines ("> ...") are intentionally excluded — they flow into
+ *  `q.scaffolding` and `q.instruction` respectively and are rendered
+ *  out-of-band by the preview. */
+function buildContentBlocks(pq: ParsedQuestion): ContentBlock[] {
+  const blocks: ContentBlock[] = [];
+  const buffer: string[] = [];
+
+  const flushText = () => {
+    if (buffer.length === 0) return;
+    const text = buffer.join("\n").trim();
+    buffer.length = 0;
+    if (text.length === 0) return;
+    const richContent = parseMarkdownInline(text);
+    blocks.push({
+      id: nextContentBlockId(),
+      type: "text",
+      content: text,
+      ...(richContent ? { richContent } : {}),
+    });
+  };
+
+  // Seed with the question-header text (pq.statement) as first paragraph.
+  if (pq.statement) buffer.push(pq.statement);
+
+  for (const line of pq.continuations) {
+    if (line === "<!--blank-->") {
+      flushText();
+      continue;
+    }
+    const imgMatch = line.match(IMG_LINE_RE);
+    if (imgMatch) {
+      flushText();
+      blocks.push({
+        id: nextContentBlockId(),
+        type: "image",
+        src: imgMatch[1],
+        width: 0.7,
+        alignment: "center",
+      });
+      continue;
+    }
+    if (line.startsWith("> ") || line.startsWith("$$")) {
+      // Skipped: Apoio/instruction/math-block continuations are represented via
+      // q.scaffolding / q.instruction. If the feature grows to render Apoios
+      // mid-question, emit a dedicated block kind here instead of skipping.
+      continue;
+    }
+    buffer.push(line);
+  }
+  flushText();
+
+  return blocks;
 }
 
 /**
