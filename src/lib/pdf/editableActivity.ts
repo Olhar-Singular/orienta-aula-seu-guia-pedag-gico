@@ -97,6 +97,27 @@ function resolveQuestionImages(
  * @param questionImages - External image map (from WizardData.questionImages)
  *   keyed by question number string, e.g. { "1": ["url1"], "2": ["url2"] }
  */
+/** Ensure every question in a legacy EditableActivity (loaded from DB) has a
+ *  stable `id`. Rows saved before stable-id reconciliation lack ids, so we
+ *  mint one preserving insertion order. No-op when ids already present. */
+export function migrateLegacyEditableActivity(
+  activity: EditableActivity,
+): EditableActivity {
+  if (!activity || !Array.isArray(activity.questions)) return activity;
+  const anyMissing = activity.questions.some(
+    (q) => !q || typeof q.id !== "string" || q.id.length === 0,
+  );
+  if (!anyMissing) return activity;
+  return {
+    ...activity,
+    questions: activity.questions.map((q) =>
+      q && typeof q.id === "string" && q.id.length > 0
+        ? q
+        : { ...q, id: generateQuestionId() },
+    ),
+  };
+}
+
 export function toEditableActivity(
   activity: StructuredActivity,
   header: ActivityHeader,
@@ -108,7 +129,7 @@ export function toEditableActivity(
     const sectionTitle = section.title?.trim() || undefined;
     for (const q of section.questions) {
       const base = {
-        id: generateQuestionId(),
+        id: q.id && q.id.length > 0 ? q.id : generateQuestionId(),
         number: q.number,
         questionType: q.type,
         alternatives: formatAlternatives(q),

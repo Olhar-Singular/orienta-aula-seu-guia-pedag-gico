@@ -206,6 +206,57 @@ describe("toEditableActivity", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
+  it("propagates q.id from StructuredQuestion to EditableQuestion (legacy path)", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            { id: "stable-q-1", number: 1, type: "open_ended", statement: "Q1" },
+            { id: "stable-q-2", number: 2, type: "open_ended", statement: "Q2" },
+          ],
+        },
+      ],
+    };
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].id).toBe("stable-q-1");
+    expect(result.questions[1].id).toBe("stable-q-2");
+  });
+
+  it("propagates q.id when question already has content blocks", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              id: "stable-q-9",
+              number: 1,
+              type: "open_ended",
+              statement: "legacy",
+              content: [{ id: "b1", type: "text", content: "text" }],
+            },
+          ],
+        },
+      ],
+    };
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].id).toBe("stable-q-9");
+  });
+
+  it("falls back to a generated id when q.id is missing", () => {
+    const structured: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            { number: 1, type: "open_ended", statement: "Q1" },
+          ],
+        },
+      ],
+    };
+    const result = toEditableActivity(structured, HEADER);
+    expect(result.questions[0].id).toBeTruthy();
+    expect(typeof result.questions[0].id).toBe("string");
+  });
+
   it("preserves scaffolding (apoios DUA) on the editable question", () => {
     const structured: StructuredActivity = {
       sections: [
