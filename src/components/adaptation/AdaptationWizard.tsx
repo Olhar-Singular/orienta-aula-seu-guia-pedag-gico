@@ -15,6 +15,7 @@ import { WizardStepRenderer } from "./WizardStepRenderer";
 import { STEP_REGISTRY } from "./steps";
 import type { StructuredActivity, SelectedQuestion } from "@/types/adaptation";
 import type { EditableActivity } from "@/lib/pdf/editableActivity";
+import type { LayoutSidecar } from "@/lib/pdf/layoutSidecar";
 import {
   shouldConfirmDiscard,
   resyncStepForNewMode,
@@ -89,6 +90,13 @@ export type WizardData = {
   editorContentManual?: EditorContent;
   pdfHistoryUniversal?: HistoryState<EditableActivity>;
   pdfHistoryDirected?: HistoryState<EditableActivity>;
+  /** Per-version layout customizations (spacing, separators, word colors) kept
+   *  alongside the result so text edits in the AI/manual editor do not wipe
+   *  layout tweaks made in the PDF preview step. Keyed by stable `q.id`. */
+  layoutSidecar?: {
+    version_universal: LayoutSidecar;
+    version_directed: LayoutSidecar;
+  };
 };
 
 export { getStepsForMode, getNextStep } from "@/lib/wizardSteps";
