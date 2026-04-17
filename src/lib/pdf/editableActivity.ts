@@ -11,6 +11,26 @@ import type {
 } from "@/types/adaptation";
 import { migrateToContentBlocks, buildLegacyTrailingContent, hasContentBlocks } from "@/lib/contentBlockMigration";
 import { isHtmlContent, htmlToText } from "@/components/QuestionRichEditor";
+import { parseMarkdownInline } from "@/lib/parseMarkdownInline";
+
+/** Convert markdown bold/italic markers to HTML tags so PDFRichLine (which only
+ *  parses HTML) can render them. No-op when the text already contains HTML tags
+ *  or has no markdown markers. */
+function markdownToHtml(text: string): string {
+  if (!text) return text;
+  if (isHtmlContent(text)) return text;
+  const runs = parseMarkdownInline(text);
+  if (!runs) return text;
+  return runs
+    .map((r) => {
+      const t = r.text;
+      if (r.bold && r.italic) return `<strong><em>${t}</em></strong>`;
+      if (r.bold) return `<strong>${t}</strong>`;
+      if (r.italic) return `<em>${t}</em>`;
+      return t;
+    })
+    .join("");
+}
 
 export type EditableQuestion = {
   id: string;
@@ -61,7 +81,7 @@ function formatAlternatives(
   // formatting via PDFRichLine. Earlier this stripped with plainText(), which
   // collapsed all inline styling from the editor into plain strings.
   return question.alternatives.map(
-    (alt) => `${alt.letter}) ${alt.text}`,
+    (alt) => `${alt.letter}) ${markdownToHtml(alt.text)}`,
   );
 }
 
@@ -137,12 +157,16 @@ export function toEditableActivity(
         number: q.number,
         questionType: q.type,
         alternatives: formatAlternatives(q),
-        checkItems: q.check_items?.map((c) => ({ ...c })),
-        tfItems: q.tf_items?.map((t) => ({ ...t })),
-        matchPairs: q.match_pairs?.map((p) => ({ ...p })),
-        orderItems: q.order_items?.map((o) => ({ ...o })),
-        tableRows: q.table_rows?.map((row) => [...row]),
-        scaffolding: normalizeScaffolding(q.scaffolding),
+        checkItems: q.check_items?.map((c) => ({ ...c, text: markdownToHtml(c.text) })),
+        tfItems: q.tf_items?.map((t) => ({ ...t, text: markdownToHtml(t.text) })),
+        matchPairs: q.match_pairs?.map((p) => ({
+          ...p,
+          left: markdownToHtml(p.left),
+          right: markdownToHtml(p.right),
+        })),
+        orderItems: q.order_items?.map((o) => ({ ...o, text: markdownToHtml(o.text) })),
+        tableRows: q.table_rows?.map((row) => row.map((cell) => markdownToHtml(cell))),
+        scaffolding: normalizeScaffolding(q.scaffolding)?.map((s) => markdownToHtml(s)),
         instruction: plainText(q.instruction ?? "") || undefined,
         sectionTitle,
         spacingAfter: q.spacingAfter,
@@ -158,8 +182,12 @@ export function toEditableActivity(
         // the new block type), append a trailing scaffolding block so the
         // Apoio still renders — placed in trailingContent so it appears AFTER
         // the question body, matching the legacy "end of question" semantics.
-        const contentBlocks = q.content!;
-        const trailingBlocks = q.trailingContent ?? [];
+        const convertScaffoldingMarkdown = <T extends ContentBlock>(block: T): T =>
+          block.type === "scaffolding"
+            ? ({ ...block, items: block.items.map((s) => markdownToHtml(s)) } as T)
+            : block;
+        const contentBlocks = q.content!.map(convertScaffoldingMarkdown);
+        const trailingBlocks = (q.trailingContent ?? []).map(convertScaffoldingMarkdown);
         const hasScaffoldingBlock =
           contentBlocks.some((b) => b.type === "scaffolding") ||
           trailingBlocks.some((b) => b.type === "scaffolding");
@@ -172,7 +200,7 @@ export function toEditableActivity(
                 {
                   id: `cb-${Date.now()}-sc-${q.id ?? q.number}`,
                   type: "scaffolding" as const,
-                  items: [...q.scaffolding],
+                  items: q.scaffolding.map((s) => markdownToHtml(s)),
                 },
               ]
             : trailingBlocks;
