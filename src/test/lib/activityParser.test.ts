@@ -241,16 +241,35 @@ describe("activityParser", () => {
   // ── Scaffolding / Apoio ──
 
   describe("scaffolding", () => {
-    it("captures > Apoio: after alternatives in last alternative's continuations", () => {
+    it("routes > Apoio: written after alternatives to trailingContinuations", () => {
+      // Apoio is semantically question-scoped but positional: when the user
+      // writes it AFTER the body, it must render after the body — not merged
+      // with leading continuations. We preserve that DSL position so downstream
+      // renderers can place the block faithfully.
       const q = firstQ("1) Resolva.\na) 4\nb*) 5\n> Apoio: Use os dedos.");
-      // After alternatives, instructions attach to the last alternative
+      expect(q.trailingContinuations).toContain("> Apoio: Use os dedos.");
+      expect(q.continuations).not.toContain("> Apoio: Use os dedos.");
       const lastAlt = q.alternatives[q.alternatives.length - 1];
-      expect(lastAlt.continuations).toContain("> Apoio: Use os dedos.");
+      expect(lastAlt.continuations).not.toContain("> Apoio: Use os dedos.");
     });
 
-    it("captures > Apoio: in question continuations when no alternatives", () => {
+    it("routes > Apoio: written between alternatives to trailingContinuations once the body started", () => {
+      // After the first alternative, the body has started: Apoio appearing
+      // between alternatives is treated as trailing, keeping position fidelity.
+      const q = firstQ("1) Resolva.\na) 4\n> Apoio: Conte nos dedos.\nb*) 5");
+      expect(q.trailingContinuations).toContain("> Apoio: Conte nos dedos.");
+    });
+
+    it("captures > Apoio: in question continuations when written before the body", () => {
       const q = firstQ("1) Explique.\n[linhas:3]\n> Apoio: Pense com calma.");
       expect(q.continuations).toContain("> Apoio: Pense com calma.");
+      expect(q.trailingContinuations).not.toContain("> Apoio: Pense com calma.");
+    });
+
+    it("still attaches non-Apoio > instructions to last alternative after alternatives", () => {
+      const q = firstQ("1) Resolva.\na) 4\nb*) 5\n> Observação pedagógica.");
+      const lastAlt = q.alternatives[q.alternatives.length - 1];
+      expect(lastAlt.continuations).toContain("> Observação pedagógica.");
     });
   });
 

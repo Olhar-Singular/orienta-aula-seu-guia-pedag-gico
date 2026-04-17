@@ -6,6 +6,7 @@ import type {
   ActivityHeader,
 } from "@/types/adaptation";
 import { TEXT_STYLE_DEFAULTS } from "@/types/adaptation";
+import PDFRichLine from "./components/PDFRichLine";
 
 const CONTENT_WIDTH = 483; // A4 width (595) - 56*2 padding
 
@@ -86,6 +87,31 @@ const styles = StyleSheet.create({
     borderBottomStyle: "solid",
     height: 20,
     flex: 1,
+  },
+  // Scaffolding (apoios DUA) - highlighted box, rendered inline at position
+  scaffoldingBox: {
+    marginTop: 8,
+    marginBottom: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderLeftWidth: 3,
+    borderLeftColor: "#f59e0b",
+    borderLeftStyle: "solid",
+    backgroundColor: "#fffbeb",
+  },
+  scaffoldingLabel: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#b45309",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  scaffoldingItem: {
+    fontSize: 10,
+    color: "#78350f",
+    marginBottom: 2,
+    lineHeight: 1.4,
   },
 });
 
@@ -178,6 +204,23 @@ export function renderContentBlock(block: ContentBlock) {
       <Text key={block.id} style={parentStyle}>
         {block.content}
       </Text>
+    );
+  }
+
+  if (block.type === "scaffolding") {
+    if (!block.items || block.items.length === 0) return null;
+    return (
+      <View key={block.id} style={styles.scaffoldingBox} wrap={false}>
+        <Text style={styles.scaffoldingLabel}>Apoio</Text>
+        {block.items.map((step, i) => (
+          <View key={i} style={{ flexDirection: "row", marginBottom: 2 }}>
+            <Text style={styles.scaffoldingItem}>{i + 1}. </Text>
+            <View style={{ flex: 1 }}>
+              <PDFRichLine text={step} style={styles.scaffoldingItem} />
+            </View>
+          </View>
+        ))}
+      </View>
     );
   }
 

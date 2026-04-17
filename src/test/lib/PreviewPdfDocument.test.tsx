@@ -77,17 +77,27 @@ function findAllNodes(node: any, predicate: (n: any) => boolean): any[] {
   return results;
 }
 
-/** Recursively collects all string text from the element tree */
+/** Recursively collects all string text from the element tree. Walks
+ *  both `children` and string-valued props (`text`) so components that pass
+ *  rendered content via props (e.g. PDFRichLine) are still visible to
+ *  assertions. */
 function collectText(node: any): string {
   if (node == null) return "";
   if (typeof node === "string" || typeof node === "number") return String(node);
   if (typeof node !== "object") return "";
-  // Check if this is an array (React children)
   if (Array.isArray(node)) return node.map(collectText).join(" ");
+  const parts: string[] = [];
+  const textProp = node.props?.text;
+  if (typeof textProp === "string") {
+    // Strip HTML tags so rich-formatted content matches plain-text assertions.
+    parts.push(textProp.replace(/<[^>]+>/g, ""));
+  }
   const kids = node.props?.children;
-  if (kids == null) return "";
-  if (Array.isArray(kids)) return kids.map(collectText).join(" ");
-  return collectText(kids);
+  if (kids != null) {
+    if (Array.isArray(kids)) parts.push(...kids.map(collectText));
+    else parts.push(collectText(kids));
+  }
+  return parts.join(" ");
 }
 
 /** Returns all Page elements from the Document's children */
@@ -217,18 +227,24 @@ describe("PreviewPdfDocument", () => {
     expect(text).toContain("b) Nao");
   });
 
-  it("renders scaffolding steps (apoios) with an Apoio label", () => {
+  it("renders scaffolding blocks inline at their position with an Apoio label", () => {
     const activityWithScaffolding: EditableActivity = {
       ...mockActivity,
       questions: [
         {
           id: "q1",
           number: 1,
-          content: [{ id: "b1", type: "text", content: "Problema" }],
-          scaffolding: [
-            "Leia o enunciado",
-            "Identifique os dados",
-            "Escolha a operacao",
+          content: [
+            { id: "b1", type: "text", content: "Problema" },
+            {
+              id: "b2",
+              type: "scaffolding",
+              items: [
+                "Leia o enunciado",
+                "Identifique os dados",
+                "Escolha a operacao",
+              ],
+            },
           ],
         },
       ],

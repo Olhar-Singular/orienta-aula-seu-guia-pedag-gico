@@ -40,7 +40,12 @@ export type ParsedQuestion = {
   wordbank: string[] | null;
   points: number | null;
   difficulty: string | null;
+  // Lines that precede the first alternative/check/tf/etc. item.
+  // Rendered inline with the statement (before question body).
   continuations: string[];
+  // Lines that appear AFTER alternatives/body items but are question-scoped
+  // (Apoio, images, page breaks). Rendered after the question body.
+  trailingContinuations: string[];
 };
 
 export type SectionItem =
@@ -127,7 +132,23 @@ function makeEmptyQuestion(number: number, statement: string): PartialQuestion {
     points: null,
     difficulty: null,
     continuations: [],
+    trailingContinuations: [],
   };
+}
+
+/** Returns true when the question already has body items (alternatives, check
+ *  items, tf items, match pairs, ordering, or table rows) — meaning subsequent
+ *  question-scoped lines (Apoio, images) should be classified as "trailing"
+ *  (rendered after the question body) rather than "leading". */
+function hasBodyItems(q: PartialQuestion): boolean {
+  return (
+    q.alternatives.length > 0 ||
+    q.checkItems.length > 0 ||
+    q.tfItems.length > 0 ||
+    q.matchPairs.length > 0 ||
+    q.orderItems.length > 0 ||
+    q.tableRows.length > 0
+  );
 }
 
 export function parseActivity(rawText: string): ParsedActivity {
@@ -209,9 +230,12 @@ export function parseActivity(rawText: string): ParsedActivity {
     if (imgM) {
       if (curQ) {
         curQ.images.push(imgM[1]);
-        // Also record position in continuations so downstream builders can
-        // place the image between paragraphs instead of at the trailing list.
-        curQ.continuations.push(`[img:${imgM[1]}]`);
+        // Record position so downstream builders can place the image between
+        // paragraphs. If the body has already started (alternatives, V/F, etc.),
+        // route to trailingContinuations so the image renders AFTER the body.
+        const marker = `[img:${imgM[1]}]`;
+        if (hasBodyItems(curQ)) curQ.trailingContinuations.push(marker);
+        else curQ.continuations.push(marker);
       }
       continue;
     }
@@ -342,9 +366,18 @@ export function parseActivity(rawText: string): ParsedActivity {
       const instrQ = line.match(RE.instruction);
       if (instrQ) {
         const text = "> " + instrQ[1];
+        // Apoio lines are always question-scoped (scaffolding), never alternative-scoped.
+        // Position relative to the body is preserved via trailingContinuations.
+        const isApoio = /^>\s*Apoio\s*:/i.test(text);
         const lastAlt = curQ.alternatives[curQ.alternatives.length - 1];
-        if (lastAlt) lastAlt.continuations.push(text);
-        else curQ.continuations.push(text);
+        if (isApoio) {
+          if (hasBodyItems(curQ)) curQ.trailingContinuations.push(text);
+          else curQ.continuations.push(text);
+        } else if (lastAlt) {
+          lastAlt.continuations.push(text);
+        } else {
+          curQ.continuations.push(text);
+        }
         continue;
       }
 

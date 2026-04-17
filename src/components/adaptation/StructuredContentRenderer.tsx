@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Pencil, Trash2, Plus, GripVertical, ChevronDown, ChevronUp, RefreshCw, Loader2 } from "lucide-react";
+import { Pencil, Trash2, RefreshCw, Loader2 } from "lucide-react";
 import katex from "katex";
 import "katex/dist/katex.min.css";
 import {
@@ -18,7 +18,7 @@ import {
 import type {
   StructuredActivity,
   StructuredQuestion,
-  ActivitySection,
+  ContentBlock,
   QuestionType,
 } from "@/types/adaptation";
 import { QUESTION_TYPE_LABELS } from "@/types/adaptation";
@@ -83,6 +83,74 @@ const TYPE_COLORS: Record<QuestionType, string> = {
   table: "bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-300",
 };
 
+function renderBlock(block: ContentBlock, key: number): React.ReactNode {
+  if (block.type === "text") {
+    if (isHtmlContent(block.content)) {
+      return (
+        <div key={key} className="text-[13px] text-foreground leading-relaxed">
+          <RichTextPreview content={block.content} />
+        </div>
+      );
+    }
+    return (
+      <div key={key} className="text-[13px] text-foreground leading-relaxed space-y-1">
+        {block.content.split("\n").map((line, li) => (
+          <p key={li}>{renderInlineContent(line)}</p>
+        ))}
+      </div>
+    );
+  }
+  if (block.type === "image") {
+    return (
+      <div key={key} className="flex justify-center">
+        <img
+          src={block.src}
+          alt={block.caption ?? ""}
+          className="max-h-40 rounded-lg border border-border/50 object-contain"
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+  if (block.type === "scaffolding") {
+    if (!block.items || block.items.length === 0) return null;
+    return (
+      <div
+        key={key}
+        className="mt-1 py-2 px-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-md"
+      >
+        <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+          Apoio
+        </div>
+        <ol className="list-decimal list-inside space-y-0.5 pl-1 text-xs text-amber-900">
+          {block.items.map((step, i) => (
+            <li key={i}>
+              {isHtmlContent(step) ? (
+                <RichTextInline content={step} />
+              ) : (
+                renderInlineContent(step)
+              )}
+            </li>
+          ))}
+        </ol>
+      </div>
+    );
+  }
+  if (block.type === "page_break") {
+    return (
+      <div
+        key={key}
+        className="my-1 flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-amber-700"
+      >
+        <div className="h-px flex-1 bg-amber-300" />
+        <span>Quebra de página</span>
+        <div className="h-px flex-1 bg-amber-300" />
+      </div>
+    );
+  }
+  return null;
+}
+
 function QuestionCard({
   question,
   images,
@@ -100,7 +168,8 @@ function QuestionCard({
   editable?: boolean;
   isRegenerating?: boolean;
 }) {
-  const [showScaffolding, setShowScaffolding] = useState(false);
+  const useContentBlocks =
+    Array.isArray(question.content) && question.content.length > 0;
 
   return (
     <div className="space-y-2">
@@ -124,17 +193,23 @@ function QuestionCard({
             </p>
           )}
 
-          <div className="text-[13px] text-foreground leading-relaxed">
-            {isHtmlContent(question.statement) ? (
-              <RichTextPreview content={question.statement} />
-            ) : (
-              <div className="space-y-1">
-                {question.statement.split("\n").map((line, li) => (
-                  <p key={li}>{renderInlineContent(line)}</p>
-                ))}
-              </div>
-            )}
-          </div>
+          {useContentBlocks ? (
+            <div className="space-y-2">
+              {question.content!.map((block, i) => renderBlock(block, i))}
+            </div>
+          ) : (
+            <div className="text-[13px] text-foreground leading-relaxed">
+              {isHtmlContent(question.statement) ? (
+                <RichTextPreview content={question.statement} />
+              ) : (
+                <div className="space-y-1">
+                  {question.statement.split("\n").map((line, li) => (
+                    <p key={li}>{renderInlineContent(line)}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {question.alternatives && question.alternatives.length > 0 && (
             <div className="space-y-0.5 pl-1">
@@ -155,32 +230,33 @@ function QuestionCard({
             </div>
           )}
 
-          {question.scaffolding && question.scaffolding.length > 0 && (
-            <div>
-              <button
-                type="button"
-                className="text-xs text-primary flex items-center gap-1 hover:underline"
-                onClick={() => setShowScaffolding(!showScaffolding)}
-              >
-                {showScaffolding ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {showScaffolding ? "Ocultar apoio" : `Ver apoio (${question.scaffolding.length} passos)`}
-              </button>
-              {showScaffolding && (
-                <div className="mt-1 pl-2 border-l-2 border-primary/20 space-y-0.5">
+          {question.trailingContent && question.trailingContent.length > 0 && (
+            <div className="space-y-2">
+              {question.trailingContent.map((block, i) => renderBlock(block, i))}
+            </div>
+          )}
+
+          {!useContentBlocks &&
+            (!question.trailingContent || question.trailingContent.length === 0) &&
+            question.scaffolding &&
+            question.scaffolding.length > 0 && (
+              <div className="mt-1 py-2 px-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-md">
+                <div className="text-[10px] font-bold uppercase tracking-wide text-amber-700 mb-1">
+                  Apoio
+                </div>
+                <ol className="list-decimal list-inside space-y-0.5 pl-1 text-xs text-amber-900">
                   {question.scaffolding.map((step, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">
-                      <span className="font-medium">{i + 1}.</span>{" "}
+                    <li key={i}>
                       {isHtmlContent(step) ? (
                         <RichTextInline content={step} />
                       ) : (
                         renderInlineContent(step)
                       )}
-                    </p>
+                    </li>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
+                </ol>
+              </div>
+            )}
         </div>
 
         {editable && (
@@ -232,7 +308,7 @@ function QuestionCard({
         )}
       </div>
 
-      {images && images.length > 0 && (
+      {!useContentBlocks && images && images.length > 0 && (
         <div className="pl-8 flex flex-wrap gap-2">
           {images.map((url, idx) => (
             <img

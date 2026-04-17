@@ -33,6 +33,7 @@ export type ContentBlock =
       alignment: "left" | "center" | "right";
       caption?: string;
     }
+  | { id: string; type: "scaffolding"; items: string[] }
   | { id: string; type: "page_break" };
 
 export type ActivityHeader = {
@@ -142,8 +143,11 @@ export interface StructuredQuestion {
   scaffolding?: string[];         // Passos de apoio DUA
   images?: string[];              // URLs de imagens da questao (DEPRECATED: usar content)
 
-  // Novo modelo: lista ordenada de blocos (texto, imagem, page_break)
+  // Novo modelo: lista ordenada de blocos (texto, imagem, page_break).
+  // `content` = antes da resposta (enunciado, apoio introdutório).
+  // `trailingContent` = depois da resposta (apoio de fechamento, imagens pós-alternativas).
   content?: ContentBlock[];
+  trailingContent?: ContentBlock[];
 
   // Campos de layout do PDF Preview Editor
   spacingAfter?: number;        // pontos extra apos a questao (default 20)

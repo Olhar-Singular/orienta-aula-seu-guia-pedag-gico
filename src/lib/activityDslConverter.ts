@@ -133,17 +133,46 @@ export function structuredToMarkdownDsl(activity: StructuredActivity): string {
         }
       }
 
-      // Scaffolding as instructions
-      if (q.scaffolding && q.scaffolding.length > 0) {
+      // Trailing content blocks (Apoio/image/text placed after the question
+      // body). Emit in positional order so the DSL round-trips faithfully.
+      if (q.trailingContent && q.trailingContent.length > 0) {
+        for (const block of q.trailingContent) {
+          if (block.type === "text") {
+            lines.push(n(block.content));
+          } else if (block.type === "image") {
+            lines.push(`[img:${block.src}]`);
+          } else if (block.type === "scaffolding") {
+            for (const step of block.items) {
+              lines.push(`> Apoio: ${n(step)}`);
+            }
+          }
+        }
+      }
+
+      // Scaffolding as trailing Apoio lines — only when neither `content` nor
+      // `trailingContent` already emitted them inline. Keeps back-compat with
+      // structured inputs that carry only `q.scaffolding: string[]`.
+      const contentHasScaffolding =
+        q.content?.some((b) => b.type === "scaffolding") ?? false;
+      const trailingHasScaffolding =
+        q.trailingContent?.some((b) => b.type === "scaffolding") ?? false;
+      if (
+        !contentHasScaffolding &&
+        !trailingHasScaffolding &&
+        q.scaffolding &&
+        q.scaffolding.length > 0
+      ) {
         for (const step of q.scaffolding) {
           lines.push("> Apoio: " + n(step));
         }
       }
 
-      // Images — only emit trailing list when content blocks did not already
-      // position images inline. Prevents duplication during round-trips.
+      // Images — only emit trailing list when blocks did not already position
+      // them inline. Prevents duplication during round-trips.
       const contentHasImages = q.content?.some((b) => b.type === "image") ?? false;
-      if (!contentHasImages && q.images && q.images.length > 0) {
+      const trailingHasImages =
+        q.trailingContent?.some((b) => b.type === "image") ?? false;
+      if (!contentHasImages && !trailingHasImages && q.images && q.images.length > 0) {
         for (const img of q.images) {
           lines.push(`[img:${img}]`);
         }
@@ -190,6 +219,10 @@ function emitQuestionFromContent(
       lines.push(n(block.content));
     } else if (block.type === "image") {
       lines.push(`[img:${block.src}]`);
+    } else if (block.type === "scaffolding") {
+      for (const step of block.items) {
+        lines.push(`> Apoio: ${n(step)}`);
+      }
     }
   }
 }
@@ -246,6 +279,7 @@ export function markdownDslToStructured(text: string): StructuredActivity {
 
 function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
   const content = buildContentBlocks(pq);
+  const trailingContent = buildTrailingContentBlocks(pq.trailingContinuations);
   const firstTextBlock = content.find((b) => b.type === "text");
   const statement =
     firstTextBlock && firstTextBlock.type === "text" ? firstTextBlock.content : pq.statement;
@@ -256,6 +290,10 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     statement,
     content,
   };
+
+  if (trailingContent.length > 0) {
+    q.trailingContent = trailingContent;
+  }
 
   // Alternatives (multiple choice) — filter out empty entries
   if (pq.alternatives.length > 0) {
@@ -324,10 +362,20 @@ function parsedQuestionToStructured(pq: ParsedQuestion): StructuredQuestion {
     q.instruction = instructions.join("\n");
   }
 
-  // Scaffolding from "> Apoio: " continuations — use regex for robustness
-  const scaffolding = pq.continuations
-    .filter((c) => /^>\s*Apoio\s*:/i.test(c))
-    .map((c) => c.replace(/^>\s*Apoio\s*:\s*/i, ""));
+  // Scaffolding: derive flat string[] from scaffolding blocks in either content
+  // or trailingContent. Kept for back-compat with consumers that read
+  // q.scaffolding directly (AI output shape, older renderers, PDF export).
+  const scaffolding: string[] = [];
+  for (const block of content) {
+    if (block.type === "scaffolding") {
+      for (const item of block.items) scaffolding.push(item);
+    }
+  }
+  for (const block of trailingContent) {
+    if (block.type === "scaffolding") {
+      for (const item of block.items) scaffolding.push(item);
+    }
+  }
   if (scaffolding.length > 0) {
     q.scaffolding = scaffolding;
   }
@@ -351,19 +399,36 @@ function buildFullStatement(pq: ParsedQuestion): string {
   return stmt;
 }
 
+const APOIO_RE = /^>\s*Apoio\s*:\s*(.*)$/i;
+
 /** Build ContentBlock[] from a ParsedQuestion, preserving the order of text
- *  paragraphs and inline images as they appeared in the DSL. Apoio and
- *  instruction lines ("> ...") are intentionally excluded — they flow into
- *  `q.scaffolding` and `q.instruction` respectively and are rendered
- *  out-of-band by the preview. */
+ *  paragraphs, inline images, and scaffolding (Apoio) blocks as they appeared
+ *  in the DSL. Consecutive `> Apoio:` lines coalesce into a single scaffolding
+ *  block with numbered items; non-Apoio content between them splits them.
+ *  Plain `> instruction` lines and `$$math$$` lines are handled out-of-band
+ *  via q.instruction (math-block currently has no dedicated placement). */
 function buildContentBlocks(pq: ParsedQuestion): ContentBlock[] {
+  return buildBlocksFromLines(pq.continuations, pq.statement);
+}
+
+/** Build ContentBlock[] from the trailing (post-body) lines of a question.
+ *  No seed statement — the question header is already captured in `content`. */
+function buildTrailingContentBlocks(lines: string[]): ContentBlock[] {
+  return buildBlocksFromLines(lines, undefined);
+}
+
+function buildBlocksFromLines(
+  lines: string[],
+  seedStatement: string | undefined,
+): ContentBlock[] {
   const blocks: ContentBlock[] = [];
-  const buffer: string[] = [];
+  const textBuffer: string[] = [];
+  let apoioBuffer: string[] = [];
 
   const flushText = () => {
-    if (buffer.length === 0) return;
-    const text = buffer.join("\n").trim();
-    buffer.length = 0;
+    if (textBuffer.length === 0) return;
+    const text = textBuffer.join("\n").trim();
+    textBuffer.length = 0;
     if (text.length === 0) return;
     const richContent = parseMarkdownInline(text);
     blocks.push({
@@ -374,17 +439,34 @@ function buildContentBlocks(pq: ParsedQuestion): ContentBlock[] {
     });
   };
 
-  // Seed with the question-header text (pq.statement) as first paragraph.
-  if (pq.statement) buffer.push(pq.statement);
+  const flushApoio = () => {
+    if (apoioBuffer.length === 0) return;
+    blocks.push({
+      id: nextContentBlockId(),
+      type: "scaffolding",
+      items: apoioBuffer,
+    });
+    apoioBuffer = [];
+  };
 
-  for (const line of pq.continuations) {
+  if (seedStatement) textBuffer.push(seedStatement);
+
+  for (const line of lines) {
+    const apoioMatch = line.match(APOIO_RE);
+    if (apoioMatch) {
+      flushText();
+      apoioBuffer.push(apoioMatch[1].trim());
+      continue;
+    }
     if (line === "<!--blank-->") {
       flushText();
+      flushApoio();
       continue;
     }
     const imgMatch = line.match(IMG_LINE_RE);
     if (imgMatch) {
       flushText();
+      flushApoio();
       blocks.push({
         id: nextContentBlockId(),
         type: "image",
@@ -395,14 +477,14 @@ function buildContentBlocks(pq: ParsedQuestion): ContentBlock[] {
       continue;
     }
     if (line.startsWith("> ") || line.startsWith("$$")) {
-      // Skipped: Apoio/instruction/math-block continuations are represented via
-      // q.scaffolding / q.instruction. If the feature grows to render Apoios
-      // mid-question, emit a dedicated block kind here instead of skipping.
+      flushApoio();
       continue;
     }
-    buffer.push(line);
+    flushApoio();
+    textBuffer.push(line);
   }
   flushText();
+  flushApoio();
 
   return blocks;
 }

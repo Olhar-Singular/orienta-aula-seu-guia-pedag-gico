@@ -6,6 +6,7 @@ import {
   renderAnswerLines,
   contentRendererStyles,
 } from "./contentRenderer";
+import PDFRichLine from "./components/PDFRichLine";
 
 const styles = StyleSheet.create({
   page: {
@@ -159,31 +160,6 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     marginBottom: 6,
   },
-  // Scaffolding (apoios DUA) - highlighted box
-  scaffoldingBox: {
-    marginTop: 8,
-    marginBottom: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: "#f59e0b",
-    borderLeftStyle: "solid",
-    backgroundColor: "#fffbeb",
-  },
-  scaffoldingLabel: {
-    fontSize: 10,
-    fontWeight: "bold",
-    color: "#b45309",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  scaffoldingItem: {
-    fontSize: 10,
-    color: "#78350f",
-    marginBottom: 2,
-    lineHeight: 1.4,
-  },
   // Strategies page styles
   pageSectionTitle: {
     fontSize: 16,
@@ -235,7 +211,9 @@ function renderQuestionBody(q: QBody, altIndent: number) {
                   : styles.checkbox
               }
             />
-            <Text style={styles.itemText}>{item.text}</Text>
+            <View style={styles.itemText}>
+              <PDFRichLine text={item.text} style={styles.itemText} />
+            </View>
           </View>
         ))}
       </View>
@@ -253,7 +231,9 @@ function renderQuestionBody(q: QBody, altIndent: number) {
               <View style={styles.tfCircle}>
                 {mark ? <Text style={styles.tfCircleText}>{mark}</Text> : null}
               </View>
-              <Text style={styles.itemText}>{item.text}</Text>
+              <View style={styles.itemText}>
+                <PDFRichLine text={item.text} style={styles.itemText} />
+              </View>
             </View>
           );
         })}
@@ -266,9 +246,13 @@ function renderQuestionBody(q: QBody, altIndent: number) {
       <View style={{ marginLeft: altIndent }}>
         {q.matchPairs.map((pair, i) => (
           <View key={i} style={styles.matchRow}>
-            <Text style={styles.matchLeft}>{pair.left}</Text>
+            <View style={styles.matchLeft}>
+              <PDFRichLine text={pair.left} style={styles.matchLeft} />
+            </View>
             <Text style={styles.matchDivider}>{"\u2014"}</Text>
-            <Text style={styles.matchRight}>{pair.right}</Text>
+            <View style={styles.matchRight}>
+              <PDFRichLine text={pair.right} style={styles.matchRight} />
+            </View>
           </View>
         ))}
       </View>
@@ -281,7 +265,9 @@ function renderQuestionBody(q: QBody, altIndent: number) {
         {q.orderItems.map((item, i) => (
           <View key={i} style={styles.orderRow}>
             <View style={styles.orderBox} />
-            <Text style={styles.itemText}>{item.text}</Text>
+            <View style={styles.itemText}>
+              <PDFRichLine text={item.text} style={styles.itemText} />
+            </View>
           </View>
         ))}
       </View>
@@ -314,9 +300,9 @@ function renderQuestionBody(q: QBody, altIndent: number) {
                 );
               }
               return (
-                <Text key={ci} style={styles.tableCell}>
-                  {cell}
-                </Text>
+                <View key={ci} style={styles.tableCell}>
+                  <PDFRichLine text={cell} style={styles.tableCell} />
+                </View>
               );
             })}
           </View>
@@ -330,9 +316,9 @@ function renderQuestionBody(q: QBody, altIndent: number) {
     return (
       <>
         {q.alternatives.map((alt, i) => (
-          <Text key={i} style={{ ...styles.alternative, marginLeft: altIndent }}>
-            {alt}
-          </Text>
+          <View key={i} style={{ ...styles.alternative, marginLeft: altIndent }}>
+            <PDFRichLine text={alt} style={styles.alternative} />
+          </View>
         ))}
       </>
     );
@@ -388,16 +374,7 @@ export default function PreviewPdfDocument({ activity, strategies }: Props) {
               )}
               {q.content.map((block) => renderContentBlock(block))}
               {renderQuestionBody(q, altIndent)}
-              {q.scaffolding && q.scaffolding.length > 0 && (
-                <View style={styles.scaffoldingBox} wrap={false}>
-                  <Text style={styles.scaffoldingLabel}>Apoio</Text>
-                  {q.scaffolding.map((step, i) => (
-                    <Text key={i} style={styles.scaffoldingItem}>
-                      {i + 1}. {step}
-                    </Text>
-                  ))}
-                </View>
-              )}
+              {q.trailingContent?.map((block) => renderContentBlock(block))}
               {renderAnswerLines(q.answerLines ?? 0)}
             </View>
           );

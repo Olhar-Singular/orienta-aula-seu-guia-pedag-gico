@@ -253,6 +253,54 @@ function ImageBlockRow({
   );
 }
 
+// Scaffolding Block Row - rendered inline at its position in q.content.
+// Amber styling mirrors the PDF output so the editor reflects the final layout.
+function ScaffoldingBlockRow({
+  block,
+  questionId,
+  onDelete,
+}: {
+  block: Extract<ContentBlock, { type: "scaffolding" }>;
+  questionId: string;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: draggableId(questionId, block.id),
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      className={`rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 ${isDragging ? "opacity-30" : ""}`}
+    >
+      <div className="mb-1 flex items-center gap-1">
+        <button
+          {...listeners}
+          className="cursor-grab rounded p-0.5 text-amber-500 hover:bg-amber-100 active:cursor-grabbing"
+          aria-label="Arrastar bloco de apoio"
+        >
+          <GripVertical className="h-3.5 w-3.5" />
+        </button>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+          Apoio ({block.items.length} passos)
+        </span>
+        <button
+          onClick={onDelete}
+          className="ml-auto rounded p-0.5 text-amber-700 hover:bg-amber-200"
+          title="Remover apoio"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      </div>
+      <ol className="list-inside list-decimal space-y-0.5 pl-1 text-[11px] leading-snug text-amber-900">
+        {block.items.map((step, i) => (
+          <li key={i}>{step}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 // Page Break Row
 function PageBreakRow({ onDelete }: { onDelete: () => void }) {
   return (
@@ -437,6 +485,7 @@ function QuestionBlock({
               <ImageBlockRow block={block} questionId={question.id} onSizeChange={(w) => onImageSizeChange(i, w)} onAlignmentChange={(a) => onImageAlignmentChange(i, a)} onDelete={() => onDeleteBlock(i)} />
             )}
             {block.type === "page_break" && <PageBreakRow onDelete={() => onDeleteBlock(i)} />}
+            {block.type === "scaffolding" && <ScaffoldingBlockRow block={block} questionId={question.id} onDelete={() => onDeleteBlock(i)} />}
             <Slot id={slotId(question.id, i + 1)} onInsertPageBreak={() => onInsertPageBreak(i + 1)} />
           </div>
         ))}
@@ -537,16 +586,69 @@ function QuestionBlock({
           <span className="rounded bg-gray-100 px-2 py-0.5 font-medium">{question.answerLines} linhas de resposta</span>
         </div>
       )}
-      {question.scaffolding && question.scaffolding.length > 0 && (
-        <div className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1.5">
-          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-            <span>Apoio ({question.scaffolding.length} passos)</span>
+      {question.trailingContent && question.trailingContent.length > 0 && (
+        <div className="mt-2 space-y-1 rounded border border-dashed border-amber-300 bg-amber-50/40 px-2 py-1.5">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            Depois da resposta
           </div>
-          <ol className="list-inside list-decimal space-y-0.5 pl-1 text-[11px] leading-snug text-amber-900">
-            {question.scaffolding.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ol>
+          {question.trailingContent.map((block) => {
+            if (block.type === "scaffolding") {
+              return (
+                <div
+                  key={block.id}
+                  className="rounded border border-amber-200 bg-amber-50 px-2 py-1.5"
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700 mb-0.5">
+                    Apoio ({block.items.length} passos)
+                  </div>
+                  <ol className="list-inside list-decimal space-y-0.5 pl-1 text-[11px] leading-snug text-amber-900">
+                    {block.items.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            }
+            if (block.type === "image") {
+              return (
+                <div
+                  key={block.id}
+                  className="flex items-center gap-2 rounded border border-purple-200 bg-purple-50 px-2 py-1.5 text-xs text-purple-800"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                  <img
+                    src={block.src}
+                    alt=""
+                    className="h-8 w-12 shrink-0 rounded border border-purple-200 object-cover"
+                  />
+                  <span className="truncate">{block.src}</span>
+                </div>
+              );
+            }
+            if (block.type === "text") {
+              return (
+                <div
+                  key={block.id}
+                  className="rounded border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700 whitespace-pre-wrap"
+                >
+                  {block.content}
+                </div>
+              );
+            }
+            if (block.type === "page_break") {
+              return (
+                <div
+                  key={block.id}
+                  className="flex items-center gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-1 text-[10px] font-medium text-amber-800"
+                >
+                  <div className="h-px flex-1 bg-amber-400" />
+                  <span>Quebra de página</span>
+                  <div className="h-px flex-1 bg-amber-400" />
+                </div>
+              );
+            }
+            return null;
+          })}
         </div>
       )}
       <QuestionLayoutControls question={question} onUpdate={onQuestionUpdate} />

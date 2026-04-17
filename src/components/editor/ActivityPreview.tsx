@@ -50,6 +50,17 @@ function InlineHtml({ html }: { html: string }) {
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
+const APOIO_RE = /^>\s*Apoio\s*:\s*(.*)$/i;
+
+function isApoioLine(line: string): boolean {
+  return APOIO_RE.test(line);
+}
+
+function apoioInner(line: string): string {
+  const m = APOIO_RE.exec(line);
+  return m ? m[1] : line.slice(2);
+}
+
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
   const cls =
     difficulty === "fácil"
@@ -95,6 +106,14 @@ function QuestionAlternatives({ q }: { q: ParsedQuestion }) {
                     );
                   }
                   if (c.startsWith("> ")) {
+                    if (isApoioLine(c)) {
+                      return (
+                        <div key={ci} className="mt-1.5 py-1.5 px-3 bg-amber-50 border-l-4 border-amber-400 rounded-r-md text-sm text-amber-900">
+                          <div className="text-[0.6rem] font-bold uppercase tracking-wide text-amber-700 mb-0.5">Apoio</div>
+                          <InlineHtml html={formatInline(apoioInner(c))} />
+                        </div>
+                      );
+                    }
                     return (
                       <div key={ci} className="mt-1.5 py-1.5 px-3 bg-indigo-50 border-l-4 border-indigo-400 rounded-r-md text-sm text-indigo-800">
                         <InlineHtml html={formatInline(c.slice(2))} />
@@ -407,20 +426,33 @@ function SingleImage({
   );
 }
 
+/** Pull image refs out of a continuations array in the order they appear.
+ *  Used to split `q.images` into "leading" vs "trailing" buckets so each
+ *  group renders at its authored DSL position, matching the preview 100%. */
+const IMG_MARKER_RE = /^\[img[:\s](.+?)\]$/i;
+function extractImageRefs(conts: string[]): string[] {
+  const refs: string[] = [];
+  for (const c of conts) {
+    const m = c.match(IMG_MARKER_RE);
+    if (m) refs.push(m[1]);
+  }
+  return refs;
+}
+
 function QuestionImages({
-  q,
+  refs,
   onImageResize,
   imageRegistry,
 }: {
-  q: ParsedQuestion;
+  refs: string[];
   onImageResize?: (url: string, width: number) => void;
   imageRegistry?: ImageRegistry;
 }) {
-  if (q.images.length === 0) return null;
+  if (refs.length === 0) return null;
 
   return (
     <>
-      {q.images.map((img, i) => (
+      {refs.map((img, i) => (
         <SingleImage key={i} imgStr={img} onImageResize={onImageResize} imageRegistry={imageRegistry} />
       ))}
     </>
@@ -450,25 +482,84 @@ function QuestionCard({
     }
   }, [isActive]);
 
-  // Build full statement with continuations
-  let statementHtml = formatInline(q.statement);
-  for (const c of q.continuations) {
-    if (c.startsWith("$$") && c.endsWith("$$")) {
-      statementHtml +=
-        '<div class="my-2 p-2.5 bg-green-50 border border-green-200 rounded-md text-center overflow-x-auto">' +
-        renderKatexBlock(c.slice(2, -2)) +
-        "</div>";
-    } else if (c.startsWith("> ")) {
-      statementHtml +=
-        `<div class="mt-2 py-2.5 px-3.5 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg text-sm text-indigo-800 leading-relaxed">` +
-        formatInline(c.slice(2)) +
-        "</div>";
-    } else if (c === "<!--blank-->") {
-      statementHtml += "<br>";
-    } else {
-      statementHtml += "<br>" + formatInline(c);
+  // Render continuations as an ordered stream of React nodes so images,
+  // Apoio boxes and text all land at the exact position authored in the DSL.
+  // The previous implementation concatenated HTML and rendered images out of
+  // band, which broke position fidelity whenever an image sat between two
+  // text lines.
+  const IMG_INLINE_RE = /^\[img[:\s](.+?)\]$/i;
+  const renderContinuationStream = (
+    conts: string[],
+    keyPrefix: string,
+  ): React.ReactNode[] => {
+    const nodes: React.ReactNode[] = [];
+    let textBuffer = "";
+    let k = 0;
+    const flushText = () => {
+      if (!textBuffer) return;
+      nodes.push(
+        <div
+          key={`${keyPrefix}-t-${k++}`}
+          className="text-[0.84rem] leading-relaxed text-zinc-800"
+          dangerouslySetInnerHTML={{ __html: textBuffer }}
+        />,
+      );
+      textBuffer = "";
+    };
+
+    for (const c of conts) {
+      const imgM = c.match(IMG_INLINE_RE);
+      if (imgM) {
+        flushText();
+        nodes.push(
+          <SingleImage
+            key={`${keyPrefix}-img-${k++}`}
+            imgStr={imgM[1]}
+            onImageResize={onImageResize}
+            imageRegistry={imageRegistry}
+          />,
+        );
+        continue;
+      }
+      if (c.startsWith("$$") && c.endsWith("$$")) {
+        textBuffer +=
+          '<div class="my-2 p-2.5 bg-green-50 border border-green-200 rounded-md text-center overflow-x-auto">' +
+          renderKatexBlock(c.slice(2, -2)) +
+          "</div>";
+      } else if (c.startsWith("> ")) {
+        if (isApoioLine(c)) {
+          textBuffer +=
+            `<div class="mt-2 py-2.5 px-3.5 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg text-sm text-amber-900 leading-relaxed">` +
+            `<div class="text-[0.6rem] font-bold uppercase tracking-wide text-amber-700 mb-0.5">Apoio</div>` +
+            formatInline(apoioInner(c)) +
+            "</div>";
+        } else {
+          textBuffer +=
+            `<div class="mt-2 py-2.5 px-3.5 bg-indigo-50 border-l-4 border-indigo-500 rounded-r-lg text-sm text-indigo-800 leading-relaxed">` +
+            formatInline(c.slice(2)) +
+            "</div>";
+        }
+      } else if (c === "<!--blank-->") {
+        textBuffer += "<br>";
+      } else {
+        textBuffer += (textBuffer ? "<br>" : "") + formatInline(c);
+      }
     }
-  }
+    flushText();
+    return nodes;
+  };
+
+  const leadingNodes = renderContinuationStream(q.continuations, "lead");
+  const trailingNodes = renderContinuationStream(q.trailingContinuations, "trail");
+
+  // When the parser didn't record any image markers (legacy parses) but
+  // q.images is populated, fall back to rendering them after the statement
+  // to preserve the original behavior.
+  const hasAnyImageMarker =
+    extractImageRefs(q.continuations).length +
+      extractImageRefs(q.trailingContinuations).length >
+    0;
+  const fallbackLeadingRefs = !hasAnyImageMarker ? q.images : [];
 
   return (
     <div
@@ -497,14 +588,22 @@ function QuestionCard({
         {label}
       </span>
 
-      {/* Statement */}
+      {/* Statement — only the header line. Continuations render as an ordered
+          stream below so images/Apoio/text land at their DSL position. */}
       <div
         className="text-[0.84rem] leading-relaxed text-zinc-800 pr-[70px]"
-        dangerouslySetInnerHTML={{ __html: statementHtml }}
+        dangerouslySetInnerHTML={{ __html: formatInline(q.statement) }}
       />
 
-      {/* Images */}
-      <QuestionImages q={q} onImageResize={onImageResize} imageRegistry={imageRegistry} />
+      {/* Leading stream: text + images + Apoio, in DSL order */}
+      {leadingNodes}
+
+      {/* Fallback images for legacy parses without position markers */}
+      <QuestionImages
+        refs={fallbackLeadingRefs}
+        onImageResize={onImageResize}
+        imageRegistry={imageRegistry}
+      />
 
       {/* Type-specific rendering */}
       <QuestionAlternatives q={q} />
@@ -515,6 +614,10 @@ function QuestionCard({
       <QuestionTable q={q} />
       <QuestionWordbank q={q} />
       <QuestionAnswerLines q={q} />
+
+      {/* Trailing stream: text + images + Apoio authored after the body,
+          rendered in DSL order so the preview stays 100% faithful. */}
+      {trailingNodes}
     </div>
   );
 }

@@ -530,8 +530,7 @@ c*) Brasília`;
 
     it("collects multiple Apoio lines via round-trip (multiple choice)", () => {
       // structuredToMarkdownDsl produces > Apoio: after alternatives,
-      // then markdownDslToStructured must preserve them (they attach to lastAlt.continuations
-      // in the parser, which is separate from pq.continuations — scaffolding survives round-trip)
+      // and markdownDslToStructured must preserve them across a full round-trip.
       const original: StructuredActivity = {
         sections: [
           {
@@ -555,6 +554,23 @@ c*) Brasília`;
       // DSL must contain the Apoio lines
       expect(dsl).toContain("> Apoio: Conte nos dedos.");
       expect(dsl).toContain("> Apoio: Use uma régua numérica.");
+      // And they must survive the round-trip back to StructuredActivity.
+      const roundTripped = markdownDslToStructured(dsl);
+      const q = roundTripped.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Conte nos dedos.", "Use uma régua numérica."]);
+    });
+
+    it("recognizes scaffolding written between alternatives (multiple choice)", () => {
+      // User writes Apoio anywhere in the question body — must still be extracted.
+      const dsl = `1) Calcule 2 + 3.
+a) 4
+b*) 5
+> Apoio: Conte nos dedos.
+c) 6
+> Apoio: Use uma régua numérica.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      expect(q.scaffolding).toEqual(["Conte nos dedos.", "Use uma régua numérica."]);
     });
 
     it("recognizes scaffolding with lowercase 'apoio' (open-ended question)", () => {
@@ -632,6 +648,66 @@ c) Verde`;
       const roundTripped = markdownDslToStructured(dsl);
       const q = roundTripped.sections[0].questions[0];
       expect(q.scaffolding).toEqual(["Lembre-se da aula.", "Pense nas plantas."]);
+    });
+  });
+
+  // ── Positional scaffolding (ContentBlock) ──
+
+  describe("positional scaffolding blocks", () => {
+    it("emits a scaffolding block at the position where > Apoio: appears in the DSL", () => {
+      const dsl = `1) Enunciado longo da questão.
+> Apoio: Leia com calma.
+Continuação do enunciado em outra linha.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      // content must contain: text, scaffolding, text — in that order
+      const types = (q.content ?? []).map((b) => b.type);
+      expect(types).toEqual(["text", "scaffolding", "text"]);
+      const sc = (q.content ?? []).find((b) => b.type === "scaffolding");
+      expect(sc && sc.type === "scaffolding" && sc.items).toEqual(["Leia com calma."]);
+    });
+
+    it("coalesces consecutive > Apoio: lines into a single scaffolding block with multiple items", () => {
+      const dsl = `1) Resolva.
+> Apoio: Passo um.
+> Apoio: Passo dois.
+> Apoio: Passo três.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      const scaffoldingBlocks = (q.content ?? []).filter((b) => b.type === "scaffolding");
+      expect(scaffoldingBlocks).toHaveLength(1);
+      const sc = scaffoldingBlocks[0];
+      expect(sc.type === "scaffolding" && sc.items).toEqual([
+        "Passo um.",
+        "Passo dois.",
+        "Passo três.",
+      ]);
+    });
+
+    it("produces separate scaffolding blocks when split by non-Apoio content (image)", () => {
+      const dsl = `1) Observe a figura.
+> Apoio: Olhe com atenção.
+[img:imagem-1]
+> Apoio: Compare com o texto.`;
+      const result = markdownDslToStructured(dsl);
+      const q = result.sections[0].questions[0];
+      const types = (q.content ?? []).map((b) => b.type);
+      expect(types).toEqual(["text", "scaffolding", "image", "scaffolding"]);
+    });
+
+    it("preserves scaffolding position across round-trip (structured -> DSL -> structured)", () => {
+      const dsl = `1) Explique o fenômeno.
+> Apoio: Comece pela hipótese.
+Desenvolva em seguida.
+> Apoio: Finalize com conclusão.`;
+      const first = markdownDslToStructured(dsl);
+      const dsl2 = structuredToMarkdownDsl(first);
+      const second = markdownDslToStructured(dsl2);
+      const q1 = first.sections[0].questions[0];
+      const q2 = second.sections[0].questions[0];
+      const types1 = (q1.content ?? []).map((b) => b.type);
+      const types2 = (q2.content ?? []).map((b) => b.type);
+      expect(types2).toEqual(types1);
     });
   });
 });

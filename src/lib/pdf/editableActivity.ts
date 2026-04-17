@@ -9,13 +9,14 @@ import type {
   MatchPair,
   OrderItem,
 } from "@/types/adaptation";
-import { migrateToContentBlocks, hasContentBlocks } from "@/lib/contentBlockMigration";
+import { migrateToContentBlocks, buildLegacyTrailingContent, hasContentBlocks } from "@/lib/contentBlockMigration";
 import { isHtmlContent, htmlToText } from "@/components/QuestionRichEditor";
 
 export type EditableQuestion = {
   id: string;
   number: number;
   content: ContentBlock[];
+  trailingContent?: ContentBlock[];
   questionType?: QuestionType;
   alternatives?: string[];
   checkItems?: CheckItem[];
@@ -56,8 +57,11 @@ function formatAlternatives(
   if (!question.alternatives || question.alternatives.length === 0) {
     return undefined;
   }
+  // Preserve HTML (bold, italic, etc.) so the PDF renderer can apply rich
+  // formatting via PDFRichLine. Earlier this stripped with plainText(), which
+  // collapsed all inline styling from the editor into plain strings.
   return question.alternatives.map(
-    (alt) => `${alt.letter}) ${plainText(alt.text)}`,
+    (alt) => `${alt.letter}) ${alt.text}`,
   );
 }
 
@@ -148,7 +152,35 @@ export function toEditableActivity(
       };
 
       if (hasContentBlocks(q)) {
-        questions.push({ ...base, content: q.content! });
+        // Preserve positional content blocks. If neither `content` nor
+        // `trailingContent` has a scaffolding block but q.scaffolding still
+        // carries items (e.g. AI output that populated q.content without using
+        // the new block type), append a trailing scaffolding block so the
+        // Apoio still renders — placed in trailingContent so it appears AFTER
+        // the question body, matching the legacy "end of question" semantics.
+        const contentBlocks = q.content!;
+        const trailingBlocks = q.trailingContent ?? [];
+        const hasScaffoldingBlock =
+          contentBlocks.some((b) => b.type === "scaffolding") ||
+          trailingBlocks.some((b) => b.type === "scaffolding");
+        const supplementedTrailing =
+          !hasScaffoldingBlock &&
+          q.scaffolding &&
+          q.scaffolding.length > 0
+            ? [
+                ...trailingBlocks,
+                {
+                  id: `cb-${Date.now()}-sc-${q.id ?? q.number}`,
+                  type: "scaffolding" as const,
+                  items: [...q.scaffolding],
+                },
+              ]
+            : trailingBlocks;
+        questions.push({
+          ...base,
+          content: contentBlocks,
+          trailingContent: supplementedTrailing.length > 0 ? supplementedTrailing : undefined,
+        });
       } else {
         const mergedImages = resolveQuestionImages(q, questionImages);
         const questionWithImages: StructuredQuestion = {
@@ -157,7 +189,12 @@ export function toEditableActivity(
           images: mergedImages,
         };
         const content = migrateToContentBlocks(questionWithImages);
-        questions.push({ ...base, content });
+        const trailingContent = buildLegacyTrailingContent(questionWithImages);
+        questions.push({
+          ...base,
+          content,
+          trailingContent: trailingContent.length > 0 ? trailingContent : undefined,
+        });
       }
     }
   }
