@@ -51,6 +51,17 @@ import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import ManualQuestionEditor from "@/components/ManualQuestionEditor";
 import { detectFileType } from "@/lib/fileValidation";
+import { resolveUniqueFileName } from "@/lib/fileNameUtils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText, extractDocxWithImages } from "@/lib/docx-utils";
 import { autoCropFromBbox, normalizeTextForDedup, dataUrlToBlob } from "@/lib/extraction-utils";
@@ -198,6 +209,11 @@ export default function QuestionBank() {
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [previewStoragePath, setPreviewStoragePath] = useState<string | null>(null);
   const [showManualEdit, setShowManualEdit] = useState(false);
+  const [pendingRename, setPendingRename] = useState<{
+    originalFile: File;
+    originalName: string;
+    finalName: string;
+  } | null>(null);
   const [showReviewPreview, setShowReviewPreview] = useState(false);
   const [reviewPreviewMode, setReviewPreviewMode] = useState<PreviewMode>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -270,16 +286,24 @@ export default function QuestionBank() {
       return;
     }
 
-    // Check for duplicate exam name
-    const existingExam = pdfUploads.find((u) => u.file_name === file.name);
-    if (existingExam) {
-      toast({ title: "Prova já enviada", description: `O arquivo "${file.name}" já foi enviado anteriormente. Use a opção de reextrair no histórico.`, variant: "destructive" });
+    // Check for duplicate exam name — if collision, ask to rename first
+    const { finalName, wasRenamed } = resolveUniqueFileName(
+      file.name,
+      pdfUploads.map((u) => u.file_name),
+    );
+
+    if (wasRenamed) {
+      setPendingRename({ originalFile: file, originalName: file.name, finalName });
       return;
     }
 
+    await performUpload(file);
+  };
+
+  const performUpload = async (file: File) => {
+    if (!user) return;
     setUploadFile(file);
 
-    // Upload to storage + register in history immediately
     try {
       const safeName = file.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9._-]/g, "_");
       const filePath = `${user.id}/${Date.now()}_${safeName}`;
@@ -294,6 +318,18 @@ export default function QuestionBank() {
     } catch (err: any) {
       toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
     }
+  };
+
+  const confirmRenameAndUpload = async () => {
+    if (!pendingRename) return;
+    const { originalFile, finalName } = pendingRename;
+    const renamed = new File([originalFile], finalName, { type: originalFile.type });
+    setPendingRename(null);
+    await performUpload(renamed);
+  };
+
+  const cancelRename = () => {
+    setPendingRename(null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -1231,6 +1267,27 @@ export default function QuestionBank() {
         imageUrl={previewImageUrl}
         title="Prévia da imagem da questão"
       />
+
+      <AlertDialog open={!!pendingRename} onOpenChange={(open) => { if (!open) cancelRename(); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Já existe uma prova com esse nome</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingRename && (
+                <>
+                  Já existe uma prova chamada <strong>{pendingRename.originalName}</strong> no seu histórico.
+                  Para não sobrescrever, vamos enviar como <strong>{pendingRename.finalName}</strong>.
+                  Deseja continuar?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelRename}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRenameAndUpload}>Continuar com novo nome</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
