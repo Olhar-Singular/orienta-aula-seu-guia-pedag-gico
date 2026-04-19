@@ -9,12 +9,10 @@
       "Bash(jq:*)",
       "Bash(docker ps:*)",
       "Bash(docker compose ps:*)",
-      "Bash(npm run lint)",
-      "Bash(npm run typecheck)",
-      "Bash(npm run test)",
       "Bash(make sb-status)",
       "Bash(make typecheck)",
       "Bash(make lint)",
+      "Bash(make test)",
       "mcp__context7__resolve-library-id",
       "mcp__context7__query-docs"
     ],
