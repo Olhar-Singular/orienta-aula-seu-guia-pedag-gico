@@ -36,6 +36,7 @@ supabase/.temp/
 .claude/debug/
 .claude/plans/
 .claude/settings.local.json
+CLAUDE.local.md
 
 prompts
 
