@@ -21,6 +21,20 @@ set -o pipefail
 
 cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || exit 0
 
+# ─── Auto-expire flag de debug obsoleta ────────────────────────────────
+# O /debug deveria remover .claude/debug/.active na Fase 7, mas sessões
+# abortadas deixam o flag ativo, silenciando o Stop hook indefinidamente.
+# Se passou mais de 24h desde o último touch, expira automaticamente.
+debug_expired=""
+if [ -f .claude/debug/.active ]; then
+  mtime=$(stat -c %Y .claude/debug/.active 2>/dev/null || echo 0)
+  age_min=$(( ($(date +%s) - mtime) / 60 ))
+  if [ "$age_min" -gt 1440 ]; then
+    rm -f .claude/debug/.active
+    debug_expired=" (flag de debug expirada após ${age_min}min e removida — Stop hook reativado)"
+  fi
+fi
+
 # ─── Git ───────────────────────────────────────────────────────────────
 branch=$(git branch --show-current 2>/dev/null || echo "desconhecido")
 dirty_count=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
@@ -55,7 +69,7 @@ ${recent_commits}
 
 **Ambiente local**
 - Supabase local: **${supabase_status}** (container \`supabase_db_${project_id:-?}\`)
-- App container: **${app_status}** (\`orientador-app\`)
+- App container: **${app_status}** (\`orientador-app\`)${debug_expired}
 
 > Se precisar subir o ambiente: \`make start\` (Supabase + app juntos).
 > Se já está tudo \`up\`, não rode \`make up\` de novo — só conecte.
