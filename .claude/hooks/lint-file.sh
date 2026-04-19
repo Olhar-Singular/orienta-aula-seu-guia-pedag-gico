@@ -45,8 +45,17 @@ if [ -f .claude/debug/.active ]; then
 fi
 
 # ESLint com --fix (auto-corrige quando possível)
-output=$(npx eslint "$file" --fix 2>&1)
-status=$?
+# Node_modules vive num volume Docker (ver CLAUDE.md arquitetura).
+# Prefere rodar dentro do container quando up; fallback pro host (CI/sem Docker).
+# Dentro do container, $CLAUDE_PROJECT_DIR é montado em /app — traduzimos o path.
+if docker compose ps --status running 2>/dev/null | grep -q 'app'; then
+  container_file="${file/#$CLAUDE_PROJECT_DIR/\/app}"
+  output=$(docker compose exec -T app npx eslint "$container_file" --fix 2>&1)
+  status=$?
+else
+  output=$(npx eslint "$file" --fix 2>&1)
+  status=$?
+fi
 
 if [ $status -ne 0 ]; then
   printf '%s\n' "$output" | tail -50 >&2
