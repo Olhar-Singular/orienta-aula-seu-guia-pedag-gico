@@ -7,6 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
@@ -22,6 +32,7 @@ export default function Classes() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [schoolYear, setSchoolYear] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: classes, isLoading } = useQuery({
     queryKey: ["classes", user?.id],
@@ -60,15 +71,6 @@ export default function Classes() {
 
   const deleteClass = useMutation({
     mutationFn: async (id: string) => {
-      // Check if class has students
-      const { count, error: countErr } = await supabase
-        .from("class_students")
-        .select("id", { count: "exact", head: true })
-        .eq("class_id", id);
-      if (countErr) throw countErr;
-      if (count && count > 0) {
-        throw new Error(`Esta turma possui ${count} aluno(s). Remova todos os alunos antes de excluir a turma.`);
-      }
       const { error } = await supabase.from("classes").delete().eq("id", id);
       if (error) throw error;
     },
@@ -78,6 +80,27 @@ export default function Classes() {
     },
     onError: (err: Error) => toast.error(err.message || "Erro ao remover turma."),
   });
+
+  const handleDeleteClick = async (cls: { id: string; name: string }) => {
+    const { count, error } = await supabase
+      .from("class_students")
+      .select("id", { count: "exact", head: true })
+      .eq("class_id", cls.id);
+    if (error) {
+      toast.error("Erro ao verificar turma.");
+      return;
+    }
+    if (count && count > 0) {
+      toast.error(`Esta turma possui ${count} aluno(s). Remova todos antes de excluir.`);
+      return;
+    }
+    setDeleteTarget(cls);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteTarget) deleteClass.mutate(deleteTarget.id);
+    setDeleteTarget(null);
+  };
 
   return (
     <>
@@ -142,7 +165,8 @@ export default function Classes() {
                     </CardContent>
                   </Link>
                   <button
-                    onClick={(e) => { e.preventDefault(); deleteClass.mutate(cls.id); }}
+                    aria-label="Excluir turma"
+                    onClick={(e) => { e.preventDefault(); handleDeleteClick({ id: cls.id, name: cls.name }); }}
                     className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -161,6 +185,27 @@ export default function Classes() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(isOpen) => !isOpen && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir turma?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é <strong>irreversível</strong>. Todas as informações da turma{" "}
+              <strong>{deleteTarget?.name}</strong> serão apagadas permanentemente. Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
