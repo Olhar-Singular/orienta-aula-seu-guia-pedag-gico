@@ -14,6 +14,7 @@ import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import { useState, useEffect } from "react";
 import StudentDocuments from "@/components/student/StudentDocuments";
 import StudentPeiReport from "@/components/student/StudentPeiReport";
+import StudentCognitiveReport from "@/components/student/StudentCognitiveReport";
 import StudentAdaptations from "@/components/student/StudentAdaptations";
 
 const MAX_NOTES_LENGTH = 1000;
@@ -227,14 +228,7 @@ export default function StudentProfile() {
         </TabsContent>
 
         <TabsContent value="relatorio" className="mt-4">
-          {alunoId && classId && (
-            <StudentPeiReport
-              studentId={alunoId}
-              studentName={student?.name || "Aluno"}
-              classId={classId}
-              section="report"
-            />
-          )}
+          {alunoId && <StudentCognitiveReport studentId={alunoId} />}
         </TabsContent>
       </Tabs>
     </div>
