@@ -66,6 +66,16 @@ describe("summarize", () => {
     expect(summary.activeBarriers).toBe(2);
     expect(summary.topBarrierKey).toBe("tdah_atencao_sustentada");
   });
+
+  it("excludes 'desconhecido' (null/empty activity_type) from distinctActivityTypes", () => {
+    const history: AdaptationHistoryEntry[] = [
+      makeEntry({ id: "a1", activity_type: "exercicio", barriers_used: [] }),
+      makeEntry({ id: "a2", activity_type: null, barriers_used: [] }),
+      makeEntry({ id: "a3", activity_type: "", barriers_used: [] }),
+    ];
+    const summary = summarize(history, []);
+    expect(summary.distinctActivityTypes).toBe(1);
+  });
 });
 
 describe("barrierFrequency", () => {

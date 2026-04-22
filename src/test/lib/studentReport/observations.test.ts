@@ -69,6 +69,18 @@ describe("generateObservations", () => {
     expect(joined).not.toMatch(/diagnóstico|transtorno|patolog/);
   });
 
+  it("omits trend message when trend is flat", () => {
+    const obs = generateObservations({
+      totalAdaptations: 5,
+      topBarrier: null,
+      dominantBarrierShare: 0,
+      topStrategy: null,
+      trend: "flat",
+    });
+    const joined = obs.join(" ").toLowerCase();
+    expect(joined).not.toMatch(/aumento|redu[çc]|diminui|menos adapta|mais adapta/);
+  });
+
   it("returns between 1 and 4 observations", () => {
     const obs = generateObservations({
       totalAdaptations: 20,

@@ -14,7 +14,7 @@ describe("ReportSummaryCards", () => {
     );
     expect(screen.getAllByText("0")).toHaveLength(3);
     expect(screen.getByText(/adaptações/i)).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText(/nenhuma/i)).toBeInTheDocument();
   });
 
   it("renders labels and counts when data is present", () => {

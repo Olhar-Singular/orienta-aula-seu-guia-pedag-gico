@@ -17,10 +17,10 @@ function formatPercent(share: number): string {
 
 function trendMessage(trend: Trend): string | null {
   if (trend === "up") {
-    return "Houve aumento de adaptações comparado ao período anterior — continue acompanhando o que vem funcionando.";
+    return "Houve aumento de adaptações comparado ao período anterior. Continue acompanhando o que vem funcionando.";
   }
   if (trend === "down") {
-    return "Houve redução de adaptações em relação ao período anterior — vale revisitar se novas necessidades surgiram.";
+    return "Houve redução de adaptações em relação ao período anterior. Vale revisitar se novas necessidades surgiram.";
   }
   return null;
 }
@@ -28,27 +28,27 @@ function trendMessage(trend: Trend): string | null {
 export function generateObservations(input: ObservationsInput): string[] {
   if (input.totalAdaptations === 0) {
     return [
-      "Ainda não há adaptações registradas para este aluno — crie a primeira para começar a acompanhar a evolução.",
+      "Ainda não há adaptações registradas para este aluno. Crie a primeira para começar a acompanhar a evolução.",
     ];
   }
 
   const messages: string[] = [];
 
   messages.push(
-    `Foram registradas ${input.totalAdaptations} adaptações no período — uma base útil para observar padrões pedagógicos.`
+    `Foram registradas ${input.totalAdaptations} adaptações no período, uma base útil para observar padrões pedagógicos.`
   );
 
   if (input.topBarrier && input.dominantBarrierShare >= DOMINANT_BARRIER_THRESHOLD) {
     messages.push(
       `A barreira "${input.topBarrier.label}" aparece em ${formatPercent(
         input.dominantBarrierShare
-      )} das adaptações — considere reforçar estratégias específicas para essa necessidade.`
+      )} das adaptações. Considere reforçar estratégias específicas para essa necessidade.`
     );
   }
 
   if (input.topStrategy) {
     messages.push(
-      `A estratégia mais aplicada foi "${input.topStrategy.name}" (${input.topStrategy.count}x) — observe em situações reais de sala se ela tem apoiado o aluno.`
+      `A estratégia mais aplicada foi "${input.topStrategy.name}" (${input.topStrategy.count}x). Observe em situações reais de sala se ela tem apoiado o aluno.`
     );
   }
 

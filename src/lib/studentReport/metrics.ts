@@ -144,7 +144,9 @@ export function summarize(
   barriers: StudentBarrierRecord[]
 ): ReportSummary {
   const freq = barrierFrequency(history);
-  const distinctActivityTypes = activityTypeDistribution(history).length;
+  const distinctActivityTypes = activityTypeDistribution(history).filter(
+    (a) => a.activityType !== UNKNOWN_ACTIVITY_TYPE
+  ).length;
   const activeBarriers = barriers.filter((b) => b.is_active).length;
   return {
     totalAdaptations: history.length,

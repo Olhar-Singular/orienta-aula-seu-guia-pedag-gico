@@ -25,7 +25,7 @@ export default function ReportObservations({ observations }: Props) {
           ))}
         </ul>
         <p className="text-[11px] text-muted-foreground">
-          Sugestões geradas a partir dos dados registrados — não substituem
+          Sugestões geradas a partir dos dados registrados. Não substituem
           avaliação pedagógica individualizada.
         </p>
       </CardContent>

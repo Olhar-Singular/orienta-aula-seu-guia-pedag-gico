@@ -64,7 +64,7 @@ export default function StudentCognitiveReport({ studentId }: Props) {
     const freq = barrierFrequency(currentHistory);
     const activityTypes = activityTypeDistribution(currentHistory);
     const dims = dimensionBreakdown(currentHistory);
-    const byMonth = adaptationsByMonth(history);
+    const byMonth = adaptationsByMonth(currentHistory);
     const strategies = topStrategies(currentHistory);
 
     const currentAggregate = {

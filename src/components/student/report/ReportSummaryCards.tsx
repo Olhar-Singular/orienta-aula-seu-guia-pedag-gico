@@ -33,7 +33,7 @@ export default function ReportSummaryCards({
       />
       <SummaryCard
         icon={<Star className="w-6 h-6 text-primary" />}
-        value={topBarrierLabel ?? "—"}
+        value={topBarrierLabel ?? "Nenhuma"}
         label="Barreira mais frequente"
       />
     </div>
