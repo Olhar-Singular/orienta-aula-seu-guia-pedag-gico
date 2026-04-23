@@ -23,6 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plus, X, Upload, Loader2, Search } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import GradeSelect from "@/components/question-bank/GradeSelect";
 import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import "katex/dist/katex.min.css";
 
@@ -47,6 +48,8 @@ type QuestionFormProps = {
   onOpenChange: (open: boolean) => void;
   question: any | null;
   onSaved: () => void;
+  defaultGrade?: string | null;
+  defaultSubject?: string | null;
 };
 
 export default function QuestionForm({
@@ -54,11 +57,14 @@ export default function QuestionForm({
   onOpenChange,
   question,
   onSaved,
+  defaultGrade = null,
+  defaultSubject = null,
 }: QuestionFormProps) {
   const { user } = useAuth();
   const { schoolId } = useUserSchool();
   const [text, setText] = useState("");
   const [subject, setSubject] = useState("");
+  const [grade, setGrade] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("medio");
   const [questionType, setQuestionType] = useState<"objetiva" | "dissertativa">("dissertativa");
@@ -74,6 +80,7 @@ export default function QuestionForm({
     if (question) {
       setText(question.text || "");
       setSubject(question.subject || "");
+      setGrade(question.grade ?? null);
       setTopic(question.topic || "");
       setDifficulty(question.difficulty || "medio");
       setResolution(question.resolution || "");
@@ -86,7 +93,8 @@ export default function QuestionForm({
       setQuestionType(hasOptions ? "objetiva" : "dissertativa");
     } else {
       setText("");
-      setSubject("");
+      setSubject(defaultSubject || "");
+      setGrade(defaultGrade);
       setTopic("");
       setDifficulty("medio");
       setQuestionType("dissertativa");
@@ -147,6 +155,7 @@ export default function QuestionForm({
       const payload: any = {
         text: text.trim(),
         subject,
+        grade: grade || null,
         topic: topic || null,
         difficulty,
         options: questionType === "objetiva" && options.length > 0 ? options : null,
@@ -226,6 +235,9 @@ export default function QuestionForm({
               </Button>
             )}
           </div>
+
+          {/* Série */}
+          <GradeSelect value={grade} onChange={setGrade} />
 
           {/* Subject / Topic / Difficulty */}
           <div className="grid grid-cols-3 gap-4">

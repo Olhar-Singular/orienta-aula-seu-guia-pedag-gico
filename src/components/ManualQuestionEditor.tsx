@@ -43,6 +43,7 @@ import { detectFileType } from "@/lib/fileValidation";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
 import PdfPreviewModal from "@/components/PdfPreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
+import GradeSelect from "@/components/question-bank/GradeSelect";
 import QuestionRichEditor, { htmlToText } from "@/components/QuestionRichEditor";
 import "katex/dist/katex.min.css";
 
@@ -54,6 +55,7 @@ const subjects = [
 type ManualQuestion = {
   text: string;
   subject: string;
+  grade: string | null;
   topic: string;
   options: string[];
   correct_answer: number;
@@ -68,6 +70,7 @@ type ManualQuestion = {
 const emptyQuestion = (): ManualQuestion => ({
   text: "",
   subject: "Geral",
+  grade: null,
   topic: "",
   options: ["", "", "", "", ""],
   correct_answer: -1,
@@ -210,6 +213,7 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
       const row = {
         text: q.text,
         subject: q.subject,
+        grade: q.grade || null,
         topic: q.topic || null,
         options: hasOptions ? q.options.filter(o => o.trim()) : null,
         correct_answer: hasOptions && q.correct_answer >= 0 ? q.correct_answer : null,
@@ -444,6 +448,14 @@ export default function ManualQuestionEditor({ file, onFinish }: Props) {
                         )}
                       </div>
                     </div>
+                  )}
+
+                  {/* Série */}
+                  {!q.saved && (
+                    <GradeSelect
+                      value={q.grade}
+                      onChange={(v) => updateQuestion(activeQ, "grade", v)}
+                    />
                   )}
 
                   {/* Subject + Topic */}
