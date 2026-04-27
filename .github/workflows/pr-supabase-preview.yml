@@ -1,0 +1,101 @@
+name: PR Supabase Preview
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+
+concurrency:
+  group: pr-supabase-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Comment migration + function changes on PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect changes
+        id: changes
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+
+          migrations=$(git diff --name-only --diff-filter=A "$base" "$head" -- 'supabase/migrations/*.sql' || true)
+          modified_migrations=$(git diff --name-only --diff-filter=M "$base" "$head" -- 'supabase/migrations/*.sql' || true)
+          functions=$(git diff --name-only "$base" "$head" -- 'supabase/functions/' | awk -F/ 'NF>=3 && $3 !~ /^_/ {print $3}' | sort -u || true)
+
+          {
+            echo "## 🗄️ Supabase PR Preview"
+            echo
+            echo "Mudanças que vão para produção quando este PR for mesclado em \`main\` e o CI passar."
+            echo
+
+            if [[ -n "$migrations" ]]; then
+              echo "### 🆕 Migrations novas"
+              echo
+              while IFS= read -r f; do
+                [[ -z "$f" ]] && continue
+                echo "#### \`$(basename "$f")\`"
+                echo '```sql'
+                sed -e 's/\r$//' "$f" | head -c 8000
+                size=$(wc -c < "$f")
+                if (( size > 8000 )); then
+                  echo
+                  echo "-- ... arquivo truncado ($size bytes total) ..."
+                fi
+                echo '```'
+                echo
+              done <<< "$migrations"
+            else
+              echo "### 🆕 Migrations novas"
+              echo
+              echo "_Nenhuma._"
+              echo
+            fi
+
+            if [[ -n "$modified_migrations" ]]; then
+              echo "### ⚠️ Migrations modificadas (já commitadas antes)"
+              echo
+              echo "**Perigo**: modificar uma migration já aplicada em prod não a re-executa. Prefira criar uma nova migration de correção."
+              echo
+              echo '```'
+              echo "$modified_migrations"
+              echo '```'
+              echo
+            fi
+
+            if [[ -n "$functions" ]]; then
+              echo "### ⚡ Edge functions alteradas"
+              echo
+              while IFS= read -r fn; do
+                [[ -z "$fn" ]] && continue
+                echo "- \`$fn\`"
+              done <<< "$functions"
+              echo
+            fi
+
+            echo "---"
+            echo
+            echo "<sub>Gerado automaticamente por \`pr-supabase-preview.yml\`. Última atualização: $(date -u +'%Y-%m-%d %H:%M UTC').</sub>"
+          } > pr-comment.md
+
+          echo "comment_path=pr-comment.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upsert PR comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: supabase-pr-preview
+          path: ${{ steps.changes.outputs.comment_path }}
