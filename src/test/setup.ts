@@ -1,6 +1,19 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
 
+// Polyfill Promise.withResolvers para Node < 22 (usado por pdfjs-dist)
+if (typeof (Promise as unknown as { withResolvers?: unknown }).withResolvers !== "function") {
+  (Promise as unknown as { withResolvers: <T>() => { promise: Promise<T>; resolve: (v: T) => void; reject: (r?: unknown) => void } }).withResolvers = function withResolvers<T>() {
+    let resolve!: (v: T) => void;
+    let reject!: (r?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+}
+
 // Mock do matchMedia
 Object.defineProperty(window, "matchMedia", {
   writable: true,

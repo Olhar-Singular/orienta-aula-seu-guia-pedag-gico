@@ -1,65 +1,160 @@
 name: Supabase Deploy
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/**'
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
   group: supabase-deploy
   cancel-in-progress: false
 
+env:
+  SUPABASE_CLI_VERSION: 2.20.5
+
 jobs:
+  guard:
+    name: Gate (CI passed + supabase changed)
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    outputs:
+      migrations_changed: ${{ steps.filter.outputs.migrations }}
+      functions_changed: ${{ steps.filter.outputs.functions }}
+      functions_files: ${{ steps.filter.outputs.functions_files }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: shell
+          filters: |
+            migrations:
+              - 'supabase/migrations/**'
+            functions:
+              - 'supabase/functions/**'
+
   deploy:
     name: Migrations → Functions → Types
+    needs: guard
+    if: >-
+      needs.guard.outputs.migrations_changed == 'true' ||
+      needs.guard.outputs.functions_changed == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
 
+    outputs:
+      release_tag: ${{ steps.tag.outputs.tag }}
+      migrations_applied: ${{ needs.guard.outputs.migrations_changed }}
+      functions_deployed: ${{ needs.guard.outputs.functions_changed }}
+
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_REF || secrets.VITE_SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 2.20.5
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: Link project
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
-      - name: Apply migrations
-        run: supabase db push -p "$SUPABASE_DB_PASSWORD"
+      - name: Sync edge function secrets
+        if: needs.guard.outputs.functions_changed == 'true' && env.SUPABASE_FUNCTIONS_ENV != ''
         env:
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-
-      - name: Deploy edge functions
+          SUPABASE_FUNCTIONS_ENV: ${{ secrets.SUPABASE_FUNCTIONS_ENV }}
         run: |
           set -euo pipefail
-          for dir in supabase/functions/*/; do
-            fn=$(basename "$dir")
-            [[ "$fn" == _* ]] && continue
-            echo "→ Deploying $fn..."
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          printf '%s\n' "$SUPABASE_FUNCTIONS_ENV" > "$tmp"
+          if ! grep -qE '^[A-Z_][A-Z0-9_]*=' "$tmp"; then
+            echo "::error::SUPABASE_FUNCTIONS_ENV does not look like KEY=VALUE lines"
+            exit 1
+          fi
+          echo "→ Syncing $(grep -cE '^[A-Z_][A-Z0-9_]*=' "$tmp") secrets to functions"
+          supabase secrets set --env-file "$tmp" --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Lint migrations
+        if: needs.guard.outputs.migrations_changed == 'true'
+        run: supabase db lint --level warning
+
+      - name: Preview migration diff
+        if: needs.guard.outputs.migrations_changed == 'true'
+        run: |
+          set -euo pipefail
+          {
+            echo "### Migration diff (local → remote)"
+            echo '```sql'
+            supabase db diff --linked --schema public 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply migrations
+        if: needs.guard.outputs.migrations_changed == 'true'
+        run: supabase db push -p "$SUPABASE_DB_PASSWORD"
+
+      - name: Deploy changed edge functions
+        if: needs.guard.outputs.functions_changed == 'true'
+        env:
+          CHANGED_FILES: ${{ needs.guard.outputs.functions_files }}
+        run: |
+          set -euo pipefail
+          declare -A SEEN=()
+          for path in $CHANGED_FILES; do
+            fn=$(echo "$path" | awk -F/ '{print $3}')
+            if [[ -z "$fn" || "$fn" == _* ]]; then
+              continue
+            fi
+            if [[ -n "${SEEN[$fn]:-}" ]]; then
+              continue
+            fi
+            SEEN[$fn]=1
+            if [[ ! -d "supabase/functions/$fn" ]]; then
+              echo "⚠ Skipping $fn (directory removed)"
+              continue
+            fi
+            echo "→ Deploying $fn"
             supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_ID"
           done
 
-      - name: Generate TypeScript types
+      - name: Regenerate TypeScript types (atomic)
         run: |
-          supabase gen types typescript \
-            --project-id "$SUPABASE_PROJECT_ID" \
-            > src/integrations/supabase/types.ts
+          set -euo pipefail
+          supabase gen types typescript --project-id "$SUPABASE_PROJECT_ID" > types.new
+          if ! grep -q "export type Database" types.new; then
+            echo "::error::gen types output is missing 'export type Database' — aborting"
+            exit 1
+          fi
+          if [[ ! -s types.new ]]; then
+            echo "::error::gen types output is empty — aborting"
+            exit 1
+          fi
+          mv types.new src/integrations/supabase/types.ts
 
       - name: Commit updated types
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/integrations/supabase/types.ts
@@ -67,4 +162,109 @@ jobs:
             git commit -m "chore: update supabase types [skip ci]"
             git pull --rebase origin main
             git push
+          else
+            echo "No type changes to commit"
           fi
+
+      - name: Healthcheck remote API
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${SUPABASE_URL:-}" || -z "${SUPABASE_ANON_KEY:-}" ]]; then
+            echo "::warning::Skipping healthcheck — VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY missing from environment"
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            if curl -fsSL \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              -o /dev/null \
+              -w "HTTP %{http_code} in %{time_total}s\n" \
+              "$SUPABASE_URL/rest/v1/"; then
+              echo "✅ Healthcheck passed on attempt $attempt"
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying in 5s..."
+            sleep 5
+          done
+          echo "::error::Healthcheck failed after 3 attempts — remote API not responding"
+          exit 1
+
+      - name: Tag and release
+        id: tag
+        run: |
+          set -euo pipefail
+          tag="supabase-$(date -u +%Y-%m-%d-%H%M)"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          notes_file=$(mktemp)
+          trap 'rm -f "$notes_file"' EXIT
+          {
+            echo "Automated Supabase deploy from commit ${{ github.sha }}."
+            echo
+            echo "- Migrations applied: ${{ needs.guard.outputs.migrations_changed }}"
+            echo "- Functions deployed: ${{ needs.guard.outputs.functions_changed }}"
+            echo
+            if [[ "${{ needs.guard.outputs.migrations_changed }}" == "true" ]]; then
+              echo "### Migrations in this release"
+              git diff --name-only ${{ github.event.workflow_run.head_sha || github.sha }}~1..${{ github.event.workflow_run.head_sha || github.sha }} -- supabase/migrations/ 2>/dev/null || echo "(no diff info available)"
+              echo
+            fi
+            if [[ "${{ needs.guard.outputs.functions_changed }}" == "true" ]]; then
+              echo "### Functions touched"
+              echo '```'
+              echo "${{ needs.guard.outputs.functions_files }}" | tr ' ' '\n' | awk -F/ 'NF>=3 && $3 !~ /^_/ {print $3}' | sort -u
+              echo '```'
+            fi
+            echo
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          } > "$notes_file"
+          gh release create "$tag" \
+            --title "Supabase deploy $tag" \
+            --notes-file "$notes_file" \
+            --target "${{ github.event.workflow_run.head_sha || github.sha }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  notify-failure:
+    name: Notify failure
+    needs: [guard, deploy]
+    if: >-
+      always() &&
+      (needs.guard.result == 'failure' || needs.deploy.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Send alert webhook
+        if: env.ALERT_WEBHOOK_URL != ''
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          FAILED_JOB: ${{ needs.guard.result == 'failure' && 'guard' || 'deploy' }}
+          COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          message="🔴 Supabase Deploy falhou no job \`$FAILED_JOB\`
+          commit: $COMMIT_SHA
+          run: $RUN_URL"
+
+          # Detect Discord webhook vs Slack-style; send both common formats.
+          if [[ "$ALERT_WEBHOOK_URL" == *"discord.com"* ]]; then
+            payload=$(jq -n --arg content "$message" '{content: $content}')
+          else
+            payload=$(jq -n --arg text "$message" '{text: $text}')
+          fi
+
+          curl -fsSL -X POST \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "$ALERT_WEBHOOK_URL" \
+            || echo "::warning::Webhook delivery failed (failure already logged in Actions UI)"
+
+      - name: Log (no webhook configured)
+        if: env.ALERT_WEBHOOK_URL == ''
+        env:
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+        run: |
+          echo "::warning::Supabase Deploy failed but ALERT_WEBHOOK_URL is not configured — set it in repo secrets to receive alerts."
