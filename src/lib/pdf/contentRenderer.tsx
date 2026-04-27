@@ -157,12 +157,23 @@ export function resolveFontFamily(
  */
 export function textStyleToPdf(style?: TextStyle) {
   const s = { ...TEXT_STYLE_DEFAULTS, ...style };
-  return {
+  const out: {
+    fontSize: number;
+    fontFamily: string;
+    textAlign: "left" | "center" | "right" | "justify";
+    lineHeight: number;
+    color?: string;
+  } = {
     fontSize: s.fontSize,
     fontFamily: resolveFontFamily(s.fontFamily, s.bold, s.italic),
     textAlign: s.textAlign as "left" | "center" | "right" | "justify",
     lineHeight: s.lineHeight,
   };
+  // Só seta color quando o bloco tem cor explícita — caso contrário deixa
+  // cascatear da Page (#1f2937 em PreviewPdfDocument), evitando regressão
+  // visual em atividades que nunca usaram a edição global.
+  if (style?.color) out.color = style.color;
+  return out;
 }
 
 /**

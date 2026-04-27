@@ -61,7 +61,7 @@ describe("resolveFontFamily", () => {
 // ─── textStyleToPdf ──────────────────────────────────────────────────────────
 
 describe("textStyleToPdf", () => {
-  it("uses defaults when no style provided", () => {
+  it("uses defaults when no style provided (color cascades from page)", () => {
     const result = textStyleToPdf();
 
     expect(result).toEqual({
@@ -70,9 +70,10 @@ describe("textStyleToPdf", () => {
       textAlign: "justify",
       lineHeight: 1.5,
     });
+    expect(result).not.toHaveProperty("color");
   });
 
-  it("merges partial style with defaults", () => {
+  it("merges partial style with defaults (no color when not explicit)", () => {
     const style: TextStyle = { fontSize: 14, bold: true };
     const result = textStyleToPdf(style);
 
@@ -82,6 +83,7 @@ describe("textStyleToPdf", () => {
       textAlign: "justify",
       lineHeight: 1.5,
     });
+    expect(result).not.toHaveProperty("color");
   });
 
   it("resolves font family with bold+italic", () => {
@@ -103,6 +105,7 @@ describe("textStyleToPdf", () => {
       italic: true,
       textAlign: "center",
       lineHeight: 2,
+      color: "#dc2626",
     };
     const result = textStyleToPdf(style);
 
@@ -111,6 +114,7 @@ describe("textStyleToPdf", () => {
       fontFamily: "Courier-Oblique",
       textAlign: "center",
       lineHeight: 2,
+      color: "#dc2626",
     });
   });
 });
