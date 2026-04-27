@@ -104,6 +104,7 @@ function makeDefaultProps(overrides: Record<string, any> = {}) {
 describe("StepPdfPreview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders with Universal tab active by default", () => {
@@ -298,6 +299,52 @@ describe("StepPdfPreview", () => {
     render(<StepPdfPreview {...props} />, { wrapper: createTestWrapper() });
 
     expect(screen.getByText("Resetar")).toBeTruthy();
+  });
+
+  it("aplicar edição global registra um snapshot único no histórico (1 push, undo reverte)", () => {
+    const onUniversalChange = vi.fn();
+    const props = makeDefaultProps({ onUniversalChange });
+    const { container } = render(<StepPdfPreview {...props} />, {
+      wrapper: createTestWrapper(),
+    });
+
+    // Clear mount-time call
+    onUniversalChange.mockClear();
+
+    // Expandir painel global e aplicar fontSize
+    const allButtons = Array.from(container.querySelectorAll("button"));
+    const expandBtn = allButtons.find((b) =>
+      b.textContent?.includes("Edição global"),
+    );
+    expect(expandBtn).toBeTruthy();
+    fireEvent.click(expandBtn!);
+
+    const incTamanho = screen.getByRole("checkbox", { name: /incluir tamanho/i });
+    fireEvent.click(incTamanho);
+    const tamanhoSelect = screen.getByRole("combobox", { name: "Tamanho" });
+    fireEvent.change(tamanhoSelect, { target: { value: "20" } });
+
+    const applyBtn = screen.getByRole("button", { name: /Aplicar a toda a prova/i });
+    fireEvent.click(applyBtn);
+
+    // Apply gerou exatamente 1 snapshot novo
+    expect(onUniversalChange).toHaveBeenCalledTimes(1);
+    const applied = onUniversalChange.mock.calls[0][0];
+    const firstText = applied.questions[0].content.find((b: any) => b.type === "text");
+    expect(firstText.style?.fontSize).toBe(20);
+
+    // Undo deve reverter
+    onUniversalChange.mockClear();
+    const undoBtn = container.querySelector('button[title="Desfazer (Ctrl+Z)"]');
+    expect(undoBtn).toBeTruthy();
+    expect(undoBtn).not.toBeDisabled();
+    fireEvent.click(undoBtn!);
+
+    expect(onUniversalChange).toHaveBeenCalledTimes(1);
+    const reverted = onUniversalChange.mock.calls[0][0];
+    const revText = reverted.questions[0].content.find((b: any) => b.type === "text");
+    // Reverted ao estado pristine — sem o fontSize 20
+    expect(revText.style?.fontSize).not.toBe(20);
   });
 
   it("Resetar returns the layout to pristine even when savedUniversal reflects prior edits", () => {

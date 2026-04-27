@@ -8,6 +8,7 @@ export type TextStyle = {
   italic?: boolean;               // default false
   textAlign?: "left" | "center" | "right" | "justify";
   lineHeight?: number;            // multiplicador, default 1.5
+  color?: string;                 // cor uniforme do bloco (hex), default #0f172a
 };
 
 export const TEXT_STYLE_DEFAULTS: Required<TextStyle> = {
@@ -17,6 +18,7 @@ export const TEXT_STYLE_DEFAULTS: Required<TextStyle> = {
   italic: false,
   textAlign: "justify",
   lineHeight: 1.5,
+  color: "#0f172a",
 };
 
 // Inline run with optional color, used for word-level coloring in the layout editor.
