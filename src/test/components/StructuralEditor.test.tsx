@@ -193,6 +193,7 @@ function makeDefaultProps(activity = mockActivity) {
 describe("StructuralEditor", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("renders heading 'Estrutura do Documento'", () => {
@@ -458,5 +459,41 @@ describe("StructuralEditor", () => {
       { wrapper: createTestWrapper() }
     );
     expect(screen.getByText("3 linhas de resposta")).toBeTruthy();
+  });
+
+  // ─── Edição global ──────────────────────────────────────────────────────────
+
+  it("renderiza o painel de edição global", () => {
+    render(<StructuralEditor {...makeDefaultProps()} />, {
+      wrapper: createTestWrapper(),
+    });
+    expect(screen.getByText("Edição global")).toBeTruthy();
+  });
+
+  it("propaga estilo global via onChange ao clicar em Aplicar", () => {
+    const onChange = vi.fn();
+    const props = {
+      ...makeDefaultProps(mockActivityWithAlternatives),
+      onChange,
+    };
+    render(<StructuralEditor {...props} />, { wrapper: createTestWrapper() });
+
+    fireEvent.click(screen.getByText("Edição global"));
+    fireEvent.click(screen.getByRole("checkbox", { name: /incluir tamanho/i }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Tamanho" }), {
+      target: { value: "18" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Aplicar a toda a prova/i }));
+
+    expect(onChange).toHaveBeenCalled();
+    const last = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+    // Todas as questões com bloco de texto devem receber fontSize 18
+    for (const q of last.questions) {
+      for (const b of q.content) {
+        if (b.type === "text") {
+          expect(b.style?.fontSize).toBe(18);
+        }
+      }
+    }
   });
 });

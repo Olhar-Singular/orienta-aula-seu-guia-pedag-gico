@@ -33,7 +33,9 @@ import {
 import type { ContentBlock, TextStyle, PdfFontFamily, ActivityHeader, InlineRun } from "@/types/adaptation";
 import { TEXT_STYLE_DEFAULTS } from "@/types/adaptation";
 import type { EditableActivity, EditableQuestion } from "@/lib/pdf/editableActivity";
+import { applyGlobalStyle, type GlobalStyleInput } from "@/lib/pdf/applyGlobalStyle";
 import InlineTextEditor from "./InlineTextEditor";
+import GlobalStylePanel from "./GlobalStylePanel";
 
 /** Strip properties that match TEXT_STYLE_DEFAULTS so we only store real overrides. */
 function stripDefaults(style: TextStyle): TextStyle | undefined {
@@ -750,6 +752,11 @@ export default function StructuralEditor({ activity, onChange, selectedQuestionI
         </div>
         <div className="mb-4">
           <HeaderEditor header={activity.header} onChange={(header) => onChange({ ...activity, header })} />
+        </div>
+        <div className="mb-4">
+          <GlobalStylePanel
+            onApply={(input: GlobalStyleInput) => onChange(applyGlobalStyle(activity, input))}
+          />
         </div>
         <label className="mb-3 flex items-center gap-2 text-xs text-gray-600">
           <input type="checkbox" checked={activity.globalShowSeparators} onChange={(e) => onChange({ ...activity, globalShowSeparators: e.target.checked })} className="rounded" />
