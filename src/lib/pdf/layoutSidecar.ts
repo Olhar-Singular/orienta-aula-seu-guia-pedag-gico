@@ -4,6 +4,7 @@ import type {
   ContentBlock,
   StructuredActivity,
   StructuredQuestion,
+  TextStyle,
 } from "@/types/adaptation";
 import { hashQuestionContent } from "@/lib/questionIdentity";
 
@@ -14,6 +15,14 @@ export type WordColor = {
   color: string;
 };
 
+/** Bloco de texto cujo `style` (TextStyle) deve ser restaurado ao re-aplicar
+ *  o sidecar. Persiste cor uniforme, fonte, tamanho e demais propriedades de
+ *  estilo do bloco — necessário para que a "Edição global" sobreviva ao reload. */
+export type BlockStyleEntry = {
+  blockId: string;
+  style: TextStyle;
+};
+
 export type QuestionLayout = {
   spacingAfter?: number;
   showSeparator?: boolean;
@@ -21,6 +30,7 @@ export type QuestionLayout = {
   answerLines?: number;
   pageBreakBefore?: boolean;
   wordColors?: WordColor[];
+  blockStyles?: BlockStyleEntry[];
 };
 
 export type LayoutSidecar = {
@@ -82,6 +92,20 @@ function applyColorsToBlocks(
   });
 }
 
+function applyBlockStylesToBlocks(
+  blocks: ContentBlock[],
+  blockStyles: BlockStyleEntry[],
+): ContentBlock[] {
+  if (blockStyles.length === 0) return blocks;
+  const byId = new Map(blockStyles.map((e) => [e.blockId, e.style]));
+  return blocks.map((block) => {
+    if (block.type !== "text") return block;
+    const style = byId.get(block.id);
+    if (!style) return block;
+    return { ...block, style: { ...(block.style ?? {}), ...style } };
+  });
+}
+
 export function applySidecar(
   activity: EditableActivity,
   sidecar: LayoutSidecar,
@@ -102,8 +126,15 @@ export function applySidecar(
       }
       if (entry.answerLines !== undefined) next.answerLines = entry.answerLines;
 
+      let nextContent = q.content;
+      if (entry.blockStyles && entry.blockStyles.length > 0) {
+        nextContent = applyBlockStylesToBlocks(nextContent, entry.blockStyles);
+      }
       if (entry.wordColors && entry.wordColors.length > 0) {
-        next.content = applyColorsToBlocks(q.content, entry.wordColors);
+        nextContent = applyColorsToBlocks(nextContent, entry.wordColors);
+      }
+      if (nextContent !== q.content) {
+        next.content = nextContent;
       }
 
       return next;
@@ -148,11 +179,18 @@ export function extractSidecar(activity: EditableActivity): LayoutSidecar {
     if (q.answerLines !== undefined) entry.answerLines = q.answerLines;
 
     const wordColors: WordColor[] = [];
+    const blockStyles: BlockStyleEntry[] = [];
     for (const block of q.content) {
-      if (block.type !== "text" || !block.richContent) continue;
-      wordColors.push(...extractWordColorsFromBlock(block.id, block.richContent));
+      if (block.type !== "text") continue;
+      if (block.richContent) {
+        wordColors.push(...extractWordColorsFromBlock(block.id, block.richContent));
+      }
+      if (block.style && Object.keys(block.style).length > 0) {
+        blockStyles.push({ blockId: block.id, style: block.style });
+      }
     }
     if (wordColors.length > 0) entry.wordColors = wordColors;
+    if (blockStyles.length > 0) entry.blockStyles = blockStyles;
 
     if (Object.keys(entry).length > 0) {
       sidecar.questions[q.id] = entry;
@@ -251,6 +289,14 @@ export function reconcileSidecar(
         surviving.push(...reconcileWordColors(text, colors));
       }
       if (surviving.length > 0) carried.wordColors = surviving;
+    }
+
+    if (entry.blockStyles && entry.blockStyles.length > 0) {
+      // Drop styles for blocks that no longer exist; keep the rest as-is.
+      const surviving = entry.blockStyles.filter(
+        (e) => blockTextFromQuestion(nextQ, e.blockId) !== undefined,
+      );
+      if (surviving.length > 0) carried.blockStyles = surviving;
     }
 
     if (Object.keys(carried).length > 0) {

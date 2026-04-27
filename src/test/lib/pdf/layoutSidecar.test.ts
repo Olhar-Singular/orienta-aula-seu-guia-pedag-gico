@@ -383,3 +383,107 @@ describe("reconcileSidecar", () => {
     expect(result.questions).toEqual({});
   });
 });
+
+describe("blockStyles persistence", () => {
+  it("extractSidecar coleta block.style dos blocos de texto", () => {
+    const activity: EditableActivity = {
+      header: HEADER,
+      globalShowSeparators: false,
+      questions: [
+        {
+          id: "q-a",
+          number: 1,
+          content: [
+            {
+              id: "cb-a1",
+              type: "text",
+              content: "Texto",
+              style: { fontSize: 14, color: "#dc2626" },
+            },
+            {
+              id: "cb-a2",
+              type: "image",
+              src: "data:image/png;base64,abc",
+              width: 0.5,
+              alignment: "center",
+            },
+          ],
+        },
+      ],
+    };
+
+    const sidecar = extractSidecar(activity);
+    expect(sidecar.questions["q-a"].blockStyles).toEqual([
+      { blockId: "cb-a1", style: { fontSize: 14, color: "#dc2626" } },
+    ]);
+  });
+
+  it("applySidecar restaura block.style nos blocos de texto", () => {
+    const activity = makeActivity();
+    const sidecar: LayoutSidecar = {
+      version: 1,
+      questions: {
+        "q-a": {
+          blockStyles: [
+            { blockId: "cb-a1", style: { fontSize: 18, color: "#2563eb" } },
+          ],
+        },
+      },
+    };
+
+    const merged = applySidecar(activity, sidecar);
+    const block = merged.questions[0].content[0];
+    if (block.type === "text") {
+      expect(block.style?.fontSize).toBe(18);
+      expect(block.style?.color).toBe("#2563eb");
+    }
+  });
+
+  it("reconcileSidecar mantém blockStyles cujos blockIds ainda existem", () => {
+    const prevActivity: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              id: "q-a",
+              number: 1,
+              type: "open_ended",
+              statement: "Antigo",
+              content: [{ id: "cb-a1", type: "text", content: "Antigo" }],
+            },
+          ],
+        },
+      ],
+    };
+    const nextActivity: StructuredActivity = {
+      sections: [
+        {
+          questions: [
+            {
+              id: "q-a",
+              number: 1,
+              type: "open_ended",
+              statement: "Novo",
+              content: [{ id: "cb-a1", type: "text", content: "Novo" }],
+            },
+          ],
+        },
+      ],
+    };
+    const prev: LayoutSidecar = {
+      version: 1,
+      questions: {
+        "q-a": {
+          blockStyles: [
+            { blockId: "cb-a1", style: { fontSize: 16 } },
+            { blockId: "cb-ghost", style: { fontSize: 99 } },
+          ],
+        },
+      },
+    };
+    const result = reconcileSidecar(prev, prevActivity, nextActivity);
+    expect(result.questions["q-a"].blockStyles).toEqual([
+      { blockId: "cb-a1", style: { fontSize: 16 } },
+    ]);
+  });
+});
