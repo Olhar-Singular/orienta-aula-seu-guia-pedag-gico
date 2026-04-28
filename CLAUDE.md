@@ -4,6 +4,23 @@
 
 **Nunca fazer commit automaticamente.** Sempre aguardar confirmação explícita do usuário após validação e teste manual.
 
+## Regra de Migrations (importante)
+
+**Nunca use `make sb-reset` só pra rodar uma migration nova.** Ele dropa o DB local inteiro e recria do zero — você perde o usuário de teste e qualquer dado local.
+
+Fluxo correto pra aplicar uma migration nova localmente:
+
+```bash
+supabase migration up --local    # aplica só as migrations pendentes, preserva dados
+make gen-types                   # regenera tipos após mudança de schema
+```
+
+Use `make sb-reset` **apenas** quando:
+
+- precisa voltar do zero pra debugar corrupção ou divergência de schema
+- o usuário pedir explicitamente
+- após sb-reset, rodar `make db-seed-test-user` para recriar o usuário de teste (`teste@teste.com` / `123123`)
+
 Plataforma educacional para professores brasileiros adaptarem atividades para alunos com barreiras de aprendizagem usando IA (Design Universal para Aprendizagem — DUA).
 
 ## Comandos Essenciais

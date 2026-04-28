@@ -50,6 +50,7 @@ import PdfPreviewModal from "@/components/PdfPreviewModal";
 import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import ManualQuestionEditor from "@/components/ManualQuestionEditor";
+import QuestionBankFolderView from "@/components/question-bank/QuestionBankFolderView";
 import { detectFileType } from "@/lib/fileValidation";
 import { resolveUniqueFileName } from "@/lib/fileNameUtils";
 import {
@@ -176,13 +177,9 @@ export default function QuestionBank() {
 
   const [activeTab, setActiveTab] = useState("provas");
 
-  // Main list state
+  // Main list state — mantido apenas para dedup na extração e badge de contagem.
+  // Filtros e busca agora vivem dentro de QuestionBankFolderView.
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filterSubject, setFilterSubject] = useState("all");
-  const [filterDifficulty, setFilterDifficulty] = useState("all");
-  const [filterSource, setFilterSource] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
 
   // PDF uploads history
   const [pdfUploads, setPdfUploads] = useState<PdfUpload[]>([]);
@@ -219,23 +216,15 @@ export default function QuestionBank() {
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Fetch existing questions ───
+  // ─── Fetch existing questions (para dedup na extração e badge de count) ───
   const fetchQuestions = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
-    let query = (supabase.from as any)("question_bank")
+    const { data, error } = await (supabase.from as any)("question_bank")
       .select("*")
       .order("created_at", { ascending: false });
-
-    if (filterSubject !== "all") query = query.eq("subject", filterSubject);
-    if (filterDifficulty !== "all") query = query.eq("difficulty", filterDifficulty);
-    if (filterSource !== "all") query = query.eq("source", filterSource);
-
-    const { data, error } = await query;
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     else setQuestions(data || []);
-    setLoading(false);
-  }, [user, filterSubject, filterDifficulty, filterSource]);
+  }, [user]);
 
   // ─── Fetch PDF uploads history ───
   const fetchUploads = useCallback(async () => {
@@ -647,14 +636,6 @@ export default function QuestionBank() {
       return updated;
     }));
   };
-
-  const filteredQuestions = questions.filter((q) => {
-    if (searchQuery) {
-      const norm = searchQuery.toLowerCase();
-      return q.text.toLowerCase().includes(norm) || q.subject.toLowerCase().includes(norm);
-    }
-    return true;
-  });
 
   const selectedCount = extractedQuestions.filter((q) => q.selected && !q.saved).length;
   const savedCount = extractedQuestions.filter((q) => q.saved).length;
@@ -1133,115 +1114,7 @@ export default function QuestionBank() {
 
           {/* ─── QUESTÕES TAB ─── */}
           <TabsContent value="questoes" className="space-y-4">
-            <div className="flex justify-end">
-              <Button onClick={() => { setEditingQuestion(null); setShowForm(true); }} size="sm">
-                <Plus className="w-4 h-4 mr-1" /> Adicionar Questão
-              </Button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-wrap gap-3">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar questão..."
-                  className="pl-9"
-                />
-              </div>
-              <Select value={filterSubject} onValueChange={setFilterSubject}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="Matéria" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-                <SelectTrigger className="w-36"><SelectValue placeholder="Dificuldade" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {difficulties.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={filterSource} onValueChange={setFilterSource}>
-                <SelectTrigger className="w-36"><SelectValue placeholder="Fonte" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="pdf_extract">PDF</SelectItem>
-                  <SelectItem value="docx_extract">Word</SelectItem>
-                  <SelectItem value="image_crop">Imagem</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Question list */}
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : filteredQuestions.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  {searchQuery ? "Nenhuma questão encontrada para esta busca." : "Nenhuma questão encontrada. Envie uma prova na aba Provas ou adicione manualmente!"}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {filteredQuestions.map((q) => (
-                  <Card key={q.id}>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground line-clamp-3">{q.text}</p>
-                          {q.image_url && (
-                            <div
-                              className="mt-2 relative inline-block cursor-zoom-in group"
-                              onClick={() => setPreviewImageUrl(q.image_url)}
-                            >
-                              <img src={q.image_url} alt="Imagem da questão" className="max-h-32 rounded border" loading="lazy" />
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-colors rounded">
-                                <Search className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="secondary">{q.subject}</Badge>
-                            {q.topic && <Badge variant="outline">{q.topic}</Badge>}
-                            <Badge variant="outline">
-                              {difficulties.find((d) => d.value === q.difficulty)?.label || q.difficulty}
-                            </Badge>
-                            {q.source && (
-                              <Badge variant="outline" className="text-xs">
-                                {sourceLabels[q.source] || q.source}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 shrink-0">
-                          <Button size="icon" variant="ghost" onClick={() => { setEditingQuestion(q); setShowForm(true); }} aria-label="Editar questão">
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => handleDelete(q.id)} disabled={deletingId === q.id} aria-label="Excluir questão">
-                            {deletingId === q.id ? <Loader2 className="w-4 h-4 animate-spin text-destructive" /> : <Trash2 className="w-4 h-4" />}
-                          </Button>
-                        </div>
-                      </div>
-                      {q.options && Array.isArray(q.options) && (
-                        <div className="mt-3 space-y-1">
-                          {(q.options as string[]).map((opt, i) => (
-                            <p key={i} className={`text-sm pl-2 ${i === q.correct_answer ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                              {String.fromCharCode(65 + i)}) {opt}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <QuestionBankFolderView />
           </TabsContent>
         </Tabs>
       </div>
