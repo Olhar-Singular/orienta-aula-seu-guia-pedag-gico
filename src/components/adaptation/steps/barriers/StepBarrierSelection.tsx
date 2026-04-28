@@ -28,7 +28,7 @@ import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { BARRIER_DIMENSIONS } from "@/lib/barriers";
 import type { WizardData, BarrierItem } from "../../AdaptationWizard";
-import { Users, User, MessageSquare, ShieldAlert, Pencil, X, Save } from "lucide-react";
+import { Users, User, MessageSquare, ShieldAlert, Pencil, X, Save, Sparkles } from "lucide-react";
 
 type ClassRow = { id: string; name: string };
 type StudentRow = { id: string; name: string };
@@ -193,6 +193,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               studentName: null,
               barriers: [],
               observationNotes: "",
+              aiInstructions: "",
               result: null,
               contextPillars: null,
               questionImages: { version_universal: {}, version_directed: {} },
@@ -218,6 +219,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                   studentName: null,
                   barriers: [],
                   observationNotes: "",
+                  aiInstructions: "",
                   result: null,
                   contextPillars: null,
                   questionImages: { version_universal: {}, version_directed: {} },
@@ -244,6 +246,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
                   studentName: students.find((s) => s.id === v)?.name || null,
                   barriers: [],
                   observationNotes: "",
+                  aiInstructions: "",
                   result: null,
                   contextPillars: null,
                   questionImages: { version_universal: {}, version_directed: {} },
@@ -361,6 +364,31 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
             />
             <p className="text-xs text-muted-foreground mt-1">
               {data.observationNotes.length}/2000
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI style instructions — efêmero, NÃO persiste no perfil do aluno */}
+      {data.barriers.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              Instruções para a IA (opcional)
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              Diga <strong>como</strong> você quer que a IA escreva — tom, formato, profundidade. Não descreva o aluno aqui (use o campo acima). A IA mantém os princípios pedagógicos (DUA) mesmo se você pedir o contrário.
+            </p>
+            <Textarea
+              placeholder="Ex: Use linguagem informal com emojis. Evite jargão técnico. Inclua um exemplo concreto antes de cada questão."
+              value={data.aiInstructions}
+              onChange={(e) => updateData({ aiInstructions: e.target.value })}
+              className="min-h-[80px] resize-y"
+              maxLength={500}
+            />
+            <p className={`text-xs mt-1 ${data.aiInstructions.length > 400 ? "text-destructive" : "text-muted-foreground"}`}>
+              {data.aiInstructions.length}/500
             </p>
           </CardContent>
         </Card>

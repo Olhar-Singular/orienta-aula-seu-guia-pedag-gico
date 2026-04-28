@@ -308,6 +308,7 @@ export const MOCK_MANUAL_WIZARD_DATA: WizardData = {
   barriers: [],
   adaptForWholeClass: false,
   observationNotes: "",
+  aiInstructions: "",
   result: null,
   contextPillars: null,
   questionImages: {
