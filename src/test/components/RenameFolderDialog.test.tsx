@@ -5,7 +5,7 @@ import RenameFolderDialog from "@/components/question-bank/RenameFolderDialog";
 
 beforeAll(() => {
   if (!Element.prototype.hasPointerCapture) {
-    // @ts-expect-error jsdom stub
+    // @ts-ignore jsdom stub
     Element.prototype.hasPointerCapture = () => false;
   }
 });
