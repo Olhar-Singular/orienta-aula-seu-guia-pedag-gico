@@ -6,11 +6,11 @@ import type { Question } from "@/components/question-bank/QuestionListView";
 
 beforeAll(() => {
   if (!Element.prototype.hasPointerCapture) {
-    // @ts-expect-error jsdom stub
+    // @ts-ignore jsdom stub
     Element.prototype.hasPointerCapture = () => false;
   }
   if (!Element.prototype.scrollIntoView) {
-    // @ts-expect-error jsdom stub
+    // @ts-ignore jsdom stub
     Element.prototype.scrollIntoView = () => {};
   }
 });

@@ -6,7 +6,7 @@ import type { Folder } from "@/lib/questionFolders";
 
 beforeAll(() => {
   if (!Element.prototype.hasPointerCapture) {
-    // @ts-expect-error jsdom stub
+    // @ts-ignore jsdom stub
     Element.prototype.hasPointerCapture = () => false;
   }
 });

@@ -30,7 +30,7 @@ export function useQuestionFolders(level: FolderLevel, options: Options = {}): R
     enabled: enabled && !!user,
     queryFn: async () => {
       const [rpcResult, emptyResult] = await Promise.all([
-        supabase.rpc("get_question_folders", {
+        (supabase.rpc as any)("get_question_folders", {
           p_level: level,
           p_grade: level === "subject" ? grade : null,
         }),
@@ -39,7 +39,7 @@ export function useQuestionFolders(level: FolderLevel, options: Options = {}): R
 
       if (rpcResult.error) throw rpcResult.error;
 
-      const rpcRows = (rpcResult.data ?? []) as Array<{
+      const rpcRows = (rpcResult.data ?? []) as unknown as Array<{
         folder_key: string | null;
         folder_count: number;
         last_at: string | null;
