@@ -274,6 +274,7 @@ export default function StepPdfPreview({
         italic: baseStyle.italic ?? false,
         textAlign: baseStyle.textAlign ?? "justify",
         lineHeight: baseStyle.lineHeight ?? 1.5,
+        color: baseStyle.color ?? "#0f172a",
       },
       questionSpacing: activity.questions[0]?.spacingAfter ?? 20,
       alternativeIndent: activity.questions[0]?.alternativeIndent ?? 12,
