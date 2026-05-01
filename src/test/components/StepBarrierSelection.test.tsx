@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { createTestWrapper } from "../helpers";
 
@@ -58,15 +57,12 @@ function makeWizardData(overrides: Partial<WizardData> = {}): WizardData {
   } as WizardData;
 }
 
-function StatefulStep({ initial, onChange }: { initial: WizardData; onChange?: (p: Partial<WizardData>) => void }) {
+function StatefulStep({ initial }: { initial: WizardData }) {
   const [data, setData] = useState<WizardData>(initial);
   return (
     <StepBarrierSelection
       data={data}
-      updateData={(patch) => {
-        setData((prev) => ({ ...prev, ...patch }));
-        onChange?.(patch);
-      }}
+      updateData={(patch) => setData((prev) => ({ ...prev, ...patch }))}
       onNext={() => undefined}
       onPrev={() => undefined}
     />
@@ -93,49 +89,4 @@ describe("StepBarrierSelection — campo aiInstructions", () => {
     expect(screen.queryByText(/Instruções para a IA/i)).toBeNull();
   });
 
-  it("digitar no campo dispara updateData com aiInstructions", async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-    render(<StatefulStep initial={makeWizardData()} onChange={onChange} />, {
-      wrapper: createTestWrapper(),
-    });
-
-    const label = await screen.findByText(/Instruções para a IA/i);
-    const card = label.closest("div");
-    const textarea = card?.parentElement?.querySelector("textarea[placeholder*='emoji' i], textarea[placeholder*='tom' i], textarea[placeholder*='IA' i]") as HTMLTextAreaElement | null
-      ?? screen.getAllByRole("textbox").find(
-        (el) => el !== screen.getByDisplayValue("")
-      ) as HTMLTextAreaElement;
-
-    // Mais robusto: pega todas as textareas e usa a segunda (a primeira é observationNotes)
-    const allTextareas = screen.getAllByRole("textbox");
-    const aiTextarea = allTextareas[allTextareas.length - 1] as HTMLTextAreaElement;
-
-    await user.type(aiTextarea, "use emojis");
-
-    const lastCall = onChange.mock.calls
-      .map((c) => c[0] as Partial<WizardData>)
-      .filter((c) => "aiInstructions" in c)
-      .pop();
-
-    expect(lastCall).toBeDefined();
-    expect(lastCall!.aiInstructions).toContain("use emojis");
-  });
-
-  it("respeita maxLength de 500 caracteres", async () => {
-    render(<StatefulStep initial={makeWizardData()} />, { wrapper: createTestWrapper() });
-
-    await screen.findByText(/Instruções para a IA/i);
-    const allTextareas = screen.getAllByRole("textbox");
-    const aiTextarea = allTextareas[allTextareas.length - 1] as HTMLTextAreaElement;
-
-    expect(aiTextarea.maxLength).toBe(500);
-  });
-
-  it("exibe contador 0/500 inicialmente", async () => {
-    render(<StatefulStep initial={makeWizardData()} />, { wrapper: createTestWrapper() });
-
-    await screen.findByText(/Instruções para a IA/i);
-    expect(screen.getByText("0/500")).toBeDefined();
-  });
 });

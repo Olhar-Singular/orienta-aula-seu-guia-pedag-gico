@@ -378,7 +378,7 @@ export default function StepBarrierSelection({ data, updateData, onNext, onPrev 
               Instruções para a IA (opcional)
             </p>
             <p className="text-xs text-muted-foreground mb-3">
-              Diga <strong>como</strong> você quer que a IA escreva — tom, formato, profundidade. Não descreva o aluno aqui (use o campo acima). A IA mantém os princípios pedagógicos (DUA) mesmo se você pedir o contrário.
+              Diga <strong>como</strong> você quer que a IA escreva: tom, formato, profundidade. Não descreva o aluno aqui (use o campo acima). A IA mantém os princípios pedagógicos (DUA) mesmo se você pedir o contrário.
             </p>
             <Textarea
               placeholder="Ex: Use linguagem informal com emojis. Evite jargão técnico. Inclua um exemplo concreto antes de cada questão."

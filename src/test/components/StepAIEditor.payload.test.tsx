@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, waitFor } from "@testing-library/react";
 import { MOCK_ADAPTATION_RESULT } from "../fixtures";
 import { createTestWrapper } from "../helpers";
 
@@ -67,10 +66,16 @@ describe("StepAIEditor — payload da edge function adapt-activity", () => {
     vi.stubGlobal("fetch", fetchMock);
   });
 
-  async function clickGerar() {
-    const user = userEvent.setup();
-    const button = await screen.findByRole("button", { name: /gerar adapta/i });
-    await user.click(button);
+  async function getAdaptActivityBody() {
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    const adaptCall = fetchMock.mock.calls.find(([url]) =>
+      typeof url === "string" && url.includes("/adapt-activity"),
+    );
+    expect(adaptCall, "expected fetch to /adapt-activity").toBeDefined();
+    const [, init] = adaptCall!;
+    return JSON.parse(init.body);
   }
 
   it("inclui ai_instructions no body quando o campo está preenchido", async () => {
@@ -87,14 +92,7 @@ describe("StepAIEditor — payload da edge function adapt-activity", () => {
       { wrapper: createTestWrapper() }
     );
 
-    await clickGerar();
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
-    });
-
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
+    const body = await getAdaptActivityBody();
     expect(body.ai_instructions).toBe("use emojis e seja informal");
   });
 
@@ -109,14 +107,7 @@ describe("StepAIEditor — payload da edge function adapt-activity", () => {
       { wrapper: createTestWrapper() }
     );
 
-    await clickGerar();
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
-    });
-
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
+    const body = await getAdaptActivityBody();
     expect(body.ai_instructions).toBeUndefined();
   });
 
@@ -131,14 +122,7 @@ describe("StepAIEditor — payload da edge function adapt-activity", () => {
       { wrapper: createTestWrapper() }
     );
 
-    await clickGerar();
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalled();
-    });
-
-    const [, init] = fetchMock.mock.calls[0];
-    const body = JSON.parse(init.body);
+    const body = await getAdaptActivityBody();
     expect(body.ai_instructions).toBeUndefined();
   });
 });
