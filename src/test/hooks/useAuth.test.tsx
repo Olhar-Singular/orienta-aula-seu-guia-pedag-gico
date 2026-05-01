@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 
 const onAuthStateChange = vi.fn();
 const getSession = vi.fn();
-const signUp = vi.fn();
 const signInWithPassword = vi.fn();
 const signOut = vi.fn();
 const unsubscribe = vi.fn();
@@ -14,7 +13,6 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: {
       onAuthStateChange: (cb: unknown) => onAuthStateChange(cb),
       getSession: () => getSession(),
-      signUp: (args: unknown) => signUp(args),
       signInWithPassword: (args: unknown) => signInWithPassword(args),
       signOut: () => signOut(),
     },
@@ -30,7 +28,6 @@ function wrapper({ children }: { children: ReactNode }) {
 beforeEach(() => {
   onAuthStateChange.mockReset();
   getSession.mockReset();
-  signUp.mockReset();
   signInWithPassword.mockReset();
   signOut.mockReset();
   unsubscribe.mockReset();
@@ -93,29 +90,10 @@ describe("useAuth", () => {
     expect(unsubscribe).toHaveBeenCalled();
   });
 
-  it("signUp forwards email, password, name and the origin-based redirect", async () => {
-    signUp.mockResolvedValue({ error: null });
+  it("does not expose signUp (signup public foi removido por segurança)", async () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.loading).toBe(false));
-
-    const res = await result.current.signUp("a@b.com", "secret", "Alex");
-    expect(res).toEqual({ error: null });
-    expect(signUp).toHaveBeenCalledWith({
-      email: "a@b.com",
-      password: "secret",
-      options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
-        data: { name: "Alex" },
-      },
-    });
-  });
-
-  it("signUp returns the supabase error when registration fails", async () => {
-    signUp.mockResolvedValue({ error: { message: "already registered" } });
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    const res = await result.current.signUp("a@b.com", "x", "Alex");
-    expect(res.error).toEqual({ message: "already registered" });
+    expect((result.current as unknown as Record<string, unknown>).signUp).toBeUndefined();
   });
 
   it("signIn forwards email and password, returns error object", async () => {
