@@ -6,11 +6,11 @@ import GradeSelect from "@/components/question-bank/GradeSelect";
 // jsdom não implementa hasPointerCapture — stub para Radix Select
 beforeAll(() => {
   if (!Element.prototype.hasPointerCapture) {
-    // @ts-ignore jsdom stub
+    // @ts-expect-error jsdom stub
     Element.prototype.hasPointerCapture = () => false;
   }
   if (!Element.prototype.scrollIntoView) {
-    // @ts-ignore jsdom stub
+    // @ts-expect-error jsdom stub
     Element.prototype.scrollIntoView = () => {};
   }
 });
