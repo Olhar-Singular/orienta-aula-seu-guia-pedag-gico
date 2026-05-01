@@ -122,14 +122,47 @@ VITE_SUPABASE_PUBLISHABLE_KEY=  # Chave anon
 VITE_SUPABASE_PROJECT_ID=       # ID do projeto
 ```
 
+## Ambientes Remotos
+
+| Ambiente | Plataforma | Identificador                                                | Observações                                    |
+|----------|------------|--------------------------------------------------------------|------------------------------------------------|
+| Staging  | Supabase   | `xnmxdnhvcrpckpbqblzx`                                       | Único projeto Supabase remoto ativo no momento |
+| Staging  | Vercel     | projeto `b2b-staging` (vinculado em `.vercel/project.json`)  | Use `vercel` CLI para logs, deploy e env       |
+
+**Regras de acesso:**
+
+- Operações destrutivas (migrations, `db push`, deploy de produção, edição de env vars) **só com confirmação explícita do usuário**.
+- Leituras (consultar tabelas, listar deployments, ver logs, baixar env) podem ser feitas direto.
+- Não existe ambiente de produção configurado aqui ainda — não inventar refs/URLs.
+
 ## MCP Servers
 
 Servidores MCP configurados em `.mcp.json` (auto-descobertos pelo Claude Code):
 
 | Servidor   | Transporte    | Uso                                                                        |
 |------------|---------------|----------------------------------------------------------------------------|
-| `supabase` | HTTP          | Queries, migrations e edge functions no projeto Supabase remoto            |
+| `supabase` | HTTP          | Queries, migrations e edge functions no projeto Supabase staging (`xnmxdnhvcrpckpbqblzx`). OAuth no browser na primeira chamada. |
+| `vercel`   | plugin        | Acesso a deployments, logs, envs e projetos Vercel. Autenticação via `mcp__plugin_vercel_vercel__authenticate`. Requer Vercel CLI instalado (`vercel --version`). |
 | `context7` | stdio (`npx`) | Docs ao vivo: TipTap, @react-pdf/renderer, @dnd-kit, Radix, TanStack Query |
+
+### Quando usar o MCP do Supabase
+
+- Inspecionar schema, RLS policies, dados de tabelas no staging
+- Validar se uma migration aplicada bate com o esperado
+- Consultar logs de edge functions remotas
+- **Nunca** rodar `apply_migration` ou DDL destrutivo sem o usuário pedir/confirmar
+
+### Quando usar o MCP do Vercel
+
+- Verificar status de deployment (preview/produção)
+- Ler logs de runtime/build
+- Listar/diff env vars antes de alterar
+- **Nunca** promover deployment para produção, mudar domínio ou env var sem confirmação
+
+### CLIs locais (complementam os MCPs)
+
+- `supabase` (já instalado em `~/.local/bin/supabase`) — para migrations locais e gen-types
+- `vercel` (instalado em `~/.npm-global/bin/vercel`) — para `vercel link`, `vercel env pull`, `vercel logs`, `vercel deploy`
 
 ### Quando consultar Context7
 
