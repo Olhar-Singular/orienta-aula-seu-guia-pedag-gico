@@ -1,15 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Find a user by email without listing all users */
+/**
+ * Resolve um usuário pelo email consultando apenas a tabela public.profiles.
+ *
+ * NÃO usar `auth.admin.listUsers()` aqui: paginação cega permite enumeração
+ * de TODOS os usuários do projeto por qualquer gestor de qualquer escola
+ * (vetor de leak cross-tenant — M4). Se o profile com email não existir,
+ * tratamos como "novo usuário" e o caminho de criação assume.
+ */
 // deno-lint-ignore no-explicit-any
 async function findUserByEmail(
   admin: any,
@@ -21,29 +24,14 @@ async function findUserByEmail(
     .eq("email", email.toLowerCase())
     .maybeSingle();
 
-  if ((profile as any)?.user_id) {
-    const { data } = await admin.auth.admin.getUserById((profile as any).user_id);
-    if (data?.user) return data.user;
-  }
+  if (!(profile as any)?.user_id) return null;
 
-  // Fallback: paginate auth users searching for email (handles edge cases
-  // where profile email is out of sync)
-  let page = 1;
-  const perPage = 100;
-  while (true) {
-    const { data } = await admin.auth.admin.listUsers({ page, perPage });
-    if (!data?.users?.length) break;
-    const found = data.users.find(
-      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-    );
-    if (found) return found;
-    if (data.users.length < perPage) break;
-    page++;
-  }
-  return null;
+  const { data } = await admin.auth.admin.getUserById((profile as any).user_id);
+  return data?.user ?? null;
 }
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -242,20 +230,21 @@ serve(async (req) => {
 
         userId = existingUser.id;
 
-        // If admin provided a password for an existing account, update it
-        // so the credentials defined in the teacher form actually work.
-        if (typeof password === "string" && password.length >= 6) {
-          const { error: pwdErr } = await admin.auth.admin.updateUserById(userId, {
-            password,
-          });
-
-          if (pwdErr) {
-            console.error("Update existing user password error:", pwdErr);
-            return new Response(JSON.stringify({ error: "Erro ao atualizar senha do usuário existente." }), {
-              status: 400,
+        // SECURITY (M3): NUNCA atualizar a senha de um usuário já existente
+        // por essa rota. Um gestor mal-intencionado poderia sequestrar contas
+        // de qualquer outra escola (incl. super-admin) só sabendo o email.
+        // Reset legítimo deve usar a action "reset-password" (envia link).
+        if (password) {
+          return new Response(
+            JSON.stringify({
+              error:
+                "Este e-mail já tem conta. Use 'Redefinir senha' para enviar um link ao usuário em vez de definir senha aqui.",
+            }),
+            {
+              status: 409,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+            }
+          );
         }
 
         // Ensure profile exists/updated

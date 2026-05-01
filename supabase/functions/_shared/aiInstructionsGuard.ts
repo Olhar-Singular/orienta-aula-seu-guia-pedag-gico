@@ -49,5 +49,3 @@ export function prepareAiInstructions(raw: string | undefined | null): string {
 
   return flattened;
 }
-
-export const __AI_INSTRUCTIONS_MAX_LENGTH = AI_INSTRUCTIONS_MAX_LENGTH;
