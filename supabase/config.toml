@@ -1,1 +1,60 @@
 project_id = "pvqjooezhoomtpymfiea"
+
+# =============================================================================
+# Auth — endurecido após incidente de signup não autorizado (2026-04-28).
+# A configuração também precisa estar refletida no Studio/Dashboard remoto:
+#   Authentication > Providers > Email > Enable Sign-ups: OFF
+#   Authentication > Providers > Email > Confirm email: ON
+# =============================================================================
+
+[auth]
+enable_signup = false
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+double_confirm_changes = true
+
+[auth.sms]
+enable_signup = false
+
+# -----------------------------------------------------------------------------
+# Edge functions — declarar verify_jwt explicitamente (default é true, mas
+# explicitar evita deploy acidental com --no-verify-jwt). As funções abaixo
+# validam o caller por código (auth.getUser + checagens de role). As
+# stream-only sem auth não devem existir; se aparecer alguma, marcar aqui.
+# -----------------------------------------------------------------------------
+
+[functions.adapt-activity]
+verify_jwt = true
+
+[functions.admin-ai-usage-report]
+verify_jwt = true
+
+[functions.admin-manage-schools]
+verify_jwt = true
+
+[functions.admin-manage-teachers]
+verify_jwt = true
+
+[functions.analyze-barriers]
+verify_jwt = true
+
+[functions.chat]
+verify_jwt = true
+
+[functions.extract-questions]
+verify_jwt = true
+
+[functions.generate-adaptation]
+verify_jwt = true
+
+[functions.generate-pei]
+verify_jwt = true
+
+[functions.generate-question-image]
+verify_jwt = true
+
+[functions.regenerate-question]
+verify_jwt = true
