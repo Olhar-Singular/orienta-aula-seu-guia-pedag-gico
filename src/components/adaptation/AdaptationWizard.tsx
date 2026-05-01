@@ -76,10 +76,6 @@ export type WizardData = {
   barriers: BarrierItem[];
   adaptForWholeClass: boolean;
   observationNotes: string;
-  /** Free-text style instructions sent to the AI for THIS run only.
-   *  Not persisted: lives only in wizard state. Hardened on the server
-   *  by `prepareAiInstructions` before being injected into the prompt. */
-  aiInstructions: string;
   result: AdaptationResult | null;
   contextPillars: ContextPillars | null;
   questionImages: SectionQuestionImages;
@@ -142,7 +138,6 @@ const EMPTY_DATA: WizardData = {
   barriers: [],
   adaptForWholeClass: false,
   observationNotes: "",
-  aiInstructions: "",
   result: null,
   contextPillars: null,
   questionImages: { version_universal: {}, version_directed: {} },

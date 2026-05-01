@@ -242,7 +242,6 @@ export default function StepAIEditor({ data, updateData, onNext, onPrev }: Props
             student_id: data.studentId || undefined,
             class_id: data.classId || undefined,
             observation_notes: data.observationNotes || undefined,
-            ai_instructions: data.aiInstructions?.trim() ? data.aiInstructions : undefined,
             school_id: schoolId || undefined,
             question_images: data.selectedQuestions
               .filter((q) => q.image_url)
