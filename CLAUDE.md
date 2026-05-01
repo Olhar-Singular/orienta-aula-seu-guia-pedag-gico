@@ -328,9 +328,15 @@ Lint → Test → Build
 ```
 Usa Bun com `--frozen-lockfile`. Requer secrets: vars Supabase. Deploy feito automaticamente pelo Vercel via integração nativa com GitHub.
 
+## Branches e PRs
+
+- **`main` = produção.** Apenas `development` faz merge em `main`, e só com confirmação explícita do usuário (release).
+- **`development` = staging.** Toda feature branch (`feat/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*`) abre PR contra `development`, **nunca** contra `main`.
+- **Nunca push direto** para `main` nem para `development` — sempre feature branch + PR.
+- Ao rodar `/ship` ou `gh pr create`, usar `--base development` por padrão.
+
 ## Segurança
 
-- **Nunca push direto para `main`** — usar feature branches + PR
 - `.env` no `.gitignore` — nunca commitar credenciais
 - Tokens de compartilhamento expiram em 7 dias
 - Share tokens excluem caracteres ambíguos (0, O, l, I, 1)
