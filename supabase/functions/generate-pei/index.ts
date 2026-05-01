@@ -3,11 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `Você é ISA (Inteligência de Suporte à Aprendizagem), especialista em pedagogia inclusiva e Planos Educacionais Individualizados (PEI).
 
@@ -23,6 +19,7 @@ REGRAS INVIOLÁVEIS:
 Gere o PEI preenchendo TODOS os campos solicitados com conteúdo detalhado e prático.`;
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -14,7 +14,6 @@ export function mockAuthHook(overrides = {}) {
       user: MOCK_USER,
       session: MOCK_SESSION,
       loading: false,
-      signUp: vi.fn(),
       signIn: vi.fn(),
       signOut: vi.fn(),
       ...overrides,

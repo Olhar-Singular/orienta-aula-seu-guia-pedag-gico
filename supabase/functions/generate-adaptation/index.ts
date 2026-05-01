@@ -4,11 +4,7 @@ import { logAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 const SYSTEM_PROMPT = `Você é o assistente pedagógico do Olhar Singular.
 
@@ -106,6 +102,7 @@ Ao gerar uma adaptação, SEMPRE responda no formato:
 `;
 
 serve(async (req) => {
+  const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
