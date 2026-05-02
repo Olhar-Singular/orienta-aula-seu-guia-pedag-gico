@@ -40,7 +40,8 @@ help:
 	@echo "    make db-pull            Baixar schema remoto como migration"
 	@echo "    make db-diff            Ver diff entre local e remoto"
 	@echo "    make db-new name=<nome> Criar nova migration"
-	@echo "    make db-seed-test-user  Criar usuário de teste (professor) no DB local"
+	@echo "    make db-seed-test-user   Criar usuários de teste (professor + super admin) no DB local"
+	@echo "    make db-seed-super-admin Criar apenas o super admin (admin@admin.com) no DB local"
 	@echo ""
 	@echo "  Edge Functions"
 	@echo "    make fn-deploy-all      Deploy de todas as edge functions"
@@ -160,8 +161,9 @@ db-new:
 	@test -n "$(name)" || (echo "Uso: make db-new name=<nome_da_migration>" && exit 1)
 	supabase migration new $(name)
 
-# Cria usuário de teste (professor) no DB local. Idempotente.
-# Email: teste@teste.com / Senha: 123123
+# Cria usuários de teste no DB local (professor + super admin). Idempotente.
+#   - teste@teste.com / 123123 (professor)
+#   - admin@admin.com / 123123 (super admin)
 # Usa psql na porta default do Supabase local (54322).
 .PHONY: db-seed-test-user
 db-seed-test-user:
@@ -170,6 +172,16 @@ db-seed-test-user:
 	@PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres \
 		-v ON_ERROR_STOP=1 \
 		-f supabase/scripts/seed_test_user.sql
+
+# Cria APENAS o super admin no DB local. Idempotente.
+# Email: admin@admin.com / Senha: 123123
+.PHONY: db-seed-super-admin
+db-seed-super-admin:
+	@command -v psql >/dev/null 2>&1 || (echo "psql não encontrado. Instale o postgresql-client." && exit 1)
+	@supabase status >/dev/null 2>&1 || (echo "Supabase local não está rodando. Execute: make sb-start" && exit 1)
+	@PGPASSWORD=postgres psql -h 127.0.0.1 -p 54322 -U postgres -d postgres \
+		-v ON_ERROR_STOP=1 \
+		-f supabase/scripts/seed_super_admin.sql
 
 # ─────────────────────────────────────────────
 #  EDGE FUNCTIONS
