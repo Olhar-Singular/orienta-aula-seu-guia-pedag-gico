@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -70,6 +70,7 @@ serve(async (req) => {
 
     const { messages } = await req.json();
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-flash");
 
     // Messages may contain multimodal content (text + image_url)
     // Forward them as-is to the vision-capable model
@@ -86,7 +87,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: ai.resolveModel("google/gemini-2.5-flash"),
+          model: modelName,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             ...(messages || []),
@@ -97,16 +98,16 @@ serve(async (req) => {
       });
     } catch (fetchErr: any) {
       const isTimeout = fetchErr?.name === "AbortError";
-      logAiUsage({
+      await runLogAiUsage({
         user_id: authData.user.id,
         action_type: "chat",
-        model: "google/gemini-2.5-flash",
+        model: modelName,
         prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
         request_duration_ms: Date.now() - chatStartTime,
         status: isTimeout ? "timeout" : "error",
         error_message: isTimeout ? "Timeout after 60s" : fetchErr?.message,
         metadata: { streaming: true },
-      }).catch(() => {});
+      });
       throw new Error(isTimeout ? "A IA demorou demais." : "Falha na conexão com a IA.");
     } finally {
       clearTimeout(timeoutId);
@@ -115,16 +116,16 @@ serve(async (req) => {
     if (!response.ok) {
       const t = await response.text();
       console.error("AI error:", response.status, t);
-      logAiUsage({
+      await runLogAiUsage({
         user_id: authData.user.id,
         action_type: "chat",
-        model: "google/gemini-2.5-flash",
+        model: modelName,
         prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
         request_duration_ms: Date.now() - chatStartTime,
         status: "error",
         error_message: `HTTP ${response.status}: ${t.slice(0, 200)}`,
         metadata: { streaming: true, http_status: response.status },
-      }).catch(() => {});
+      });
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,15 +137,15 @@ serve(async (req) => {
     }
 
     // Log chat AI usage (streaming — tokens estimated)
-    logAiUsage({
+    await runLogAiUsage({
       user_id: authData.user.id,
       action_type: "chat",
-      model: "google/gemini-2.5-flash",
+      model: modelName,
       prompt_text: SYSTEM_PROMPT + JSON.stringify(messages || []),
       request_duration_ms: Date.now() - chatStartTime,
       status: "success",
       metadata: { streaming: true },
-    }).catch(() => {});
+    });
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

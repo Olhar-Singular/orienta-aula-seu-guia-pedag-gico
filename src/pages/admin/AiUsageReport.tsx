@@ -9,17 +9,9 @@ import { TokensByModelChart } from "@/components/admin/ai-usage/TokensByModelCha
 import { TokensByDayChart } from "@/components/admin/ai-usage/TokensByDayChart";
 import { UsageLogTable } from "@/components/admin/ai-usage/UsageLogTable";
 import { Brain, Activity, Clock, AlertCircle } from "lucide-react";
+import { labelForActionType } from "@/lib/aiUsageLabels";
 
 type Period = "day" | "week" | "month";
-
-const ACTION_LABELS: Record<string, string> = {
-  adaptation: "Adaptação",
-  adaptation_wizard: "Wizard",
-  chat: "Chat",
-  barrier_analysis: "Barreiras",
-  question_extraction: "Extração",
-  pei_generation: "PEI",
-};
 
 export default function AiUsageReport() {
   const [period, setPeriod] = useState<Period>("week");
@@ -134,7 +126,7 @@ export default function AiUsageReport() {
               {Object.entries(report.by_action_type).map(([action, stats]) => (
                 <div key={action} className="rounded-lg border p-4 space-y-1">
                   <p className="text-sm font-medium capitalize">
-                    {ACTION_LABELS[action] || action.replace(/_/g, " ")}
+                    {labelForActionType(action)}
                   </p>
                   <p className="text-xl font-bold tabular-nums">{stats.requests}</p>
                   <p className="text-xs text-muted-foreground">

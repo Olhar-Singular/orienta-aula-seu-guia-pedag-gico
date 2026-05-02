@@ -94,6 +94,29 @@ describe("UsageLogTable", () => {
     expect(getByText("$0.000123")).toBeInTheDocument();
   });
 
+  it("formats cost when PostgREST returns NUMERIC as string", () => {
+    // PostgREST returns NUMERIC columns as strings by default; the table must
+    // coerce them so .toFixed() doesn't throw TypeError.
+    const stringCost = "0.000456" as unknown as number;
+    const { getByText } = render(
+      <UsageLogTable logs={[makeLog({ cost_total: stringCost })]} />
+    );
+    expect(getByText("$0.000456")).toBeInTheDocument();
+  });
+
+  it("maps regenerate_question and image_generation to Portuguese labels", () => {
+    const { getByText } = render(
+      <UsageLogTable
+        logs={[
+          makeLog({ id: "a", action_type: "regenerate_question" }),
+          makeLog({ id: "b", action_type: "image_generation" }),
+        ]}
+      />
+    );
+    expect(getByText("Regenerar Questão")).toBeInTheDocument();
+    expect(getByText("Geração de Imagem")).toBeInTheDocument();
+  });
+
   it("renders duration as ms when below 1 second", () => {
     const { getByText } = render(
       <UsageLogTable logs={[makeLog({ request_duration_ms: 250 })]} />

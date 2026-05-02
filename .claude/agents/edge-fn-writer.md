@@ -13,7 +13,8 @@ Você é o especialista em edge functions Deno/Supabase deste projeto. Suas entr
 supabase/functions/
 ├── _shared/
 │   ├── aiConfig.ts      # getAiConfig() — resolve provedor (Lovable/Google), modelo, apiKey
-│   ├── logAiUsage.ts    # logAiUsage() — grava uso de IA em ai_usage_logs
+│   ├── logAiUsage.ts    # runLogAiUsage() — grava uso de IA com waitUntil
+│   ├── logAiUsageCore.ts # lógica testável (Vitest/Node)
 │   └── sanitize.ts      # sanitize() — limpa strings antes de salvar
 └── <nome-da-function>/
     └── index.ts         # serve(async req => { ... })
@@ -27,7 +28,7 @@ supabase/functions/
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts"; // só se consumir IA
 ```
 
@@ -96,24 +97,50 @@ serve(async (req) => {
 
 ### 4. Se a function consome IA
 
-Use `getAiConfig()` pra resolver provedor (Lovable ou Google) e `logAiUsage()` pra gravar o uso. Padrão:
+Use `getAiConfig()` pra resolver provedor (Lovable ou Google) e `runLogAiUsage()`
+pra gravar o uso de forma persistente. Padrão:
 
 ```typescript
-const config = getAiConfig();
+import { getAiConfig } from "../_shared/aiConfig.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
+
+const ai = getAiConfig();
+const modelName = ai.resolveModel("google/gemini-2.5-flash"); // hoist!
 const startedAt = Date.now();
-// ... chamada ao provedor de IA ...
-await logAiUsage(supabase, {
+// ... chamada ao provedor de IA usando modelName ...
+
+await runLogAiUsage({
   user_id: user.id,
-  action_type: "adapt-activity",   // identificador único por function
-  model: requestedModel,
-  input_tokens: inputTokens,
-  output_tokens: outputTokens,
+  school_id: school_id || undefined,
+  action_type: "minha_function",   // snake_case, único por function
+  model: modelName,                // mesma string que foi pro provedor
+  input_tokens: aiData.usage?.prompt_tokens || 0,
+  output_tokens: aiData.usage?.completion_tokens || 0,
   request_duration_ms: Date.now() - startedAt,
   status: "success",
 });
 ```
 
-Leia `supabase/functions/_shared/logAiUsage.ts` antes de chamar pra ver a assinatura atualizada.
+**Por que `runLogAiUsage` em vez de `logAiUsage` direto:** edge functions são
+serverless. Sem `EdgeRuntime.waitUntil`, promises pendentes podem ser dropadas
+quando o isolate termina ao retornar a Response. `runLogAiUsage` resolve isso
+(usa waitUntil quando disponível, senão `await` inline).
+
+**Sempre `await`** (mesmo em caminhos de erro antes de `throw`/`return`):
+
+```typescript
+} catch (fetchErr) {
+  await runLogAiUsage({ ..., status: "error", error_message: fetchErr.message });
+  throw new Error("Falha na IA");
+}
+```
+
+**Modelo logado deve ser `modelName` (resolvido), não a string original** —
+o lookup de pricing em `ai_model_pricing` usa essa coluna; divergência leva a
+custo zerado e breakdown por modelo errado.
+
+Leia `supabase/functions/_shared/logAiUsage.ts` e `logAiUsageCore.ts` antes de
+chamar pra ver a assinatura atualizada.
 
 ### 5. Se a function é admin-only
 
@@ -149,7 +176,7 @@ if (!isSuperAdmin) {
 2. **Não pule autenticação** a menos que seja explícito que a rota é pública
 3. **Sempre retorne JSON** com `Content-Type: application/json`
 4. **Sempre inclua CORS headers** em todas as responses (sucesso e erro)
-5. **`action_type` deve ser único por function** — pesquise em `logAiUsage(` no codebase antes de escolher
+5. **`action_type` deve ser único por function (snake_case)** — pesquise em `runLogAiUsage(` no codebase antes de escolher
 6. **Não commit** — o projeto tem regra explícita de aguardar confirmação
 7. **Streaming SSE**: se for streaming, siga o padrão de `adapt-activity` e do cliente `src/lib/streamAI.ts`
 

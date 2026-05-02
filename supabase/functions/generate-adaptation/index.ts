@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 
@@ -144,6 +144,7 @@ serve(async (req) => {
 
     const { messages, context, action } = await req.json();
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-pro");
 
     let systemContent = SYSTEM_PROMPT;
 
@@ -187,7 +188,7 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: ai.resolveModel("google/gemini-2.5-pro"),
+          model: modelName,
           messages: [
             { role: "system", content: systemContent },
             ...(messages || []),
@@ -198,16 +199,16 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
       });
     } catch (fetchErr: any) {
       const isTimeout = fetchErr?.name === "AbortError";
-      logAiUsage({
+      await runLogAiUsage({
         user_id: authData.user.id,
         action_type: "adaptation_wizard",
-        model: "google/gemini-2.5-pro",
+        model: modelName,
         prompt_text: systemContent,
         request_duration_ms: Date.now() - aiStartTime,
         status: isTimeout ? "timeout" : "error",
         error_message: isTimeout ? "Timeout after 90s" : fetchErr?.message,
         metadata: { streaming: true, action: action || "generate" },
-      }).catch(() => {});
+      });
       throw new Error(isTimeout ? "A IA demorou demais para responder." : "Falha na conexão com a IA.");
     } finally {
       clearTimeout(timeoutId);
@@ -216,16 +217,16 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
     if (!response.ok) {
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      logAiUsage({
+      await runLogAiUsage({
         user_id: authData.user.id,
         action_type: "adaptation_wizard",
-        model: "google/gemini-2.5-pro",
+        model: modelName,
         prompt_text: systemContent,
         request_duration_ms: Date.now() - aiStartTime,
         status: "error",
         error_message: `HTTP ${response.status}: ${t.slice(0, 200)}`,
         metadata: { streaming: true, action: action || "generate", http_status: response.status },
-      }).catch(() => {});
+      });
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições excedido. Tente novamente em alguns segundos." }), {
           status: 429,
@@ -239,15 +240,15 @@ ${context.notes ? "OBSERVAÇÕES DO PROFESSOR:\n" + context.notes : ""}`;
     }
 
     // Log AI usage for streaming (tokens estimated from input, output unknown)
-    logAiUsage({
+    await runLogAiUsage({
       user_id: authData.user.id,
       action_type: "adaptation_wizard",
-      model: "google/gemini-2.5-pro",
+      model: modelName,
       prompt_text: systemContent + JSON.stringify(messages || []),
       request_duration_ms: Date.now() - aiStartTime,
       status: "success",
       metadata: { streaming: true, action: action || "generate" },
-    }).catch(() => {});
+    });
 
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },

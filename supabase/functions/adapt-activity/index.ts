@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 
@@ -669,7 +669,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
     } catch (fetchErr: any) {
       aiDurationMs = Date.now() - aiStartTime;
       const isTimeout = fetchErr?.name === "AbortError";
-      logAiUsage({
+      await runLogAiUsage({
         user_id: user.id,
         school_id: school_id || undefined,
         action_type: "adaptation",
@@ -686,7 +686,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
           has_student: !!student_id,
           has_pei: !!peiContext,
         },
-      }).catch(() => {});
+      });
       throw new Error(isTimeout ? "A IA demorou demais para responder. Tente novamente." : "Falha na conexão com a IA.");
     } finally {
       clearTimeout(timeoutId);
@@ -696,7 +696,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
       // Log error
-      logAiUsage({
+      await runLogAiUsage({
         user_id: user.id,
         school_id: school_id || undefined,
         action_type: "adaptation",
@@ -713,7 +713,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
           has_student: !!student_id,
           http_status: aiResponse.status,
         },
-      }).catch(() => {});
+      });
 
       if (aiResponse.status === 429) {
         return new Response(
@@ -739,7 +739,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
     }
 
     // Log AI usage (fire-and-forget)
-    logAiUsage({
+    await runLogAiUsage({
       user_id: user.id,
       school_id: school_id || undefined,
       action_type: "adaptation",
@@ -756,7 +756,7 @@ BARREIRAS OBSERVÁVEIS DO ALUNO:
         has_student: !!student_id,
         has_pei: !!peiContext,
       },
-    }).catch(() => {});
+    });
 
     const adaptationResult = parseDslResponse(responseContent);
 

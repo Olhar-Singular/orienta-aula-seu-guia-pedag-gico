@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getAiConfig, resolveImagePayloadFields } from "../_shared/aiConfig.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
 
@@ -13,6 +14,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-3.1-flash-image-preview");
 
     // Auth
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -52,6 +54,7 @@ REGRAS:
 - Se for geografia, use mapas ou representações geográficas precisas
 - Se for matemática, use representações geométricas precisas`;
 
+    const aiStartTime = Date.now();
     const aiResponse = await fetch(`${ai.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -59,17 +62,28 @@ REGRAS:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: ai.resolveModel("google/gemini-3.1-flash-image-preview"),
+        model: modelName,
         messages: [
           { role: "user", content: imagePrompt },
         ],
         ...resolveImagePayloadFields(ai.isLovable),
       }),
     });
+    const aiDurationMs = Date.now() - aiStartTime;
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI image generation error:", aiResponse.status, errText);
+      await runLogAiUsage({
+        user_id: user.id,
+        action_type: "image_generation",
+        model: modelName,
+        prompt_text: imagePrompt,
+        request_duration_ms: aiDurationMs,
+        status: "error",
+        error_message: `HTTP ${aiResponse.status}: ${errText.slice(0, 200)}`,
+        metadata: { http_status: aiResponse.status },
+      });
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Limite de requisições atingido. Tente novamente em alguns minutos." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -84,18 +98,42 @@ REGRAS:
     const imageData = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
 
     if (!imageData) {
+      await runLogAiUsage({
+        user_id: user.id,
+        action_type: "image_generation",
+        model: modelName,
+        input_tokens: aiData.usage?.prompt_tokens || 0,
+        output_tokens: aiData.usage?.completion_tokens || 0,
+        prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? imagePrompt : undefined,
+        request_duration_ms: aiDurationMs,
+        status: "error",
+        error_message: "AI did not return an image",
+      });
       return new Response(JSON.stringify({ error: "A IA não gerou uma imagem. Tente com uma descrição diferente." }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Log success before storage upload (uploads can fail but the AI was billed)
+    await runLogAiUsage({
+      user_id: user.id,
+      action_type: "image_generation",
+      model: modelName,
+      input_tokens: aiData.usage?.prompt_tokens || 0,
+      output_tokens: aiData.usage?.completion_tokens || 0,
+      prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? imagePrompt : undefined,
+      request_duration_ms: aiDurationMs,
+      status: "success",
+      metadata: { has_context: !!context },
+    });
+
     // Upload to storage
     const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "");
     const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-    
+
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    
+
     const fileName = `${user.id}/generated_${Date.now()}_${Math.random().toString(36).slice(2)}.png`;
     const { error: uploadError } = await adminClient.storage
       .from("question-images")
