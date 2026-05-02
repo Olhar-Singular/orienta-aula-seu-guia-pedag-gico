@@ -1,4 +1,7 @@
 {
+  "rewrites": [
+    { "source": "/((?!assets/|.*\\.(?:js|css|png|jpg|jpeg|svg|ico|webp|woff2?|ttf|otf|map|json|txt|xml|pdf)$).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
