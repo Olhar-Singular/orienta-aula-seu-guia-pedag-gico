@@ -7,6 +7,7 @@ const getSession = vi.fn();
 const signInWithPassword = vi.fn();
 const signOut = vi.fn();
 const unsubscribe = vi.fn();
+const toastError = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -16,6 +17,15 @@ vi.mock("@/integrations/supabase/client", () => ({
       signInWithPassword: (args: unknown) => signInWithPassword(args),
       signOut: () => signOut(),
     },
+  },
+}));
+
+vi.mock("sonner", () => ({
+  toast: {
+    error: (msg: string) => toastError(msg),
+    success: vi.fn(),
+    info: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -31,6 +41,7 @@ beforeEach(() => {
   signInWithPassword.mockReset();
   signOut.mockReset();
   unsubscribe.mockReset();
+  toastError.mockReset();
 
   onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } });
   getSession.mockResolvedValue({ data: { session: null } });
@@ -81,6 +92,69 @@ describe("useAuth", () => {
     });
     expect(result.current.user).toBeNull();
     expect(result.current.session).toBeNull();
+  });
+
+  it("shows expired-session toast on involuntary SIGNED_OUT after a session existed", async () => {
+    let emitter: ((evt: string, session: any) => void) | null = null;
+    onAuthStateChange.mockImplementation((cb: any) => {
+      emitter = cb;
+      return { data: { subscription: { unsubscribe } } };
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      emitter!("SIGNED_IN", { access_token: "tok", user: { id: "u" } });
+    });
+
+    act(() => {
+      emitter!("SIGNED_OUT", null);
+    });
+
+    expect(toastError).toHaveBeenCalledWith(
+      "Sua sessão expirou. Faça login novamente."
+    );
+  });
+
+  it("does NOT show expired-session toast when signOut() was called intentionally", async () => {
+    let emitter: ((evt: string, session: any) => void) | null = null;
+    onAuthStateChange.mockImplementation((cb: any) => {
+      emitter = cb;
+      return { data: { subscription: { unsubscribe } } };
+    });
+    signOut.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      emitter!("SIGNED_IN", { access_token: "tok", user: { id: "u" } });
+    });
+
+    await act(async () => {
+      await result.current.signOut();
+      emitter!("SIGNED_OUT", null);
+    });
+
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("does NOT show expired-session toast on initial SIGNED_OUT (no prior session)", async () => {
+    let emitter: ((evt: string, session: any) => void) | null = null;
+    onAuthStateChange.mockImplementation((cb: any) => {
+      emitter = cb;
+      return { data: { subscription: { unsubscribe } } };
+    });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      emitter!("SIGNED_OUT", null);
+    });
+
+    expect(toastError).not.toHaveBeenCalled();
   });
 
   it("unsubscribes on unmount", async () => {

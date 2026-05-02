@@ -17,11 +17,8 @@ export async function streamAI({
   onDone: () => void;
   onError: (error: string) => void;
 }) {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    const resp = await fetch(`${FUNCTIONS_URL}/${endpoint}`, {
+  const doFetch = (token: string) =>
+    fetch(`${FUNCTIONS_URL}/${endpoint}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -30,6 +27,27 @@ export async function streamAI({
       },
       body: JSON.stringify(body),
     });
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    let resp = await doFetch(token);
+
+    if (resp.status === 401 && session) {
+      const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshed.session) {
+        await supabase.auth.signOut();
+        onError("Sua sessão expirou. Faça login novamente.");
+        return;
+      }
+      resp = await doFetch(refreshed.session.access_token);
+    }
+
+    if (resp.status === 401) {
+      onError("Sua sessão expirou. Faça login novamente.");
+      return;
+    }
 
     if (!resp.ok) {
       const data = await resp.json().catch(() => ({ error: "Erro de conexão" }));

@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - development
   pull_request:
     branches:
       - main
+      - development
   workflow_dispatch:
 
 jobs:
@@ -33,6 +35,10 @@ jobs:
 
       - name: Test
         run: bun run test
+        env:
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_PUBLISHABLE_KEY: dummy-anon-key-for-tests
+          VITE_SUPABASE_PROJECT_ID: ci-tests
 
       - name: Build
         run: bun run build
