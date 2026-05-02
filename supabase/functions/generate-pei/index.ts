@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -79,6 +79,7 @@ ${!barrierList && !historyList ? "IMPORTANTE: Como não há barreiras ou histór
 Preencha os campos usando a função fornecida.`;
 
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-flash");
 
     const peiStartTime = Date.now();
     const aiResponse = await fetch(`${ai.baseUrl}/chat/completions`, {
@@ -88,7 +89,7 @@ Preencha os campos usando a função fornecida.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: ai.resolveModel("google/gemini-2.5-flash"),
+        model: modelName,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userPrompt },
@@ -160,10 +161,10 @@ Preencha os campos usando a função fornecida.`;
     const aiData = await aiResponse.json();
 
     // Log AI usage
-    logAiUsage({
+    await runLogAiUsage({
       user_id: user.id,
       action_type: "pei_generation",
-      model: "google/gemini-2.5-flash",
+      model: modelName,
       input_tokens: aiData.usage?.prompt_tokens || 0,
       output_tokens: aiData.usage?.completion_tokens || 0,
       prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? JSON.stringify(aiData) : undefined,
@@ -171,7 +172,7 @@ Preencha os campos usando a função fornecida.`;
       request_duration_ms: Date.now() - peiStartTime,
       status: "success",
       metadata: { student_id },
-    }).catch(() => {});
+    });
 
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
 

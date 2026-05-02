@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -52,6 +52,7 @@ serve(async (req) => {
     }
 
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-flash");
 
     const systemPrompt = `Você é um especialista em educação inclusiva e Design Universal para Aprendizagem (DUA).
 Analise a atividade escolar fornecida e identifique barreiras pedagógicas potenciais nas seguintes categorias de neurodivergência:
@@ -79,7 +80,7 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: ai.resolveModel("google/gemini-2.5-flash"),
+          model: modelName,
           messages: [
             { role: "system", content: systemPrompt },
             {
@@ -158,17 +159,17 @@ Para cada barreira encontrada, classifique a severidade (alta/media/baixa) e sug
     const data = await response.json();
 
     // Log AI usage
-    logAiUsage({
+    await runLogAiUsage({
       user_id: authData.user.id,
       action_type: "barrier_analysis",
-      model: "google/gemini-2.5-flash",
+      model: modelName,
       input_tokens: data.usage?.prompt_tokens || 0,
       output_tokens: data.usage?.completion_tokens || 0,
       prompt_text: (data.usage?.prompt_tokens || 0) === 0 ? activity_text : undefined,
       response_text: (data.usage?.completion_tokens || 0) === 0 ? JSON.stringify(data.choices?.[0]) : undefined,
       request_duration_ms: Date.now() - barrierStartTime,
       status: "success",
-    }).catch(() => {});
+    });
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
