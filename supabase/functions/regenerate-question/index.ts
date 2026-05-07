@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -284,9 +284,9 @@ Regenere esta questão melhorando clareza, scaffolding e adequação às barreir
     // Log AI usage
     const inputTokens = aiData.usage?.prompt_tokens || 0;
     const outputTokens = aiData.usage?.completion_tokens || 0;
-    await logAiUsage({
+    await runLogAiUsage({
       user_id: user.id,
-      action_type: "regenerate-question",
+      action_type: "regenerate_question",
       model: modelName,
       input_tokens: inputTokens,
       output_tokens: outputTokens,

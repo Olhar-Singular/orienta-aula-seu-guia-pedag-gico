@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 type AuthContextType = {
@@ -16,19 +17,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const intentionalSignOutRef = useRef(false);
+  const hadSessionRef = useRef(false);
+  const expiredToastShownRef = useRef(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, nextSession) => {
+        if (event === "SIGNED_OUT") {
+          if (
+            hadSessionRef.current &&
+            !intentionalSignOutRef.current &&
+            !expiredToastShownRef.current
+          ) {
+            expiredToastShownRef.current = true;
+            toast.error("Sua sessão expirou. Faça login novamente.");
+          }
+          intentionalSignOutRef.current = false;
+        }
+
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          expiredToastShownRef.current = false;
+        }
+
+        hadSessionRef.current = !!nextSession;
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: initial } }) => {
+      hadSessionRef.current = !!initial;
+      setSession(initial);
+      setUser(initial?.user ?? null);
       setLoading(false);
     });
 
@@ -41,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    intentionalSignOutRef.current = true;
     await supabase.auth.signOut();
   };
 

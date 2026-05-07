@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitize } from "../_shared/sanitize.ts";
-import { logAiUsage } from "../_shared/logAiUsage.ts";
+import { runLogAiUsage } from "../_shared/logAiUsage.ts";
 import { getAiConfig } from "../_shared/aiConfig.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -80,6 +80,7 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const ai = getAiConfig();
+    const modelName = ai.resolveModel("google/gemini-2.5-flash");
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader! } },
@@ -176,7 +177,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: ai.resolveModel("google/gemini-2.5-flash"),
+        model: modelName,
         messages,
         tools: [TOOL_SCHEMA],
         tool_choice: { type: "function", function: { name: "save_questions" } },
@@ -200,10 +201,10 @@ serve(async (req) => {
     const aiData = await aiResponse.json();
 
     // Log AI usage
-    logAiUsage({
+    await runLogAiUsage({
       user_id: user.id,
       action_type: "question_extraction",
-      model: "google/gemini-2.5-flash",
+      model: modelName,
       input_tokens: aiData.usage?.prompt_tokens || 0,
       output_tokens: aiData.usage?.completion_tokens || 0,
       prompt_text: (aiData.usage?.prompt_tokens || 0) === 0 ? JSON.stringify(messages) : undefined,
@@ -211,7 +212,7 @@ serve(async (req) => {
       request_duration_ms: Date.now() - extractStartTime,
       status: "success",
       metadata: { file_name: pdfFileName },
-    }).catch(() => {});
+    });
 
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let questions: any[] = [];

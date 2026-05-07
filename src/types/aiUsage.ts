@@ -1,3 +1,8 @@
+// PostgREST returns NUMERIC columns as strings to preserve precision; the
+// admin-ai-usage-report edge function normalizes them to numbers before
+// returning. Components must still defend against either shape.
+export type Numericish = number | string;
+
 export interface AiUsageLog {
   id: string;
   user_id: string | null;
@@ -8,13 +13,14 @@ export interface AiUsageLog {
   input_tokens: number;
   output_tokens: number;
   total_tokens: number;
-  cost_input: number;
-  cost_output: number;
-  cost_total: number;
+  cost_input: Numericish;
+  cost_output: Numericish;
+  cost_total: Numericish;
   request_duration_ms: number | null;
   status: "success" | "error" | "timeout";
   error_message: string | null;
   metadata: Record<string, unknown>;
+  tokens_source?: "api" | "estimated" | "unknown";
   created_at: string;
 }
 

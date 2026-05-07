@@ -181,6 +181,15 @@ serve(async (req) => {
       by_school[sid].total_cost += parseFloat((log as any).cost_total || "0");
     }
 
+    // Normalize NUMERIC columns to numbers so the frontend can call .toFixed()
+    // without runtime TypeError. PostgREST returns NUMERIC as string by default.
+    const logs = items.slice(0, 100).map((l: any) => ({
+      ...l,
+      cost_input: parseFloat(l.cost_input ?? "0"),
+      cost_output: parseFloat(l.cost_output ?? "0"),
+      cost_total: parseFloat(l.cost_total ?? "0"),
+    }));
+
     return new Response(
       JSON.stringify({
         period,
@@ -191,7 +200,7 @@ serve(async (req) => {
         by_day,
         by_action_type,
         by_school,
-        logs: items.slice(0, 100),
+        logs,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

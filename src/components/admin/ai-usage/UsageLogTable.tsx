@@ -9,19 +9,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Clock } from "lucide-react";
 import type { AiUsageLog } from "@/types/aiUsage";
+import { labelForActionType } from "@/lib/aiUsageLabels";
 
 interface Props {
   logs: AiUsageLog[];
 }
-
-const ACTION_LABELS: Record<string, string> = {
-  adaptation: "Adaptação",
-  adaptation_wizard: "Wizard",
-  chat: "Chat",
-  barrier_analysis: "Barreiras",
-  question_extraction: "Extração",
-  pei_generation: "PEI",
-};
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -58,7 +50,8 @@ export function UsageLogTable({ logs }: Props) {
         </TableHeader>
         <TableBody>
           {logs.map((log) => {
-            const isEstimated = (log as any).tokens_source === "estimated";
+            const isEstimated = log.tokens_source === "estimated";
+            const costTotal = Number(log.cost_total ?? 0);
             return (
               <TableRow key={log.id}>
                 <TableCell className="whitespace-nowrap text-xs tabular-nums">
@@ -76,7 +69,7 @@ export function UsageLogTable({ logs }: Props) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs">
-                  {ACTION_LABELS[log.action_type] || log.action_type}
+                  {labelForActionType(log.action_type)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-xs">
                   {formatTokens(log.input_tokens)}
@@ -90,7 +83,7 @@ export function UsageLogTable({ logs }: Props) {
                   {formatTokens(log.total_tokens)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-xs">
-                  ${log.cost_total.toFixed(6)}
+                  ${costTotal.toFixed(6)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums text-xs">
                   {log.request_duration_ms
