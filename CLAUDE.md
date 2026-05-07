@@ -124,16 +124,27 @@ VITE_SUPABASE_PROJECT_ID=       # ID do projeto
 
 ## Ambientes Remotos
 
-| Ambiente | Plataforma | Identificador                                                | Observações                                    |
-|----------|------------|--------------------------------------------------------------|------------------------------------------------|
-| Staging  | Supabase   | `xnmxdnhvcrpckpbqblzx`                                       | Único projeto Supabase remoto ativo no momento |
-| Staging  | Vercel     | projeto `b2b-staging` (vinculado em `.vercel/project.json`)  | Use `vercel` CLI para logs, deploy e env       |
+| Ambiente | Plataforma | Identificador                                                | Domínio                       |
+|----------|------------|--------------------------------------------------------------|-------------------------------|
+| Staging  | Supabase   | `xnmxdnhvcrpckpbqblzx`                                       | —                             |
+| Staging  | Vercel     | projeto `b2b-staging` (vinculado em `.vercel/project.json`)  | `staging.olharsingular.com`   |
+| Produção | Supabase   | `cvapazgvtlijxaxuqocm`                                       | —                             |
+| Produção | Vercel     | projeto `b2b-prod` (NÃO linkado localmente por padrão)       | `app.olharsingular.com`       |
+
+**Pegadinha do Supabase CLI:** comandos como `make db-push`, `make fn-deploy-all`, `make gen-types-remote` operam no projeto que estiver **atualmente linkado** via `supabase link`. Sempre rodar `supabase projects list` (linha com asterisco indica o linkado) antes de qualquer push. Trocar de ambiente:
+
+```bash
+supabase link --project-ref xnmxdnhvcrpckpbqblzx   # staging
+supabase link --project-ref cvapazgvtlijxaxuqocm   # produção
+```
+
+**Pegadinha do Vercel CLI:** o `.vercel/project.json` versionado aponta para `b2b-staging`. Para operar em prod sem mexer no arquivo: usar `vercel link --project b2b-prod` em outro diretório/worktree, ou clonar o repo num path dedicado a prod. **Nunca** sobrescrever o `.vercel/project.json` no checkout principal.
 
 **Regras de acesso:**
 
-- Operações destrutivas (migrations, `db push`, deploy de produção, edição de env vars) **só com confirmação explícita do usuário**.
-- Leituras (consultar tabelas, listar deployments, ver logs, baixar env) podem ser feitas direto.
-- Não existe ambiente de produção configurado aqui ainda — não inventar refs/URLs.
+- **Staging**: operações destrutivas (migrations, `db push`, edição de env vars, fn deploy) **só com confirmação explícita do usuário**. Leituras (consultar tabelas, listar deployments, ver logs, baixar env) podem ser feitas direto.
+- **Produção**: regra de staging vale em dobro. Antes de qualquer escrita em prod, **pedir confirmação dupla** e mostrar diff/efeito. Promoção de deploy, mudança de domínio, edição de env var, `db push` e `fn deploy` em prod nunca acontecem sem o usuário pedir explicitamente.
+- Sem ambiente de QA separado de staging — não inventar refs nem URLs.
 
 ## MCP Servers
 

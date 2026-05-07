@@ -17,6 +17,8 @@ const DEFAULT_ALLOWED = [
   "https://staging.olharsingular.com",
   "https://app.olharsingular.com",
   "https://olharsingular.com",
+  "https://www.olharsingular.com",
+  "https://orienta-aula-seu-guia-pedag-gico.vercel.app",
 ];
 
 function getAllowList(): string[] {
