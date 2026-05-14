@@ -21,6 +21,7 @@ import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import { Type, Database, FileUp, Crop, Search, Check, Loader2, X, Image as ImageIcon } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import type { SelectedQuestion } from "../../AdaptationWizard";
+import { renderQuestionForAi } from "@/lib/questionType";
 
 type Props = {
   value: string;
@@ -87,7 +88,7 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
   const fetchBankQuestions = useCallback(async () => {
     setBankLoading(true);
     let query = (supabase.from as any)("question_bank")
-      .select("id, text, subject, topic, difficulty, image_url, options")
+      .select("id, text, subject, topic, difficulty, image_url, options, correct_answer, type, payload")
       .order("created_at", { ascending: false })
       .limit(50);
     if (bankSearch.trim()) {
@@ -128,20 +129,24 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
       subject: q.subject,
       topic: q.topic,
       difficulty: q.difficulty,
+      type: (q as { type?: string | null }).type ?? null,
+      payload: (q as { payload?: unknown }).payload ?? null,
     }));
     // Merge with existing, avoiding duplicates
     const existingIds = new Set(selectedQuestions.map((q) => q.id));
     const merged = [...selectedQuestions, ...newQuestions.filter((q) => !existingIds.has(q.id))];
     onSelectedQuestionsChange(merged);
-    // Also update text
+    // Also update text — serializa com payload tipado pra preservar V/F, lacunas, matching, etc.
     const text = merged
-      .map((q, i) => {
-        let questionText = `${i + 1}) ${q.text}`;
-        if (q.options && Array.isArray(q.options)) {
-          questionText += "\n" + q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}) ${o}`).join("\n");
-        }
-        return questionText;
-      })
+      .map((q, i) =>
+        renderQuestionForAi({
+          text: q.text,
+          type: q.type,
+          options: q.options,
+          payload: q.payload,
+          prefix: `${i + 1})`,
+        }),
+      )
       .join("\n\n");
     onChange(text);
     setShowBankModal(false);
@@ -153,13 +158,15 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
     const updated = selectedQuestions.filter((q) => q.id !== id);
     onSelectedQuestionsChange(updated);
     const text = updated
-      .map((q, i) => {
-        let questionText = `${i + 1}) ${q.text}`;
-        if (q.options && Array.isArray(q.options)) {
-          questionText += "\n" + q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}) ${o}`).join("\n");
-        }
-        return questionText;
-      })
+      .map((q, i) =>
+        renderQuestionForAi({
+          text: q.text,
+          type: q.type,
+          options: q.options,
+          payload: q.payload,
+          prefix: `${i + 1})`,
+        }),
+      )
       .join("\n\n");
     onChange(text);
   };
@@ -194,13 +201,16 @@ export default function StepActivityInput({ value, onChange, selectedQuestions, 
         return;
       }
       const text = questions
-        .map((q: any, i: number) => {
-          let t = `${i + 1}) ${q.text}`;
-          if (q.options?.length) {
-            t += "\n" + q.options.map((o: string, j: number) => `   ${String.fromCharCode(65 + j)}) ${o}`).join("\n");
-          }
-          return t;
-        })
+        .map((q: any, i: number) =>
+          renderQuestionForAi({
+            text: q.text ?? "",
+            type: q.type,
+            options: q.options,
+            correct_answer: q.correct_answer,
+            payload: q.payload,
+            prefix: `${i + 1})`,
+          }),
+        )
         .join("\n\n");
       onChange(value ? value + "\n\n" + text : text);
       toast({ title: `${questions.length} questão(ões) extraída(s) do arquivo!` });

@@ -190,6 +190,16 @@ export type SelectedQuestion = {
   subject: string;
   topic: string | null;
   difficulty: string | null;
+  /**
+   * Tipo discriminado vindo do banco (multiple_choice, true_false, fill_blank, etc.).
+   * `undefined`/`null` em linhas legadas pré-migration.
+   */
+  type?: string | null;
+  /**
+   * Payload tipado serializado em JSONB pra tipos novos (V/F, lacunas, matching, ordering, table).
+   * `null`/`undefined` pra multiple_choice/open_ended (que ainda usam `options` + `correct_answer`).
+   */
+  payload?: unknown;
 };
 
 // Type guard — validates that sections contain question arrays
