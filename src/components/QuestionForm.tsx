@@ -20,12 +20,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserSchool } from "@/hooks/useUserSchool";
 import { toast } from "@/hooks/use-toast";
-import { Plus, X, Upload, Loader2, Search } from "lucide-react";
+import { X, Upload, Loader2 } from "lucide-react";
 import { dataUrlToBlob } from "@/lib/extraction-utils";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import GradeSelect from "@/components/question-bank/GradeSelect";
 import { renderMathToHtml, hasMathContent } from "@/lib/latexRenderer";
 import "katex/dist/katex.min.css";
+import TypedQuestionEditor from "@/components/question-bank/TypedQuestionEditor";
+import {
+  inferLegacyType,
+  parsePayload,
+  serializePayloadForDb,
+  emptyPayloadFor,
+  type BankQuestionType,
+  type QuestionPayload,
+} from "@/lib/questionType";
 
 function MathPreview({ text }: { text: string }) {
   const html = useMemo(() => renderMathToHtml(text), [text]);
@@ -67,9 +76,10 @@ export default function QuestionForm({
   const [grade, setGrade] = useState<string | null>(null);
   const [topic, setTopic] = useState("");
   const [difficulty, setDifficulty] = useState("medio");
-  const [questionType, setQuestionType] = useState<"objetiva" | "dissertativa">("dissertativa");
+  const [bankType, setBankType] = useState<BankQuestionType>("open_ended");
   const [options, setOptions] = useState<string[]>([]);
   const [correctAnswer, setCorrectAnswer] = useState<number | null>(null);
+  const [payload, setPayload] = useState<QuestionPayload | null>(null);
   const [resolution, setResolution] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -87,19 +97,31 @@ export default function QuestionForm({
       setImageUrl(question.image_url || null);
       setImagePreview(question.image_url || null);
 
+      const resolvedType = inferLegacyType({
+        type: question.type ?? null,
+        options: question.options,
+      });
+      setBankType(resolvedType);
+
       const hasOptions = Array.isArray(question.options) && question.options.length > 0;
       setOptions(hasOptions ? question.options : []);
       setCorrectAnswer(question.correct_answer ?? null);
-      setQuestionType(hasOptions ? "objetiva" : "dissertativa");
+
+      if (resolvedType === "multiple_choice" || resolvedType === "open_ended") {
+        setPayload(null);
+      } else {
+        setPayload(parsePayload(resolvedType, question.payload ?? null));
+      }
     } else {
       setText("");
       setSubject(defaultSubject || "");
       setGrade(defaultGrade);
       setTopic("");
       setDifficulty("medio");
-      setQuestionType("dissertativa");
+      setBankType("open_ended");
       setOptions([]);
       setCorrectAnswer(null);
+      setPayload(null);
       setResolution("");
       setImageUrl(null);
       setImagePreview(null);
@@ -152,28 +174,31 @@ export default function QuestionForm({
         }
       }
 
-      const payload: any = {
+      const isMultipleChoice = bankType === "multiple_choice";
+      const row: any = {
         text: text.trim(),
         subject,
         grade: grade || null,
         topic: topic || null,
         difficulty,
-        options: questionType === "objetiva" && options.length > 0 ? options : null,
-        correct_answer: questionType === "objetiva" ? correctAnswer : null,
+        options: isMultipleChoice && options.length > 0 ? options : null,
+        correct_answer: isMultipleChoice ? correctAnswer : null,
         resolution: resolution || null,
         image_url: finalImageUrl,
         source: "manual",
+        type: bankType,
+        payload: serializePayloadForDb(payload),
       };
 
       let error;
       if (question?.id) {
         ({ error } = await (supabase.from as any)("question_bank")
-          .update(payload)
+          .update(row)
           .eq("id", question.id));
       } else {
-        payload.created_by = user!.id;
-        payload.school_id = schoolId;
-        ({ error } = await (supabase.from as any)("question_bank").insert(payload));
+        row.created_by = user!.id;
+        row.school_id = schoolId;
+        ({ error } = await (supabase.from as any)("question_bank").insert(row));
       }
 
       if (error) throw error;
@@ -269,67 +294,33 @@ export default function QuestionForm({
             </div>
           </div>
 
-          {/* Question type toggle */}
-          <div>
-            <Label>Tipo de Questão</Label>
-            <Select value={questionType} onValueChange={(v) => setQuestionType(v as "objetiva" | "dissertativa")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dissertativa">Dissertativa</SelectItem>
-                <SelectItem value="objetiva">Objetiva (múltipla escolha)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Options (only for objetiva) */}
-          {questionType === "objetiva" && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label>Alternativas</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setOptions([...options, ""])}>
-                  <Plus className="w-3 h-3 mr-1" /> Adicionar
-                </Button>
-              </div>
-              {options.length === 0 && (
-                <p className="text-xs text-muted-foreground">Clique em "Adicionar" para criar alternativas.</p>
-              )}
-              {options.map((opt, i) => (
-                <div key={i} className="flex gap-2 mb-2">
-                  <Input
-                    value={opt}
-                    onChange={(e) => {
-                      const n = [...options];
-                      n[i] = e.target.value;
-                      setOptions(n);
-                    }}
-                    placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={correctAnswer === i ? "default" : "outline"}
-                    onClick={() => setCorrectAnswer(correctAnswer === i ? null : i)}
-                    className="shrink-0"
-                  >
-                    {correctAnswer === i ? "✓" : String.fromCharCode(65 + i)}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setOptions(options.filter((_, j) => j !== i));
-                      if (correctAnswer === i) setCorrectAnswer(null);
-                      else if (correctAnswer !== null && correctAnswer > i)
-                        setCorrectAnswer(correctAnswer - 1);
-                    }}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Type + body (alternativas, V/F, lacunas, matching, ordering, table) */}
+          <TypedQuestionEditor
+            state={{
+              type: bankType,
+              options,
+              correct_answer: correctAnswer,
+              payload,
+            }}
+            editing
+            onChange={(patch) => {
+              if (patch.type !== undefined) setBankType(patch.type);
+              if (patch.options !== undefined) setOptions(patch.options ?? []);
+              if (patch.correct_answer !== undefined) {
+                setCorrectAnswer(patch.correct_answer ?? null);
+              }
+              if (patch.payload !== undefined) setPayload(patch.payload ?? null);
+              // Inicializa payload vazio ao trocar pra tipo que precisa de payload
+              if (
+                patch.type !== undefined &&
+                patch.type !== "multiple_choice" &&
+                patch.type !== "open_ended" &&
+                patch.payload === undefined
+              ) {
+                setPayload(emptyPayloadFor(patch.type));
+              }
+            }}
+          />
 
           {/* Resolution */}
           <div>

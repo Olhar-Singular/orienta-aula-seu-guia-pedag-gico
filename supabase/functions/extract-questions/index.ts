@@ -12,19 +12,36 @@ Images may have 2-3 columns, figures, tables, and multiple questions per page.
 RULES:
 - Read the image left column top-to-bottom, then right column top-to-bottom
 - Extract EVERY question visible — never stop after the first one
-- Each question must include: number, source, statement, alternatives (a-e), subject, topic
+- Each question must include: statement (enunciado), subject, topic, and a "type"
 - If a question has a figure/diagram, set has_figure to true and provide the bounding box
 - Preserve all units and math symbols exactly (m/s², 10⁸, etc)
 - Ignore headers, footers, school name, teacher name, watermarks
 
-Additional rules:
-- "options": extract alternatives as array of strings
-- "correct_answer": if answer key is in the document use it; otherwise SOLVE it. Index: 0=A, 1=B, 2=C, 3=D, 4=E. Use -1 only if impossible.
+Question types — pick ONE per question:
+- "multiple_choice": uma resposta correta entre alternativas (a, b, c, d, e). Use options + correct_answer.
+- "multiple_answer": múltiplas respostas corretas (checkboxes [x]/[ ]). Use payload.check_items = [{ text, checked }].
+- "open_ended": dissertativa/aberta, sem alternativas. payload pode ser omitido.
+- "fill_blank": enunciado com lacuna(s) (___ ou ______). Use payload.blank_placeholder (texto que substitui a lacuna) e payload.expected_answer (resposta esperada, se conhecida).
+- "true_false": lista de afirmações para marcar V/F. Use payload.tf_items = [{ text, marked }] onde marked é true (V), false (F) ou null (desconhecido).
+- "matching": associar colunas/pares (formato "a -- b" ou colunas paralelas). Use payload.match_pairs = [{ left, right }].
+- "ordering": ordenar itens numerados ([1], [2], [3]). Use payload.order_items = [{ n, text }].
+- "table": questão centrada em uma tabela de células. Use payload.table_rows = string[][] (linhas de strings).
+
+Other fields:
+- "options": apenas para multiple_choice (array de strings).
+- "correct_answer": apenas para multiple_choice. 0=A, 1=B, 2=C, 3=D, 4=E. -1 se desconhecido.
+- "payload": estrutura tipada conforme acima. Ausente para multiple_choice/open_ended.
 - "resolution": short explanation (1-3 sentences)
 - "has_figure": true if question has associated figure/diagram/graph/table/image
 - "figure_description": describe what the figure shows
 - "image_page": which page image (1-indexed) contains the figure. 0 if no figure.
-- "figure_bbox": normalized bounding box (0.0 to 1.0) relative to page: { "x": left, "y": top, "width": width, "height": height }`;
+- "figure_bbox": normalized bounding box (0.0 to 1.0) relative to page: { "x": left, "y": top, "width": width, "height": height }
+
+Heurísticas:
+- Marcadores como "(V)", "(F)", "( )" → true_false.
+- "_____" ou "___" no meio do enunciado → fill_blank.
+- Alternativas marcadas com [ ] ou [x] em vez de a/b/c/d → multiple_answer.
+- Quando incerto, prefira multiple_choice (se houver options) ou open_ended.`;
 
 const EXTRACT_PROMPT = `Extraia todas as questões deste documento/imagem. Para cada questão extraia todos os campos solicitados pela função save_questions. Seja meticuloso: extraia TODAS as questões visíveis.`;
 
@@ -44,8 +61,74 @@ const TOOL_SCHEMA = {
               text: { type: "string", description: "Full question text / enunciado completo" },
               subject: { type: "string", description: "Subject area (Física, Matemática, etc)" },
               topic: { type: "string", description: "Specific topic" },
-              options: { type: "array", items: { type: "string" }, description: "Answer alternatives" },
-              correct_answer: { type: "integer", description: "0-based index of correct answer. -1 if unknown" },
+              type: {
+                type: "string",
+                enum: [
+                  "multiple_choice",
+                  "multiple_answer",
+                  "open_ended",
+                  "fill_blank",
+                  "true_false",
+                  "matching",
+                  "ordering",
+                  "table",
+                ],
+                description: "Question type discriminator. See system prompt for rules.",
+              },
+              options: { type: "array", items: { type: "string" }, description: "Alternativas para multiple_choice apenas" },
+              correct_answer: { type: "integer", description: "0-based index para multiple_choice. -1 se desconhecido" },
+              payload: {
+                type: "object",
+                description: "Estrutura tipada conforme type. Ver system prompt.",
+                properties: {
+                  blank_placeholder: { type: "string" },
+                  expected_answer: { type: "string" },
+                  tf_items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string" },
+                        marked: { type: ["boolean", "null"] },
+                      },
+                    },
+                  },
+                  check_items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        text: { type: "string" },
+                        checked: { type: "boolean" },
+                      },
+                    },
+                  },
+                  match_pairs: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        left: { type: "string" },
+                        right: { type: "string" },
+                      },
+                    },
+                  },
+                  order_items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        n: { type: "integer" },
+                        text: { type: "string" },
+                      },
+                    },
+                  },
+                  table_rows: {
+                    type: "array",
+                    items: { type: "array", items: { type: "string" } },
+                  },
+                },
+              },
               resolution: { type: "string", description: "Short explanation (1-3 sentences)" },
               has_figure: { type: "boolean", description: "Whether question has an associated figure" },
               figure_description: { type: "string", description: "Description of the figure" },
@@ -61,7 +144,7 @@ const TOOL_SCHEMA = {
                 description: "Normalized bounding box (0.0-1.0) of the figure on the page",
               },
             },
-            required: ["text", "subject"],
+            required: ["text", "subject", "type"],
           },
         },
       },

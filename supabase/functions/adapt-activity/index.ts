@@ -265,6 +265,15 @@ REGRAS DE FORMATAÇÃO
 4. NUNCA use asteriscos (**) ou nenhum marcador markdown no texto.
 5. NUNCA escreva comandos LaTeX sem delimitadores $...$. Sempre use $...$
 
+PRESERVAÇÃO DE TIPO DE QUESTÃO
+Quando o input incluir marcadores de tipo como [Verdadeiro/Falso], [Lacuna: ___], [Múltipla Resposta], [Associar Colunas], [Ordenar] ou [Tabela], PRESERVE o tipo na adaptação. Adapte apenas o conteúdo (linguagem, scaffolding, complexidade) — NÃO converta um tipo em outro.
+- [Verdadeiro/Falso] → mantenha como V/F na saída, usando ( ) antes de cada afirmação.
+- [Lacuna: ___] → mantenha como "Complete:" com ___ no enunciado e [banco: ...] opcional.
+- [Múltipla Resposta] → mantenha como lista com [x] / [ ] (múltiplas corretas).
+- [Associar Colunas] → mantenha como pares "a -- b".
+- [Ordenar] → mantenha como itens numerados [1], [2], [3].
+- [Tabela] → mantenha como tabela com células | a | b |.
+
 FORMATO DE RESPOSTA OBRIGATÓRIO
 Responda EXATAMENTE com as 5 seções abaixo, separadas pelos marcadores ===.
 ATENÇÃO: As seções ===VERSAO_UNIVERSAL=== e ===VERSAO_DIRECIONADA=== devem conter APENAS questões numeradas no formato DSL abaixo. Nenhum texto de prosa, passo a passo, parágrafo explicativo ou guia narrativo — apenas questões e apoios.

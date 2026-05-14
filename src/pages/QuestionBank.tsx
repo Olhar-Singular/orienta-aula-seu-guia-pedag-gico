@@ -66,6 +66,16 @@ import {
 import { parsePdf, type PdfParseResult } from "@/lib/pdf-utils";
 import { extractDocxText, extractDocxWithImages } from "@/lib/docx-utils";
 import { autoCropFromBbox, normalizeTextForDedup, dataUrlToBlob } from "@/lib/extraction-utils";
+import {
+  refineTypeHeuristic,
+  parsePayload,
+  serializePayloadForDb,
+  emptyPayloadFor,
+  QUESTION_TYPE_BANK_LABELS,
+  type BankQuestionType,
+  type QuestionPayload,
+} from "@/lib/questionType";
+import TypedQuestionEditor from "@/components/question-bank/TypedQuestionEditor";
 
 type Question = {
   id: string;
@@ -102,6 +112,10 @@ type ExtractedQuestion = {
   savedId?: string;
   difficulty?: string;
   editing?: boolean;
+  /** Tipo discriminado (multiple_choice, true_false, etc.) */
+  type?: BankQuestionType;
+  /** Payload tipado para tipos novos (V/F, lacunas, etc.). multiple_choice/open_ended usam options + correct_answer. */
+  payload?: QuestionPayload | null;
   /** Fingerprint at time of duplicate detection */
   originalFingerprint?: string;
 };
@@ -213,6 +227,7 @@ export default function QuestionBank() {
   } | null>(null);
   const [showReviewPreview, setShowReviewPreview] = useState(false);
   const [reviewPreviewMode, setReviewPreviewMode] = useState<PreviewMode>(null);
+  const [discardConfirmIndex, setDiscardConfirmIndex] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -401,8 +416,11 @@ export default function QuestionBank() {
             console.warn("Auto-crop failed:", e);
           }
         }
+        const text = q.text || "";
+        const refinedType = refineTypeHeuristic({ type: q.type, text, options: q.options });
+        const payload = parsePayload(refinedType, q.payload);
         processed.push({
-          text: q.text || "",
+          text,
           subject: q.subject || "Geral",
           topic: q.topic || undefined,
           options: q.options || undefined,
@@ -414,6 +432,8 @@ export default function QuestionBank() {
           figure_bbox: q.figure_bbox || undefined,
           imageUrl,
           selected: true,
+          type: refinedType,
+          payload,
         });
       }
 
@@ -483,6 +503,8 @@ export default function QuestionBank() {
         source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
         source_file_name: uploadFile?.name || null,
         image_url: imageUrl,
+        type: q.type ?? null,
+        payload: serializePayloadForDb(q.payload ?? null),
         created_by: user.id,
         school_id: schoolId,
       };
@@ -637,6 +659,52 @@ export default function QuestionBank() {
     }));
   };
 
+  const discardExtracted = (i: number) => {
+    setExtractedQuestions((prev) => prev.filter((_, idx) => idx !== i));
+    setDiscardConfirmIndex(null);
+  };
+
+  /**
+   * Atualiza state tipado (type/options/correct_answer/payload) vindo do TypedQuestionEditor.
+   * Mantém o fingerprint check de duplicada coerente com edições de texto/options/correct_answer.
+   */
+  const updateExtractedTyped = (
+    qi: number,
+    patch: Partial<{
+      type: BankQuestionType;
+      options?: string[];
+      correct_answer?: number | null;
+      payload?: QuestionPayload | null;
+    }>,
+  ) => {
+    setExtractedQuestions((prev) =>
+      prev.map((q, idx) => {
+        if (idx !== qi) return q;
+        const updated: ExtractedQuestion = {
+          ...q,
+          ...(patch.type !== undefined ? { type: patch.type } : {}),
+          ...(patch.options !== undefined ? { options: patch.options } : {}),
+          ...(patch.correct_answer !== undefined
+            ? { correct_answer: patch.correct_answer ?? undefined }
+            : {}),
+          ...(patch.payload !== undefined ? { payload: patch.payload } : {}),
+        };
+        if (
+          updated.isDuplicate &&
+          updated.originalFingerprint &&
+          (patch.options !== undefined || patch.correct_answer !== undefined)
+        ) {
+          const newFp = questionFingerprint(updated);
+          if (newFp !== updated.originalFingerprint) {
+            updated.isDuplicate = false;
+            updated.selected = true;
+          }
+        }
+        return updated;
+      }),
+    );
+  };
+
   const selectedCount = extractedQuestions.filter((q) => q.selected && !q.saved).length;
   const savedCount = extractedQuestions.filter((q) => q.saved).length;
 
@@ -714,8 +782,8 @@ export default function QuestionBank() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
-                      checked={q.selected || q.saved}
-                      onCheckedChange={(v) => !q.saved && updateExtracted(i, "selected", !!v)}
+                      checked={Boolean(q.selected) || Boolean(q.saved)}
+                      onCheckedChange={(v) => !q.saved && updateExtracted(i, "selected", v === true)}
                       disabled={q.saved}
                       aria-label={`Selecionar questão ${i + 1}`}
                     />
@@ -759,6 +827,17 @@ export default function QuestionBank() {
                               }}
                             >
                               Forçar inclusão
+                            </Button>
+                          )}
+                          {!q.saved && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setDiscardConfirmIndex(i)}
+                              aria-label={`Descartar questão ${i + 1}`}
+                              title="Descartar questão"
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
                             </Button>
                           )}
                         </div>
@@ -869,35 +948,17 @@ export default function QuestionBank() {
                         </div>
                       </div>
 
-                      {/* Options + answer */}
-                      {q.options && q.options.length > 0 && (
-                        <div>
-                          <Label className="text-xs">Alternativas</Label>
-                          <div className="space-y-1 mt-1">
-                            {q.options.map((opt: string, j: number) => (
-                              <div key={j} className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  variant={q.correct_answer === j ? "default" : "outline"}
-                                  className="w-8 h-7 text-xs shrink-0"
-                                  onClick={() => q.editing && updateExtracted(i, "correct_answer", q.correct_answer === j ? -1 : j)}
-                                  disabled={!q.editing}
-                                >
-                                  {String.fromCharCode(65 + j)}
-                                </Button>
-                                <span className={`text-sm ${q.correct_answer === j ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                                  {opt}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                          {q.editing && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
-                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      {/* Type + payload editor (multiple_choice e demais tipos) */}
+                      <TypedQuestionEditor
+                        state={{
+                          type: q.type ?? (q.options && q.options.length > 0 ? "multiple_choice" : "open_ended"),
+                          options: q.options,
+                          correct_answer: q.correct_answer ?? null,
+                          payload: q.payload ?? null,
+                        }}
+                        editing={!!q.editing}
+                        onChange={(patch) => updateExtractedTyped(i, patch)}
+                      />
 
                       {/* Resolution */}
                       <div>
@@ -936,6 +997,29 @@ export default function QuestionBank() {
               Salvar todas ({selectedCount})
             </Button>
           </div>
+
+          <AlertDialog
+            open={discardConfirmIndex !== null}
+            onOpenChange={(open) => { if (!open) setDiscardConfirmIndex(null); }}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Descartar questão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta questão será removida da lista de revisão. Você pode reextrair do arquivo se mudar de ideia.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => discardConfirmIndex !== null && discardExtracted(discardConfirmIndex)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Descartar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
         <PdfPreviewModal
@@ -1161,6 +1245,7 @@ export default function QuestionBank() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </>
   );
 }
