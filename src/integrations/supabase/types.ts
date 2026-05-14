@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.4"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -534,10 +554,13 @@ export type Database = {
           created_at: string | null
           created_by: string
           difficulty: string | null
+          figure_description: string | null
+          grade: string | null
           id: string
           image_url: string | null
           is_public: boolean | null
           options: Json | null
+          payload: Json | null
           resolution: string | null
           school_id: string | null
           source: string | null
@@ -545,6 +568,7 @@ export type Database = {
           subject: string
           text: string
           topic: string | null
+          type: string | null
           updated_at: string | null
         }
         Insert: {
@@ -552,10 +576,13 @@ export type Database = {
           created_at?: string | null
           created_by: string
           difficulty?: string | null
+          figure_description?: string | null
+          grade?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean | null
           options?: Json | null
+          payload?: Json | null
           resolution?: string | null
           school_id?: string | null
           source?: string | null
@@ -563,6 +590,7 @@ export type Database = {
           subject: string
           text: string
           topic?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -570,10 +598,13 @@ export type Database = {
           created_at?: string | null
           created_by?: string
           difficulty?: string | null
+          figure_description?: string | null
+          grade?: string | null
           id?: string
           image_url?: string | null
           is_public?: boolean | null
           options?: Json | null
+          payload?: Json | null
           resolution?: string | null
           school_id?: string | null
           source?: string | null
@@ -581,6 +612,7 @@ export type Database = {
           subject?: string
           text?: string
           topic?: string | null
+          type?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -592,6 +624,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      question_empty_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          grade: string | null
+          id: string
+          school_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          grade?: string | null
+          id?: string
+          school_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          grade?: string | null
+          id?: string
+          school_id?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_empty_folders_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_folder_prefs: {
+        Row: {
+          display_order: number
+          folder_key: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          display_order?: number
+          folder_key: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          display_order?: number
+          folder_key?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       rate_limits: {
         Row: {
@@ -839,6 +930,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_question_folders: {
+        Args: { p_grade?: string; p_level: string }
+        Returns: {
+          folder_count: number
+          folder_key: string
+          last_at: string
+        }[]
+      }
       get_school_id_by_code: { Args: { _code: string }; Returns: string }
       get_shared_adaptation: {
         Args: { p_token: string }
@@ -1006,7 +1105,11 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
 } as const
+
