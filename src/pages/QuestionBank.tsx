@@ -51,6 +51,7 @@ import FilePreviewModal from "@/components/FilePreviewModal";
 import ImagePreviewDialog from "@/components/ImagePreviewDialog";
 import ManualQuestionEditor from "@/components/ManualQuestionEditor";
 import QuestionBankFolderView from "@/components/question-bank/QuestionBankFolderView";
+import { useQuestions } from "@/hooks/useQuestions";
 import { detectFileType } from "@/lib/fileValidation";
 import { resolveUniqueFileName } from "@/lib/fileNameUtils";
 import {
@@ -177,9 +178,9 @@ export default function QuestionBank() {
 
   const [activeTab, setActiveTab] = useState("provas");
 
-  // Main list state — mantido apenas para dedup na extração e badge de contagem.
-  // Filtros e busca agora vivem dentro de QuestionBankFolderView.
-  const [questions, setQuestions] = useState<Question[]>([]);
+  // Lista global de questões via TanStack Query — participa do mesmo cache
+  // que QuestionBankFolderView, então o badge atualiza ao deletar/criar.
+  const { questions, refetch: refetchQuestions } = useQuestions();
 
   // PDF uploads history
   const [pdfUploads, setPdfUploads] = useState<PdfUpload[]>([]);
@@ -216,15 +217,11 @@ export default function QuestionBank() {
   const fileRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Fetch existing questions (para dedup na extração e badge de count) ───
+  // Wrapper para callsites que ainda chamam fetchQuestions (extração, save, etc).
+  // Reaproveita o refetch do TanStack Query.
   const fetchQuestions = useCallback(async () => {
-    if (!user) return;
-    const { data, error } = await (supabase.from as any)("question_bank")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
-    else setQuestions(data || []);
-  }, [user]);
+    await refetchQuestions();
+  }, [refetchQuestions]);
 
   // ─── Fetch PDF uploads history ───
   const fetchUploads = useCallback(async () => {
@@ -237,7 +234,7 @@ export default function QuestionBank() {
     setLoadingUploads(false);
   }, [user]);
 
-  useEffect(() => { fetchQuestions(); fetchUploads(); }, [fetchQuestions, fetchUploads]);
+  useEffect(() => { fetchUploads(); }, [fetchUploads]);
 
   // Timer for extraction
   useEffect(() => {

@@ -88,7 +88,21 @@ export default function ClassDetail() {
       queryClient.invalidateQueries({ queryKey: ["class-students", id] });
       toast.success("Aluno removido.");
     },
-    onError: () => toast.error("Erro ao remover aluno."),
+    onError: (err: any) => {
+      const code = err?.code as string | undefined;
+      if (code === "23503") {
+        toast.error(
+          "Este aluno tem adaptações registradas no histórico e não pode ser removido. Os dados foram preservados para manter o histórico do aluno.",
+        );
+        return;
+      }
+      if (code === "42501") {
+        toast.error("Você não tem permissão para remover este aluno.");
+        return;
+      }
+      const detail = err?.message ?? "tente novamente em alguns instantes";
+      toast.error(`Não foi possível remover o aluno: ${detail}.`);
+    },
   });
 
   const handleCsvImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

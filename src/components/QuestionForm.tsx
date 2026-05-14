@@ -129,8 +129,21 @@ export default function QuestionForm({
   };
 
   const handleSave = async () => {
-    if (!text.trim() || !subject) {
-      toast({ title: "Preencha o enunciado e a matéria.", variant: "destructive" });
+    if (!text.trim()) {
+      toast({ title: "Preencha o enunciado.", variant: "destructive" });
+      return;
+    }
+    const isNew = !question?.id;
+    if (isNew && (!grade || !subject)) {
+      toast({
+        title: "Selecione uma pasta",
+        description: "Escolha a série e a matéria para organizar a questão.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!subject) {
+      toast({ title: "Selecione a matéria.", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -237,7 +250,7 @@ export default function QuestionForm({
           </div>
 
           {/* Série */}
-          <GradeSelect value={grade} onChange={setGrade} />
+          <GradeSelect value={grade} onChange={setGrade} required={!question?.id} />
 
           {/* Subject / Topic / Difficulty */}
           <div className="grid grid-cols-3 gap-4">
