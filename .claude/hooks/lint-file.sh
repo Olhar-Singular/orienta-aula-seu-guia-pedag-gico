@@ -52,9 +52,12 @@ if docker compose ps --status running 2>/dev/null | grep -q 'app'; then
   container_file="${file/#$CLAUDE_PROJECT_DIR/\/app}"
   output=$(docker compose exec -T app npx eslint "$container_file" --fix 2>&1)
   status=$?
-else
-  output=$(npx eslint "$file" --fix 2>&1)
+elif [ -f node_modules/.bin/eslint ]; then
+  output=$(node_modules/.bin/eslint "$file" --fix 2>&1)
   status=$?
+else
+  # node_modules não instalado no host (projeto usa Docker) — pula
+  exit 0
 fi
 
 if [ $status -ne 0 ]; then

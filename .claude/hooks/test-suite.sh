@@ -43,10 +43,13 @@ if docker compose ps --status running 2>/dev/null | grep -q 'app'; then
   output=$(docker compose exec -T app sh -c \
     "NODE_OPTIONS='--max-old-space-size=19456' npx vitest --changed --run --reporter=dot --passWithNoTests" 2>&1)
   status=$?
-else
+elif [ -f node_modules/.bin/vitest ]; then
   output=$(NODE_OPTIONS='--max-old-space-size=19456' \
-    npx vitest --changed --run --reporter=dot --passWithNoTests 2>&1)
+    node_modules/.bin/vitest --changed --run --reporter=dot --passWithNoTests 2>&1)
   status=$?
+else
+  # node_modules não instalado no host (projeto usa Docker) — pula
+  exit 0
 fi
 
 if [ $status -ne 0 ]; then
