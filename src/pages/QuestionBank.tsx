@@ -85,6 +85,7 @@ type Question = {
 };
 
 type ExtractedQuestion = {
+  uid: string;
   text: string;
   subject: string;
   topic?: string;
@@ -399,12 +400,14 @@ export default function QuestionBank() {
           }
         }
         processed.push({
+          uid: `eq-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           text: q.text || "",
           subject: q.subject || "Geral",
           topic: q.topic || undefined,
           options: q.options || undefined,
           correct_answer: q.correct_answer != null ? q.correct_answer : undefined,
           resolution: q.resolution || undefined,
+          difficulty: q.difficulty || undefined,
           has_figure: q.has_figure || false,
           figure_description: q.figure_description || undefined,
           image_page: q.image_page || undefined,
@@ -447,7 +450,9 @@ export default function QuestionBank() {
     const isDup = questions.some((existing) => normalizeTextForDedup(existing.text) === normText);
     if (isDup) {
       toast({ title: "Questão duplicada", description: "Já existe uma questão com o mesmo enunciado no banco.", variant: "destructive" });
-      updateExtracted(index, "isDuplicate", true);
+      setExtractedQuestions((prev) =>
+        prev.map((q2, idx) => idx === index ? { ...q2, isDuplicate: true, selected: false } : q2)
+      );
       return;
     }
 
@@ -474,9 +479,9 @@ export default function QuestionBank() {
         subject: q.subject,
         topic: q.topic || null,
         options: q.options || null,
-        correct_answer: q.correct_answer ?? null,
+        correct_answer: (q.correct_answer == null || q.correct_answer < 0) ? null : q.correct_answer,
         resolution: q.resolution || null,
-        difficulty: "medio",
+        difficulty: q.difficulty || "medio",
         source: uploadFile?.name.toLowerCase().endsWith(".pdf") ? "pdf_extract" : "docx_extract",
         source_file_name: uploadFile?.name || null,
         image_url: imageUrl,
@@ -508,10 +513,13 @@ export default function QuestionBank() {
       return;
     }
     setSaving(true);
-    for (const { i } of unsaved) {
-      await handleSaveOne(i);
+    try {
+      for (const { i } of unsaved) {
+        await handleSaveOne(i);
+      }
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -615,6 +623,9 @@ export default function QuestionBank() {
     }
   };
 
+  const removeFromList = (i: number) =>
+    setExtractedQuestions((prev) => prev.filter((_, idx) => idx !== i));
+
   const updateExtracted = (i: number, field: keyof ExtractedQuestion, value: any) => {
     setExtractedQuestions((prev) => prev.map((q, idx) => {
       if (idx !== i) return q;
@@ -640,6 +651,7 @@ export default function QuestionBank() {
   const handleFinishReview = () => {
     setShowReview(false);
     setExtractedQuestions([]);
+    setPageImages([]);
     if (savedCount > 0) {
       setActiveTab("questoes");
     }
@@ -707,11 +719,11 @@ export default function QuestionBank() {
 
           <div className="space-y-4">
             {extractedQuestions.map((q, i) => (
-              <Card key={i} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved && !q.isDuplicate ? "opacity-50" : ""}`}>
+              <Card key={q.uid} className={`transition-all ${q.saved ? "border-green-400 bg-green-50/50 dark:bg-green-900/10" : ""} ${q.isDuplicate && !q.saved ? "border-destructive/30 bg-destructive/5" : ""} ${!q.selected && !q.saved && !q.isDuplicate ? "opacity-50" : ""}`}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     <Checkbox
-                      checked={q.selected || q.saved}
+                      checked={!!(q.selected || q.saved)}
                       onCheckedChange={(v) => !q.saved && updateExtracted(i, "selected", !!v)}
                       disabled={q.saved}
                       aria-label={`Selecionar questão ${i + 1}`}
@@ -750,12 +762,25 @@ export default function QuestionBank() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                updateExtracted(i, "isDuplicate", false);
-                                updateExtracted(i, "selected", true);
-                              }}
+                              onClick={() =>
+                                setExtractedQuestions((prev) =>
+                                  prev.map((q2, idx) =>
+                                    idx === i ? { ...q2, isDuplicate: false, selected: true } : q2
+                                  )
+                                )
+                              }
                             >
                               Forçar inclusão
+                            </Button>
+                          )}
+                          {!q.saved && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeFromList(i)}
+                              aria-label={`Excluir questão ${i + 1} da lista`}
+                            >
+                              <Trash2 className="w-3 h-3 text-destructive" />
                             </Button>
                           )}
                         </div>
@@ -882,12 +907,59 @@ export default function QuestionBank() {
                                 >
                                   {String.fromCharCode(65 + j)}
                                 </Button>
-                                <span className={`text-sm ${q.correct_answer === j ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                                  {opt}
-                                </span>
+                                {q.editing ? (
+                                  <>
+                                    <Input
+                                      value={opt}
+                                      onChange={(e) => {
+                                        const next = [...(q.options as string[])];
+                                        next[j] = e.target.value;
+                                        updateExtracted(i, "options", next);
+                                      }}
+                                      className="h-7 text-sm flex-1"
+                                      aria-label={`Alternativa ${String.fromCharCode(65 + j)}`}
+                                    />
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={(q.options?.length ?? 0) <= 1}
+                                      onClick={() => {
+                                        const next = (q.options as string[]).filter((_, k) => k !== j);
+                                        const ca = q.correct_answer;
+                                        const newCa = ca === j ? -1 : ca != null && ca > j ? ca - 1 : ca;
+                                        setExtractedQuestions((prev) =>
+                                          prev.map((q2, idx) =>
+                                            idx !== i ? q2 : { ...q2, options: next, correct_answer: newCa ?? -1 }
+                                          )
+                                        );
+                                      }}
+                                      aria-label={`Remover alternativa ${String.fromCharCode(65 + j)}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <span className={`text-sm ${q.correct_answer === j ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                                    {opt}
+                                  </span>
+                                )}
                               </div>
                             ))}
                           </div>
+                          {q.editing && (q.options?.length ?? 0) < 5 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="mt-2 w-full"
+                              onClick={() => {
+                                const next = [...(q.options as string[]), ""];
+                                updateExtracted(i, "options", next);
+                              }}
+                              aria-label="Adicionar alternativa"
+                            >
+                              <Plus className="w-3 h-3 mr-1" /> Adicionar alternativa
+                            </Button>
+                          )}
                           {q.editing && (q.correct_answer == null || q.correct_answer === -1) && q.options.length > 0 && (
                             <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                               <AlertTriangle className="w-3 h-3" /> Sem gabarito definido — clique na letra correta
