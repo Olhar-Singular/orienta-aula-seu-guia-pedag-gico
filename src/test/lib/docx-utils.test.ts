@@ -132,4 +132,24 @@ describe("isDocxFile", () => {
     const file = makeFile([0x50, 0x4b]);
     await expect(isDocxFile(file)).resolves.toBe(false);
   });
+
+  it("returns false when FileReader fires onerror", async () => {
+    const OrigFileReader = global.FileReader;
+
+    class FaultyReader {
+      onerror: (() => void) | null = null;
+      onload: (() => void) | null = null;
+      readAsArrayBuffer() {
+        Promise.resolve().then(() => this.onerror?.());
+      }
+    }
+
+    global.FileReader = FaultyReader as any;
+    try {
+      const file = makeFile([0x50, 0x4b, 0x03, 0x04]);
+      await expect(isDocxFile(file)).resolves.toBe(false);
+    } finally {
+      global.FileReader = OrigFileReader;
+    }
+  });
 });
